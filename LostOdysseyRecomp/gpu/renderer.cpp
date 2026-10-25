@@ -6083,7 +6083,14 @@ void main()
                     return fmt::format("{} bytes exceed the {} MB cap; keeping the file", size, dpc::kMaxBytes >> 20);
                 }
                 std::vector<uint8_t> data;
-                if (!device->getPipelineCacheData(data) || data.size() <= previous) return {};
+                try {
+                    if (!device->getPipelineCacheData(data) || data.size() <= previous) return {};
+                } catch (const std::exception& e) {
+                    // The async caller polls future.get() on the render thread.
+                    // Release a partial blob before allocating the error text.
+                    std::vector<uint8_t>().swap(data);
+                    return fmt::format("driver cache export failed: {}", e.what());
+                }
                 if (!dpc::ShouldWrite(data.size(), previous)) {
                     driverCacheBytes = data.size(); // warn again only after it grows further
                     return fmt::format("{} bytes exceed the {} MB cap; keeping the file", data.size(), dpc::kMaxBytes >> 20);

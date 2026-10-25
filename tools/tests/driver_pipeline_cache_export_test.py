@@ -1,7 +1,7 @@
 """Exercise the renderer's cache writer with a fake driver and real cache files.
 
-No game assets or GPU are required. The production method is extracted, so the
-test covers the allocation decision before the backend exports its cache.
+No game assets or GPU are required. Production writer and async polling methods
+are extracted to cover allocation decisions and exporter error propagation.
 """
 import argparse
 from pathlib import Path
@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[2]
 PRELUDE = r'''
 #include <gpu/driver_pipeline_cache.h>
 #include <cstdio>
+#include <future>
+#include <new>
 #include <stdexcept>
 
 static void Check(bool value, const char* message) {
@@ -21,15 +23,18 @@ static void Check(bool value, const char* message) {
 namespace fmt {
 template<class... Args> std::string format(const char* text, Args&&...) { return text; }
 }
+static unsigned warnings = 0;
+#define LOG_WARNING(...) (++warnings)
 struct Driver {
     size_t reportedSize = 0;
     unsigned exports = 0;
-    bool exportAllowed = false, exportSucceeds = true;
+    bool exportAllowed = false, exportSucceeds = true, failAllocation = false;
     std::vector<uint8_t> payload{1, 2, 3, 4};
     size_t getPipelineCacheSize() const { return reportedSize; }
     bool getPipelineCacheData(std::vector<uint8_t>& data) {
         ++exports;
         Check(exportAllowed, "cache larger than the cap was exported before rejection");
+        if (failAllocation) throw std::bad_alloc();
         if (!exportSucceeds) return false;
         data = payload;
         return true;
@@ -39,6 +44,7 @@ struct Renderer {
     Driver* device;
     std::atomic<size_t> driverCacheBytes{0};
     std::filesystem::path driverCachePath;
+    std::future<std::string> driverCacheWrite;
 '''
 
 TAIL = r'''
@@ -95,8 +101,31 @@ int main(int argc, char** argv) try {
     Check(renderer.WriteDriverPipelineCache().empty(), "failed export returned an error");
     Check(driver.exports == 3 && contents() == driver.payload, "failed export changed the file");
     Check(renderer.driverCacheBytes == previous, "failed export changed the remembered size");
+
+    // Export allocates even for a cache below the cap. Its allocation failure
+    // must become an error result, including when the render thread polls a
+    // completed background save (that future.get() is outside its try block).
+    driver.exportSucceeds = true;
+    driver.failAllocation = true;
+    renderer.SaveDriverPipelineCache(false);
+    Check(renderer.driverCacheWrite.valid(), "background writer did not start");
+    renderer.driverCacheWrite.wait();
+    bool escaped = false;
+    try { renderer.SaveDriverPipelineCache(false); }
+    catch (const std::bad_alloc&) { escaped = true; }
+    Check(!escaped, "async exporter allocation error escaped into the render thread");
+    Check(warnings == 1, "background export error not reported");
+    Check(!renderer.driverCacheWrite.get().empty(), "export allocation failure not returned as an error");
+    Check(contents() == driver.payload && renderer.driverCacheBytes == previous,
+        "allocation failure changed the file or remembered size");
+    Check(!renderer.WriteDriverPipelineCache().empty(), "direct export allocation failure not contained");
+    driver.failAllocation = false;
+    driver.payload.push_back(6);
+    Check(renderer.WriteDriverPipelineCache().empty(), "retry after allocation failure failed");
+    Check(contents() == driver.payload && renderer.driverCacheBytes == driver.payload.size(),
+        "retry did not persist the cache");
     std::filesystem::remove(path);
-    std::puts("PASS: production cache export: oversized, repeat, growth, cap boundary, unchanged/smaller, unknown size, failed export; file preservation");
+    std::puts("PASS: production cache export: size cap, file preservation, async/direct allocation failure reporting, retry");
 } catch (const std::exception& error) {
     std::fprintf(stderr, "FAIL: %s\n", error.what());
     return 1;
@@ -113,7 +142,7 @@ def main():
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     source = (ROOT / 'LostOdysseyRecomp/gpu/renderer.cpp').read_text()
-    begin = '            std::string WriteDriverPipelineCache()\n'
+    begin = '            void SaveDriverPipelineCache(bool wait)\n'
     end = '            // Caller holds pipelineRecipeMutex or is the render thread.\n'
     if source.count(begin) != 1 or source.count(end) != 1:
         raise RuntimeError('Production extraction boundary changed')
