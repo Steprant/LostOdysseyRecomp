@@ -40,6 +40,7 @@ on:
       - 'tools/release/version.py'
       - 'tools/shader_analysis/**'
       - 'tools/tests/**'
+      - 'tools/patches/plume-lostodyssey.patch'
   pull_request:
     paths:
       - '.github/workflows/review-regressions.yml'
@@ -77,6 +78,7 @@ on:
       - 'tools/release/version.py'
       - 'tools/shader_analysis/**'
       - 'tools/tests/**'
+      - 'tools/patches/plume-lostodyssey.patch'
 
 permissions:
   contents: read
@@ -91,7 +93,9 @@ jobs:
           persist-credentials: false
       - name: Initialize fixture dependencies
         run: |
-          git submodule update --init --depth 1 tools/XenonRecomp thirdparty/SDL
+          git submodule update --init --depth 1 tools/XenonRecomp thirdparty/SDL thirdparty/plume
+          git -C thirdparty/plume submodule update --init --depth 1 contrib/Vulkan-Headers
+          git -C thirdparty/plume apply ../../tools/patches/plume-lostodyssey.patch
           git -C tools/XenonRecomp submodule update --init --depth 1 thirdparty/xxHash thirdparty/tomlplusplus
           git submodule update --init --depth 1 tools/XenosRecomp
           git -C tools/XenosRecomp submodule update --init --depth 1 thirdparty/smol-v
