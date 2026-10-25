@@ -83,7 +83,6 @@ Run directly with `python`. Unless noted, they use synthetic data.
 - Runtime regressions that compile extracted production code: `file_io_regression.py`, `io_lifetime_test.py`, `kernel_lifetime_regression.py`, `page_allocator_test.py`, `gpu_command_safety_regression.py`, `guest_main_exit_regression.py`, `crash_capture_test.py`, `startup_path_test.py`, `menu_boundary_regression.py`, `shader_prebuild_regression.py`, `video_exit_pump_test.py` (Windows; needs a static SDL3 build).
 - `guest_language_test.py` runs the generated PPC language routines; it needs local generated PPC sources and `clang++`.
 - `android_bda_spirv_contract.py` compiles Android's vertex-fetch prelude and validates its SPIR-V; it needs DXC and SPIRV-Tools.
-- `driver_pipeline_cache_export_test.py --out <new dir> --cxx g++ --sanitize` exercises the renderer's cache writer with a fake backend and real files, including rejection before exporting a cache above the size cap. It is included in review regressions and needs no GPU or game assets.
 - `fsr/check-fsr-isolated-timing.py` summarizes `FSR GPU timing:` lines from a runtime log; `temporal_geometry_analysis.py` analyzes the frames that `LoTemporalAATest` keeps from its geometry case.
 - Android touch: `android_touch_layout_test.py`, `android_touch_visibility_test.py`.
 
