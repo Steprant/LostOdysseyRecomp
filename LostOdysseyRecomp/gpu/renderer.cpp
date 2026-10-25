@@ -886,7 +886,7 @@ namespace gpu::renderer
             uint32_t sceneTag = gpu::pipeline_cache::kNoScene, sceneSerial = 1;
             // The driver's own pipeline cache file; empty when disabled.
             std::filesystem::path driverCachePath;
-            std::atomic<size_t> driverCacheBytes{0}; // largest size loaded or written
+            std::atomic<size_t> driverCacheBytes{0}; // largest size loaded, written or skipped above the cap
             std::future<std::string> driverCacheWrite;
             // Draw-time pipeline creations (misses) of the current frame. A shader is
             // "seen" when an earlier recipe or created pipeline used it.
@@ -6073,9 +6073,24 @@ void main()
             {
                 namespace dpc = gpu::driver_pipeline_cache;
                 const size_t previous = driverCacheBytes;
-                if (const size_t size = device->getPipelineCacheSize(); size && size <= previous) return {};
+                const size_t size = device->getPipelineCacheSize();
+                if (size && size <= previous) return {};
+                // Exporting allocates a second copy (and backend slack) before
+                // the file cap below can reject it. Skip known oversized caches
+                // before that allocation, especially on memory-limited devices.
+                if (size > dpc::kMaxBytes) {
+                    driverCacheBytes = size; // warn again only after it grows further
+                    return fmt::format("{} bytes exceed the {} MB cap; keeping the file", size, dpc::kMaxBytes >> 20);
+                }
                 std::vector<uint8_t> data;
-                if (!device->getPipelineCacheData(data) || data.size() <= previous) return {};
+                try {
+                    if (!device->getPipelineCacheData(data) || data.size() <= previous) return {};
+                } catch (const std::exception& e) {
+                    // The async caller polls future.get() on the render thread.
+                    // Release a partial blob before allocating the error text.
+                    std::vector<uint8_t>().swap(data);
+                    return fmt::format("driver cache export failed: {}", e.what());
+                }
                 if (!dpc::ShouldWrite(data.size(), previous)) {
                     driverCacheBytes = data.size(); // warn again only after it grows further
                     return fmt::format("{} bytes exceed the {} MB cap; keeping the file", data.size(), dpc::kMaxBytes >> 20);
