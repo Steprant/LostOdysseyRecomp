@@ -43,6 +43,7 @@ git submodule update --init --depth 1 tools/XenonRecomp thirdparty/SDL thirdpart
 git -C tools/XenonRecomp submodule update --init --depth 1 thirdparty/xxHash thirdparty/tomlplusplus
 git -C thirdparty/plume submodule update --init --depth 1 contrib/Vulkan-Headers contrib/VulkanMemoryAllocator
 git -C thirdparty/plume apply ../../tools/patches/plume-lostodyssey.patch
+git -C thirdparty/plume apply ../../tools/patches/plume-sdl3.patch
 cmake -S tools/tests/review_regressions -B out/review-regressions -DCMAKE_BUILD_TYPE=Debug
 cmake --build out/review-regressions --parallel 2
 ctest --test-dir out/review-regressions --output-on-failure --parallel 2
