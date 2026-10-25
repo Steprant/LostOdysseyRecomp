@@ -148,6 +148,7 @@ if(UNIX)
         set(sanitizer_flags --sanitize)
     endif()
     lo_review_python(file_io file_io_regression.py --out --cxx ${sanitizer_flags})
+    lo_review_python(xma_output_ring xma_output_ring_test.py --out --cxx ${sanitizer_flags})
     # The allocator fixture always uses ASan/UBSan.
     lo_review_python(page_allocator page_allocator_test.py --output --compiler)
     lo_review_python(gpu_commands gpu_command_safety_regression.py --out --cxx ${sanitizer_flags})
