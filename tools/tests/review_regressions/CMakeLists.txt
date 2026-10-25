@@ -151,6 +151,7 @@ if(UNIX)
     # The allocator fixture always uses ASan/UBSan.
     lo_review_python(page_allocator page_allocator_test.py --output --compiler)
     lo_review_python(gpu_commands gpu_command_safety_regression.py --out --cxx ${sanitizer_flags})
+    lo_review_python(vulkan_texture_creation vulkan_texture_creation_test.py --out --cxx ${sanitizer_flags})
     lo_review_python(guest_main_exit guest_main_exit_regression.py --out --cxx)
     lo_review_python(kernel_lifetime kernel_lifetime_regression.py --out --cxx ${sanitizer_flags})
 endif()

@@ -1739,7 +1739,7 @@ index 9dcfedf..8e73711 100644
  
      struct RenderInterfaceCapabilities {
 diff --git a/plume_vulkan.cpp b/plume_vulkan.cpp
-index f1dd503..50adf5c 100644
+index f1dd503..269a0b9 100644
 --- a/plume_vulkan.cpp
 +++ b/plume_vulkan.cpp
 @@ -9,10 +9,15 @@
@@ -3885,7 +3885,13 @@ index f1dd503..50adf5c 100644
              return;
          }
      }
-@@ -3703,13 +4755,15 @@ namespace plume {
+@@ -3700,16 +4752,20 @@ namespace plume {
+     std::unique_ptr<RenderTexture> VulkanPool::createTexture(const RenderTextureDesc &desc) {
+-        return std::make_unique<VulkanTexture>(device, this, desc);
++        auto object = std::make_unique<VulkanTexture>(device, this, desc);
++        if ((object->vk == VK_NULL_HANDLE) || (object->imageView == VK_NULL_HANDLE)) return nullptr;
++        return object;
+     }
      
      // VulkanQueueFamily
  
@@ -3902,7 +3908,7 @@ index f1dd503..50adf5c 100644
              uint32_t virtualQueueCount = uint32_t(queues[i].virtualQueues.size());
              if (virtualQueueCount < lowestCount) {
                  queueIndex = i;
-@@ -3717,6 +4771,7 @@ namespace plume {
+@@ -3717,6 +4773,7 @@ namespace plume {
              }
          }
  
@@ -3910,7 +3916,7 @@ index f1dd503..50adf5c 100644
          if (queues[queueIndex].mutex == nullptr) {
              queues[queueIndex].mutex = std::make_unique<std::mutex>();
          }
-@@ -3724,14 +4779,29 @@ namespace plume {
+@@ -3724,14 +4781,29 @@ namespace plume {
          virtualQueue->queue = &queues[queueIndex];
          virtualQueue->queueIndex = queueIndex;
          queues[queueIndex].virtualQueues.insert(virtualQueue);
@@ -3940,7 +3946,7 @@ index f1dd503..50adf5c 100644
      // VulkanDevice
      
      VulkanDevice::VulkanDevice(VulkanInterface *renderInterface, const std::string &preferredDeviceName) {
-@@ -3742,7 +4812,7 @@ namespace plume {
+@@ -3742,7 +4814,7 @@ namespace plume {
          uint32_t deviceCount = 0;
          vkEnumeratePhysicalDevices(renderInterface->instance, &deviceCount, nullptr);
          if (deviceCount == 0) {
@@ -3949,7 +3955,7 @@ index f1dd503..50adf5c 100644
              return;
          }
          
-@@ -3787,7 +4857,7 @@ namespace plume {
+@@ -3787,7 +4859,7 @@ namespace plume {
          }
  
          if (physicalDevice == VK_NULL_HANDLE) {
@@ -3958,7 +3964,7 @@ index f1dd503..50adf5c 100644
              return;
          }
  
-@@ -3800,6 +4870,24 @@ namespace plume {
+@@ -3800,6 +4872,24 @@ namespace plume {
  
          std::unordered_set<std::string> missingRequiredExtensions = RequiredDeviceExtensions;
          std::unordered_set<std::string> supportedOptionalExtensions;
@@ -3983,7 +3989,7 @@ index f1dd503..50adf5c 100644
  #   if DLSS_ENABLED
          const std::unordered_set<std::string> dlssExtensions = DLSS::getRequiredDeviceExtensionsVulkan(this);
  #   endif
-@@ -3807,7 +4895,9 @@ namespace plume {
+@@ -3807,7 +4897,9 @@ namespace plume {
              const std::string extensionName(availableExtensions[i].extensionName);
              missingRequiredExtensions.erase(extensionName);
  
@@ -3994,7 +4000,7 @@ index f1dd503..50adf5c 100644
                  supportedOptionalExtensions.insert(extensionName);
              }
  #       if DLSS_ENABLED
-@@ -3816,13 +4906,23 @@ namespace plume {
+@@ -3816,13 +4908,23 @@ namespace plume {
              }
  #       endif
          }
@@ -4020,7 +4026,7 @@ index f1dd503..50adf5c 100644
              return;
          }
  
-@@ -3839,7 +4939,7 @@ namespace plume {
+@@ -3839,7 +4941,7 @@ namespace plume {
          }
  
          VkPhysicalDeviceScalarBlockLayoutFeatures layoutFeatures = {};
@@ -4029,7 +4035,7 @@ index f1dd503..50adf5c 100644
          if (scalarBlockLayoutFound) {
              layoutFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES;
              layoutFeatures.pNext = featuresChain;
-@@ -3868,13 +4968,49 @@ namespace plume {
+@@ -3868,13 +4970,49 @@ namespace plume {
          }
  
          VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures = {};
@@ -4080,7 +4086,7 @@ index f1dd503..50adf5c 100644
          VkPhysicalDevicePortabilitySubsetFeaturesKHR portabilityFeatures = {};
          const bool portabilityFound = supportedOptionalExtensions.find(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME) != supportedOptionalExtensions.end();
          if (portabilityFound) {
-@@ -3896,6 +5032,21 @@ namespace plume {
+@@ -3896,6 +5034,21 @@ namespace plume {
              featuresChain = &accelerationStructureFeatures;
          }
  
@@ -4102,7 +4108,7 @@ index f1dd503..50adf5c 100644
          VkPhysicalDeviceFeatures2 deviceFeatures = {};
          deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
          deviceFeatures.pNext = featuresChain;
-@@ -3921,8 +5072,44 @@ namespace plume {
+@@ -3921,8 +5074,44 @@ namespace plume {
              vkGetPhysicalDeviceProperties2(physicalDevice, &deviceProperties2);
          }
  
@@ -4147,7 +4153,7 @@ index f1dd503..50adf5c 100644
          const bool rayTracingSupported = rayTracingPipelineFeatures.rayTracingPipeline && accelerationStructureFeatures.accelerationStructure;
          if (rayTracingSupported) {
              rayTracingPipelineFeatures.pNext = createDeviceChain;
-@@ -3978,8 +5165,16 @@ namespace plume {
+@@ -3978,8 +5167,16 @@ namespace plume {
          std::vector<bool> queueFamilyUsed(queueFamilyCount, false);
          vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilyProperties.data());
  
@@ -4165,7 +4171,7 @@ index f1dd503..50adf5c 100644
              uint32_t familySetBits = sizeof(uint32_t) * 8;
              uint32_t familyQueueCount = 0;
              bool familyUsed = false;
-@@ -3987,7 +5182,7 @@ namespace plume {
+@@ -3987,7 +5184,7 @@ namespace plume {
                  const VkQueueFamilyProperties &props = queueFamilyProperties[i];
  
                  // The family queue flags must contain all the flags required by the command list type.
@@ -4174,7 +4180,7 @@ index f1dd503..50adf5c 100644
                      continue;
                  }
  
-@@ -4003,14 +5198,19 @@ namespace plume {
+@@ -4003,14 +5200,19 @@ namespace plume {
                  }
              }
  
@@ -4197,7 +4203,7 @@ index f1dd503..50adf5c 100644
  
          // Create the struct to store the virtual queues.
          queueFamilies.resize(queueFamilyCount);
-@@ -4040,6 +5240,17 @@ namespace plume {
+@@ -4040,6 +5242,17 @@ namespace plume {
              enabledExtensions.push_back(extension.c_str());
          }
  
@@ -4215,7 +4221,7 @@ index f1dd503..50adf5c 100644
          VkDeviceCreateInfo createInfo = {};
          createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
          createInfo.pNext = createDeviceChain;
-@@ -4050,8 +5261,17 @@ namespace plume {
+@@ -4050,8 +5263,17 @@ namespace plume {
          createInfo.pEnabledFeatures = &deviceFeatures.features;
  
          VkResult res = vkCreateDevice(physicalDevice, &createInfo, nullptr, &vk);
@@ -4234,7 +4240,7 @@ index f1dd503..50adf5c 100644
              return;
          }
  
-@@ -4092,7 +5312,7 @@ namespace plume {
+@@ -4092,7 +5314,7 @@ namespace plume {
  
          res = vmaCreateAllocator(&allocatorInfo, &allocator);
          if (res != VK_SUCCESS) {
@@ -4243,7 +4249,7 @@ index f1dd503..50adf5c 100644
              release();
              return;
          }
-@@ -4120,6 +5340,7 @@ namespace plume {
+@@ -4120,6 +5342,7 @@ namespace plume {
          description.dedicatedVideoMemory = memoryHeapSize;
  
          // Fill capabilities.
@@ -4251,7 +4257,7 @@ index f1dd503..50adf5c 100644
          capabilities.geometryShader = deviceFeatures.features.geometryShader;
          capabilities.raytracing = rayTracingSupported;
          capabilities.raytracingStateUpdate = false;
-@@ -4135,7 +5356,11 @@ namespace plume {
+@@ -4135,7 +5358,11 @@ namespace plume {
          capabilities.maxTextureSize = physicalDeviceProperties.limits.maxImageDimension2D;
          capabilities.preferHDR = memoryHeapSize > (512 * 1024 * 1024);
          capabilities.dynamicDepthBias = true;
@@ -4263,7 +4269,7 @@ index f1dd503..50adf5c 100644
          capabilities.uma = (description.type == RenderDeviceType::INTEGRATED) && hasHostVisibleDeviceLocalMemory;
          capabilities.gpuUploadHeap = capabilities.uma;
  
-@@ -4154,6 +5379,86 @@ namespace plume {
+@@ -4154,6 +5381,86 @@ namespace plume {
          if (!nullDescriptorSupported) {
              nullBuffer = createBuffer(RenderBufferDesc::DefaultBuffer(16, RenderBufferFlag::VERTEX));
          }
@@ -4350,7 +4356,7 @@ index f1dd503..50adf5c 100644
      }
  
      VulkanDevice::~VulkanDevice() {
-@@ -4161,23 +5466,39 @@ namespace plume {
+@@ -4161,23 +5468,39 @@ namespace plume {
      }
  
      std::unique_ptr<RenderDescriptorSet> VulkanDevice::createDescriptorSet(const RenderDescriptorSetDesc &desc) {
@@ -4395,7 +4401,7 @@ index f1dd503..50adf5c 100644
      }
  
      std::unique_ptr<RenderPipeline> VulkanDevice::createRaytracingPipeline(const RenderRaytracingPipelineDesc &desc, const RenderPipeline *previousPipeline) {
-@@ -4185,15 +5506,21 @@ namespace plume {
+@@ -4185,15 +5508,21 @@ namespace plume {
      }
  
      std::unique_ptr<RenderCommandQueue> VulkanDevice::createCommandQueue(RenderCommandListType type) {
@@ -4415,12 +4421,12 @@ index f1dd503..50adf5c 100644
      std::unique_ptr<RenderTexture> VulkanDevice::createTexture(const RenderTextureDesc &desc) {
 -        return std::make_unique<VulkanTexture>(this, nullptr, desc);
 +        auto object = std::make_unique<VulkanTexture>(this, nullptr, desc);
-+        if (object->vk == VK_NULL_HANDLE) return nullptr;
++        if ((object->vk == VK_NULL_HANDLE) || (object->imageView == VK_NULL_HANDLE)) return nullptr;
 +        return object;
      }
  
      std::unique_ptr<RenderAccelerationStructure> VulkanDevice::createAccelerationStructure(const RenderAccelerationStructureDesc &desc) {
-@@ -4205,15 +5532,21 @@ namespace plume {
+@@ -4205,15 +5534,21 @@ namespace plume {
      }
  
      std::unique_ptr<RenderPipelineLayout> VulkanDevice::createPipelineLayout(const RenderPipelineLayoutDesc &desc) {
@@ -4445,7 +4451,7 @@ index f1dd503..50adf5c 100644
      }
  
      std::unique_ptr<RenderFramebuffer> VulkanDevice::createFramebuffer(const RenderFramebufferDesc &desc) {
-@@ -4224,6 +5557,11 @@ namespace plume {
+@@ -4224,6 +5559,11 @@ namespace plume {
          return std::make_unique<VulkanQueryPool>(this, queryCount);
      }
  
@@ -4457,7 +4463,7 @@ index f1dd503..50adf5c 100644
      void VulkanDevice::setBottomLevelASBuildInfo(RenderBottomLevelASBuildInfo &buildInfo, const RenderBottomLevelASMesh *meshes, uint32_t meshCount, bool preferFastBuild, bool preferFastTrace) {
          assert(meshes != nullptr);
          assert(meshCount > 0);
-@@ -4365,7 +5703,7 @@ namespace plume {
+@@ -4365,7 +5705,7 @@ namespace plume {
          groupHandles.resize(raytracingPipeline->groupCount * handleSize, 0);
          VkResult res = vkGetRayTracingShaderGroupHandlesKHR(vk, raytracingPipeline->vk, 0, raytracingPipeline->groupCount, groupHandles.size(), groupHandles.data());
          if (res != VK_SUCCESS) {
@@ -4466,7 +4472,7 @@ index f1dd503..50adf5c 100644
              return;
          }
          
-@@ -4432,6 +5770,16 @@ namespace plume {
+@@ -4432,6 +5772,16 @@ namespace plume {
      void VulkanDevice::release() {
          nullBuffer = nullptr; // force destruction before destroying allocator
  
@@ -4483,7 +4489,7 @@ index f1dd503..50adf5c 100644
          if (allocator != VK_NULL_HANDLE) {
              vmaDestroyAllocator(allocator);
              allocator = VK_NULL_HANDLE;
-@@ -4444,7 +5792,11 @@ namespace plume {
+@@ -4444,7 +5794,11 @@ namespace plume {
      }
  
      bool VulkanDevice::isValid() const {
@@ -4496,7 +4502,7 @@ index f1dd503..50adf5c 100644
      }
  
      bool VulkanDevice::beginCapture() {
-@@ -4460,13 +5812,22 @@ namespace plume {
+@@ -4460,13 +5814,22 @@ namespace plume {
      // VulkanInterface
  
  #if PLUME_SDL_VULKAN_ENABLED
@@ -4523,7 +4529,7 @@ index f1dd503..50adf5c 100644
              return;
          }
  
-@@ -4496,6 +5857,7 @@ namespace plume {
+@@ -4496,6 +5859,7 @@ namespace plume {
  
          std::unordered_set<std::string> requiredExtensions = RequiredInstanceExtensions;
          std::unordered_set<std::string> supportedOptionalExtensions;
@@ -4531,7 +4537,7 @@ index f1dd503..50adf5c 100644
  #   if DLSS_ENABLED
          const std::unordered_set<std::string> dlssExtensions = DLSS::getRequiredInstanceExtensionsVulkan();
  #   endif
-@@ -4518,6 +5880,20 @@ namespace plume {
+@@ -4518,6 +5882,20 @@ namespace plume {
          }
  #   endif
  
@@ -4552,7 +4558,7 @@ index f1dd503..50adf5c 100644
          std::unordered_set<std::string> missingRequiredExtensions = requiredExtensions;
          for (uint32_t i = 0; i < extensionCount; i++) {
              const std::string extensionName(availableExtensions[i].extensionName);
-@@ -4535,13 +5911,23 @@ namespace plume {
+@@ -4535,13 +5913,23 @@ namespace plume {
  
          if (!missingRequiredExtensions.empty()) {
              for (const std::string &extension : missingRequiredExtensions) {
@@ -4578,7 +4584,7 @@ index f1dd503..50adf5c 100644
          std::vector<const char *> enabledExtensions;
          for (const std::string &extension : requiredExtensions) {
              enabledExtensions.push_back(extension.c_str());
-@@ -4551,6 +5937,17 @@ namespace plume {
+@@ -4551,6 +5939,17 @@ namespace plume {
              enabledExtensions.push_back(extension.c_str());
          }
  
@@ -4596,7 +4602,7 @@ index f1dd503..50adf5c 100644
          createInfo.ppEnabledExtensionNames = enabledExtensions.data();
          createInfo.enabledExtensionCount = uint32_t(enabledExtensions.size());
  
-@@ -4574,8 +5971,17 @@ namespace plume {
+@@ -4574,8 +5973,17 @@ namespace plume {
  #   endif
          
          res = vkCreateInstance(&createInfo, nullptr, &instance);
@@ -4615,7 +4621,7 @@ index f1dd503..50adf5c 100644
              return;
          }
  
-@@ -4625,6 +6031,10 @@ namespace plume {
+@@ -4625,6 +6033,10 @@ namespace plume {
          return instance != nullptr;
      }
  
@@ -4626,7 +4632,7 @@ index f1dd503..50adf5c 100644
      // Global creation function.
  
  #if PLUME_SDL_VULKAN_ENABLED
-@@ -4632,10 +6042,20 @@ namespace plume {
+@@ -4632,10 +6044,20 @@ namespace plume {
          std::unique_ptr<VulkanInterface> createdInterface = std::make_unique<VulkanInterface>(sdlWindow);
          return createdInterface->isValid() ? std::move(createdInterface) : nullptr;
      }
