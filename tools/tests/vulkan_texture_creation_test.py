@@ -26,7 +26,7 @@ template<class T> T Handle(uintptr_t value) {
     if constexpr (std::is_pointer_v<T>) return reinterpret_cast<T>(value);
     else return static_cast<T>(value);
 }
-enum class Failure { None, Image, View };
+enum class Failure { None, Image, ImageWithOutput, View, ViewWithOutput };
 static Failure failure = Failure::None;
 static unsigned images = 0, views = 0, freedImages = 0, freedViews = 0;
 static VmaPool expectedPool = VK_NULL_HANDLE;
@@ -37,7 +37,10 @@ VkResult vmaCreateImage(VmaAllocator, const VkImageCreateInfo* image,
     ++images;
     Check(allocation->pool == expectedPool, "wrong allocation pool");
     Check(image->extent.width == 64 && image->extent.height == 64, "wrong image extent");
-    if (failure == Failure::Image) return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+    if (failure == Failure::Image || failure == Failure::ImageWithOutput) {
+        if (failure == Failure::ImageWithOutput) *result = Handle<VkImage>(99);
+        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+    }
     *result = Handle<VkImage>(2);
     *memory = Handle<VmaAllocation>(4);
     return VK_SUCCESS;
@@ -52,7 +55,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateImageView(VkDevice,
     Check(info->image == Handle<VkImage>(2), "wrong image for view");
     Check(info->subresourceRange.levelCount == 1 && info->subresourceRange.layerCount == 1,
         "wrong default view range");
-    if (failure == Failure::View) return VK_ERROR_OUT_OF_HOST_MEMORY;
+    if (failure == Failure::View || failure == Failure::ViewWithOutput) {
+        if (failure == Failure::ViewWithOutput) *result = Handle<VkImageView>(99);
+        return VK_ERROR_OUT_OF_HOST_MEMORY;
+    }
     *result = Handle<VkImageView>(3);
     return VK_SUCCESS;
 }
@@ -104,7 +110,8 @@ int main() try {
     const auto desc = RenderTextureDesc::Texture2D(64, 64, 1, RenderFormat::R8G8B8A8_UNORM);
     unsigned cases = 0;
     for (const bool pooled : {false, true}) {
-        for (const auto fail : {Failure::None, Failure::Image, Failure::View}) {
+        for (const auto fail : {Failure::None, Failure::Image, Failure::ImageWithOutput,
+                               Failure::View, Failure::ViewWithOutput}) {
             ++cases;
             failure = fail;
             images = views = freedImages = freedViews = 0;
@@ -113,10 +120,10 @@ int main() try {
             Check(bool(texture) == (fail == Failure::None),
                 pooled ? "pool returned an unusable texture" : "device returned an unusable texture");
             Check(images == 1, "image creation not attempted once");
-            if (fail == Failure::Image) {
+            if (fail == Failure::Image || fail == Failure::ImageWithOutput) {
                 Check(views == 0 && freedImages == 0 && freedViews == 0,
                     "image allocation failure attempted view creation or cleanup of unowned handles");
-            } else if (fail == Failure::View) {
+            } else if (fail == Failure::View || fail == Failure::ViewWithOutput) {
                 Check(views == 1 && freedImages == 1 && freedViews == 0,
                     "default view failure did not reclaim the allocated image exactly once");
             } else {

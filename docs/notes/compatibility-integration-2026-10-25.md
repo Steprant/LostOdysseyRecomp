@@ -20,7 +20,7 @@ source. The dependency commit pins are unchanged.
 Validation performed on the combined tree:
 
 - A clean Plume replay reconstructs the complete intended dependency tree,
-  `5118a6950aa3c51e192439f6dac491aa04f1655a`.
+  `7231a3e91e8feaea3bf408bebd929c388732d746`.
 - The SDL3 and Android overlays apply. The macOS overlay passes its application
   check with SDL3, and with SDL3 plus the Android overlay.
 - GCC 13.3 / C++23 checks the complete patched `plume_vulkan.cpp` with
@@ -28,7 +28,9 @@ Validation performed on the combined tree:
   integration enabled, without diagnostics.
 - All 52 locally supported review-regression CTest entries pass with ASan/UBSan,
   including driver-cache export, Vulkan submission, Vulkan texture allocation
-  and 63,493 XMA ring cases. The SDL fixtures reuse the same pinned SDL static
+  and 63,493 XMA ring cases. The texture fixture covers ten cases, including
+  failed creation calls that overwrite their output handles; undefined failure
+  outputs are never published as owned image or view handles. The SDL fixtures reuse the same pinned SDL static
   library built for the independent XMA branch.
 - The Linux home-layout namespace test is excluded locally because this host
   cannot create its isolated environment. Leak detection is disabled locally
