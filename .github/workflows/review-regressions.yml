@@ -41,6 +41,7 @@ on:
       - 'tools/shader_analysis/**'
       - 'tools/tests/**'
       - 'tools/patches/plume-lostodyssey.patch'
+      - 'tools/patches/plume-sdl3.patch'
   pull_request:
     paths:
       - '.github/workflows/review-regressions.yml'
@@ -79,6 +80,7 @@ on:
       - 'tools/shader_analysis/**'
       - 'tools/tests/**'
       - 'tools/patches/plume-lostodyssey.patch'
+      - 'tools/patches/plume-sdl3.patch'
 
 permissions:
   contents: read
@@ -96,6 +98,7 @@ jobs:
           git submodule update --init --depth 1 tools/XenonRecomp thirdparty/SDL thirdparty/plume
           git -C thirdparty/plume submodule update --init --depth 1 contrib/Vulkan-Headers contrib/VulkanMemoryAllocator
           git -C thirdparty/plume apply ../../tools/patches/plume-lostodyssey.patch
+          git -C thirdparty/plume apply ../../tools/patches/plume-sdl3.patch
           git -C tools/XenonRecomp submodule update --init --depth 1 thirdparty/xxHash thirdparty/tomlplusplus
           git submodule update --init --depth 1 tools/XenosRecomp
           git -C tools/XenosRecomp submodule update --init --depth 1 thirdparty/smol-v
