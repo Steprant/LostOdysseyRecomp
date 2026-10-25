@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/review-regressions.yml'
       - 'LostOdysseyRecomp/apu/audio*'
+      - 'LostOdysseyRecomp/apu/xma.cpp'
       - 'LostOdysseyRecomp/gpu/command_processor.*'
       - 'LostOdysseyRecomp/gpu/indirect_buffer_guard.h'
       - 'LostOdysseyRecomp/gpu/shader/cpx_decode.h'
@@ -40,10 +41,13 @@ on:
       - 'tools/release/version.py'
       - 'tools/shader_analysis/**'
       - 'tools/tests/**'
+      - 'tools/patches/plume-lostodyssey.patch'
+      - 'tools/patches/plume-sdl3.patch'
   pull_request:
     paths:
       - '.github/workflows/review-regressions.yml'
       - 'LostOdysseyRecomp/apu/audio*'
+      - 'LostOdysseyRecomp/apu/xma.cpp'
       - 'LostOdysseyRecomp/gpu/command_processor.*'
       - 'LostOdysseyRecomp/gpu/indirect_buffer_guard.h'
       - 'LostOdysseyRecomp/gpu/shader/cpx_decode.h'
@@ -77,6 +81,8 @@ on:
       - 'tools/release/version.py'
       - 'tools/shader_analysis/**'
       - 'tools/tests/**'
+      - 'tools/patches/plume-lostodyssey.patch'
+      - 'tools/patches/plume-sdl3.patch'
 
 permissions:
   contents: read
@@ -91,7 +97,10 @@ jobs:
           persist-credentials: false
       - name: Initialize fixture dependencies
         run: |
-          git submodule update --init --depth 1 tools/XenonRecomp thirdparty/SDL
+          git submodule update --init --depth 1 tools/XenonRecomp thirdparty/SDL thirdparty/plume
+          git -C thirdparty/plume submodule update --init --depth 1 contrib/Vulkan-Headers contrib/VulkanMemoryAllocator
+          git -C thirdparty/plume apply ../../tools/patches/plume-lostodyssey.patch
+          git -C thirdparty/plume apply ../../tools/patches/plume-sdl3.patch
           git -C tools/XenonRecomp submodule update --init --depth 1 thirdparty/xxHash thirdparty/tomlplusplus
           git submodule update --init --depth 1 tools/XenosRecomp
           git -C tools/XenosRecomp submodule update --init --depth 1 thirdparty/smol-v

@@ -7,6 +7,9 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 ## Unreleased
 
 ### English
+- Driver pipeline cache saving skips a cache already reported above the 256 MiB file limit before allocating an export copy, reducing avoidable memory pressure on Android and desktop. Export allocation failures are reported without passing their exception to the render thread, and the existing file is kept.
+- Vulkan: generic command submissions now supply one wait-stage mask per semaphore and cover graphics, compute and transfer accesses, fixing an out-of-bounds host read with multiple waits.
+- Vulkan texture creation reports failure when its default image view cannot be created, so existing allocation fallbacks can detect the unusable texture and its image is released. Pool texture allocation failures are reported consistently too.
 - Settings shows button names as the game's own button icons, including PlayStation prompts, stick clicks and the D-pad on the Controls page, so these lines keep the game font instead of switching to the small pixel font. The title menu's Back key uses the same icon (#667).
 - Settings uses the same HD font pages as the game when a font mod replaces them, and Latin menus use the European game's font with its accented letters (#668).
 - Settings can be shown in Spanish, French, German or Italian (System → Settings language); the menu uses the game's own font for them (#669).
@@ -18,6 +21,9 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - Settings → Graphics → Scene fades: Off replaces the short crossfade between scenes with a clean cut (#666).
 
 ### 简体中文
+- 保存驱动管线缓存时，若驱动报告的大小已超过 256 MiB 文件上限，会在分配导出副本前跳过，减少 Android 和桌面端不必要的内存占用。导出分配失败会记录错误，不再将该异常传递给渲染线程，并保留原有文件。
+- Vulkan：通用命令提交为每个等待信号量提供独立的阶段掩码，覆盖图形、计算和传输访问，修复多个等待时主机端的越界读取。
+- Vulkan 纹理的默认图像视图创建失败时会正确返回失败并释放已分配的图像，让现有分配回退逻辑识别不可用的纹理；纹理池中的图像分配失败也会正确返回失败。
 - 设置菜单中的按键名称改用游戏自带的按键图标（包括 PlayStation 提示、按键设定页的摇杆按下与方向键），这些文字不再切换为像素字体；标题菜单的 Back 键也使用同一图标（#667）。
 - 字体 Mod 替换字体页面后，设置菜单也使用与游戏相同的高清字体页面；拉丁语系菜单使用欧版游戏带重音字母的字体（#668）。
 - 设置菜单新增西班牙语、法语、德语和意大利语（系统 → 设置界面语言），并使用游戏自带字体显示（#669）。

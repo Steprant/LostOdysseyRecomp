@@ -39,8 +39,11 @@ Build and run with `cmake --build <dir>` then `ctest --test-dir <dir> --output-o
 Builds without game data, generated PPC sources or a GPU. It covers the 13 issues in [the fix record](../../docs/archive/notes/PROJECT_REVIEW_FIXES_20260930.md). Needs GCC/Clang, Python 3.11+ and CMake 3.20+ on Linux. The SDL fixtures use an installed SDL3 package when CMake finds one and otherwise build the pinned `thirdparty/SDL` submodule.
 
 ```bash
-git submodule update --init --depth 1 tools/XenonRecomp thirdparty/SDL
+git submodule update --init --depth 1 tools/XenonRecomp thirdparty/SDL thirdparty/plume
 git -C tools/XenonRecomp submodule update --init --depth 1 thirdparty/xxHash thirdparty/tomlplusplus
+git -C thirdparty/plume submodule update --init --depth 1 contrib/Vulkan-Headers contrib/VulkanMemoryAllocator
+git -C thirdparty/plume apply ../../tools/patches/plume-lostodyssey.patch
+git -C thirdparty/plume apply ../../tools/patches/plume-sdl3.patch
 cmake -S tools/tests/review_regressions -B out/review-regressions -DCMAKE_BUILD_TYPE=Debug
 cmake --build out/review-regressions --parallel 2
 ctest --test-dir out/review-regressions --output-on-failure --parallel 2
@@ -83,6 +86,9 @@ Run directly with `python`. Unless noted, they use synthetic data.
 - Runtime regressions that compile extracted production code: `file_io_regression.py`, `io_lifetime_test.py`, `kernel_lifetime_regression.py`, `page_allocator_test.py`, `gpu_command_safety_regression.py`, `guest_main_exit_regression.py`, `crash_capture_test.py`, `startup_path_test.py`, `menu_boundary_regression.py`, `shader_prebuild_regression.py`, `video_exit_pump_test.py` (Windows; needs a static SDL3 build).
 - `guest_language_test.py` runs the generated PPC language routines; it needs local generated PPC sources and `clang++`.
 - `android_bda_spirv_contract.py` compiles Android's vertex-fetch prelude and validates its SPIR-V; it needs DXC and SPIRV-Tools.
+- `driver_pipeline_cache_export_test.py --out <new dir> --cxx g++ --sanitize` exercises the renderer's cache writer with a fake backend and real files, including rejection before exporting a cache above the size cap. It is included in review regressions and needs no GPU or game assets.
+- `vulkan_queue_submit_test.py --out <new dir> --cxx g++ --sanitize` checks the patched Plume submission method with a fake Vulkan entry point and the pinned Vulkan headers. It covers wait arrays, generic queue stages, command/semaphore/fence forwarding and error reporting without a GPU, and is included in review regressions. Initialize and patch Plume as above first.
+- `vulkan_texture_creation_test.py --out <new dir> --cxx g++ --sanitize` injects image and default-view allocation failures into the production Vulkan texture constructors and factories. It checks failure propagation and resource cleanup for device and pool textures without a GPU, using the pinned Plume, Vulkan, VMA and SDL headers. Initialize and patch Plume as above first; it is included in review regressions.
 - `fsr/check-fsr-isolated-timing.py` summarizes `FSR GPU timing:` lines from a runtime log; `temporal_geometry_analysis.py` analyzes the frames that `LoTemporalAATest` keeps from its geometry case.
 - Android touch: `android_touch_layout_test.py`, `android_touch_visibility_test.py`.
 
