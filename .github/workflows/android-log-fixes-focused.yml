@@ -1,0 +1,36 @@
+name: Focused Android log fixes
+on:
+  push:
+    branches: ['ci/android-log-fixes-validation-20261025']
+    paths: ['.github/workflows/android-log-fixes-focused.yml']
+permissions:
+  contents: read
+jobs:
+  fixtures:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+        fix: [resolve, xma]
+        include:
+          - fix: resolve
+            fixture: resolve_reconfigure
+            ref: fix/preserve-resolves-on-reconfigure-20261025
+          - fix: xma
+            fixture: xma_streaming
+            ref: fix/xma-stream-boundaries-20261025
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          persist-credentials: false
+      - name: Configure
+        run: cmake -S tools/tests/${{ matrix.fixture }} -B build/focused -DCMAKE_BUILD_TYPE=Release -DLO_REVIEW_SANITIZE=${{ runner.os == 'Linux' && 'ON' || 'OFF' }}
+      - name: Build
+        run: cmake --build build/focused --config Release --parallel 2
+      - name: Test
+        env:
+          ASAN_OPTIONS: detect_leaks=0
+        run: ctest --test-dir build/focused -C Release --output-on-failure
