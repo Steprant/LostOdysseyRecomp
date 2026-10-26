@@ -23,13 +23,13 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      # GitHub-hosted Ubuntu runners include the Android SDK. setup-android@v3
-      # still attempts to install the obsolete SDK package "tools", failing
-      # before the diagnostic APK can be built.
+      # The action's default package list includes the removed SDK "tools".
+      # Install only supported packages to keep sdkmanager available on PATH.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
       - name: Install required Android SDK packages
-        run: |
-          test -n "$ANDROID_HOME"
-          sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0'
+        run: sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0'
       - run: python3 tools/android/test-tv.py
       - run: python3 tools/android/build-tv-probe.py --sdk "$ANDROID_HOME" --jdk "$JAVA_HOME"
       - uses: actions/upload-artifact@v4
