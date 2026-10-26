@@ -34,12 +34,18 @@ consumi e temperature sullo Xiaomi 14 restano sconosciuti. L'obiettivo
 
 ## Test effettuati
 
-Le fixture specifiche passano 33.409 controlli per i resolve, 1.179.666 per il
+Le fixture specifiche passano 33.409 controlli per i resolve, 4.947.993 per il
 filtro dei draw e 1.751.629 per i clear. Sono passate in Release e con
 AddressSanitizer/UndefinedBehaviorSanitizer. Tutti e tre i nuovi casi mirati
 falliscono con il rispettivo codice upstream originale. La verifica dei clear
 confronta ogni componente colore, profondità e stencil per bit anche alle
 letture intermedie, includendo zero con segno e valori NaN.
+
+Il filtro dei draw omette esclusivamente il comando GPU finale. Acquisizione
+dei target, cambi di proprietario e conversioni EDRAM, clear pendenti e
+contabilità precedente/successiva restano eseguiti. I test verificano anche
+questa collocazione e rifiutano un'uscita anticipata che salti tali operazioni.
+Non si dichiara un risparmio di lookup shader o upload CPU per la PR 732.
 
 Il test Vulkan dei resolve FP16 ha eseguito sei letture complete delle immagini,
 con zero pixel differenti, comprese copie parziali, nuove allocazioni e
@@ -54,7 +60,7 @@ Riferimenti:
 | PR | Test CI | Compilazione Windows |
 |---|---|---|
 | 731 | [49 passati, 1 saltato](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40275532936) | [Passata](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40275532916) |
-| 732 | [49 passati, 1 saltato](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40276842545) | [Passata](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40276842550) |
+| 732 | [49 passati, 1 saltato](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40279008745) | [Passata](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40279008744) |
 | 733 | [49 passati, 1 saltato](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40276848672) | [Passata](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40276848638) |
 
 Sono passati anche i controlli FG CPU previsti per le prime due PR. In locale,
