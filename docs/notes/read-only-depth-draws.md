@@ -9,8 +9,11 @@ only read resources; their exports feed rasterization, not guest memory or a
 storage buffer. With no color exports, no depth writes and no stencil operation,
 these draws cannot change an attachment.
 
-Skip them after normal frame/batch initialization and command-processor handling,
-before shader lookup, resource uploads, texture binding and GPU draw submission.
+Omit only their final native indexed/non-indexed draw command. Keep normal
+frame/batch initialization, shader/resource preparation, EDRAM alias handoffs,
+pending-clear execution, framebuffer binding and all after-draw bookkeeping.
+Acquiring a color view can change EDRAM ownership even for a read-only draw;
+an early return would incorrectly remove that observable conversion sequence.
 Keep every draw in an active host occlusion query, since read-only geometry still
 produces observable sample counts. Retain every stencil-enabled draw, even KEEP
 operations or a zero stencil write mask. Color-mode draws are untouched.
@@ -24,11 +27,14 @@ invisible objects, determines whether a real scene benefits.
 
 ## Checks performed
 
-- GCC 13.3 C++20 Release and ASan/UBSan: 1,179,666 checks pass. The test compiles
-  the production draw-mode gate and uses the actual occlusion tracker. It sweeps
-  modes/depth-stencil control, active/inactive queries and the opt-out. Strict,
-  History and Fast retain measured draws; Strict/History retain exact sample
-  counts. Unmodified upstream fails the no-op draw regression.
+- GCC 13.3 C++20 Release and ASan/UBSan: 4,947,993 checks pass. The test compiles
+  production mode handling and native command emission, using the real query
+  tracker. It sweeps indexed/non-indexed commands, modes/depth-stencil state,
+  active/inactive queries and the opt-out. Pre/post preparation markers protect
+  against early return; extraction checks the production placement after target
+  acquisition/binding. Strict, History and Fast retain measured draws;
+  Strict/History retain exact sample counts. Unmodified upstream fails the no-op
+  regression, and an early-return implementation fails the bookkeeping check.
 - The full renderer translation unit compiles with GCC 13 and Clang 18 against
   pinned Plume/Vulkan interfaces using the existing motion-replay compile
   boundary. Only generated guest/PCH names are stand-ins; no game link/execution

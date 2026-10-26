@@ -9604,15 +9604,6 @@ void main()
                     drops.modeMask |= 1u << modeControl;
                     return;
                 }
-                // Mode 5 has no pixel shader or color exports. With both Z
-                // writes and stencil disabled, its translated vertex shader
-                // only reads resources and no attachment can change. Query
-                // samples remain observable even for these read-only draws.
-                if (skipReadOnlyDepthDraws && modeControl == 5 &&
-                    (Reg(REG_RB_DEPTHCONTROL) & 5u) == 0 && !occlusion.Active()) {
-                    ++readOnlyDepthDrawsSkipped;
-                    return;
-                }
                 RefreshAnisotropicFiltering();
                 samplerState.BeginDraw();
 
@@ -11952,7 +11943,15 @@ void main()
                     commandList->beginOcclusionQuery(occlusionPool, occlusionIndex % kOcclusionPoolQueries);
                 }
                 recordProbe.Enter(record_timing::Phase::Draw);
-                if (useIndices)
+                // Mode 5 has no pixel shader/color exports; its translated VS
+                // only reads resources. No Z writes, stencil or active query
+                // means the native draw has no observable output. Elide only
+                // that command: EDRAM alias handoffs, pending clears and all
+                // before/after draw bookkeeping must still run unchanged.
+                if (skipReadOnlyDepthDraws && modeControl == 5 &&
+                    (Reg(REG_RB_DEPTHCONTROL) & 5u) == 0 && !occlusion.Active())
+                    ++readOnlyDepthDrawsSkipped;
+                else if (useIndices)
                 {
                     RenderIndexBufferView view(RenderBufferReference(preparedIndexBuffer, preparedIndexOffset), uint32_t(indices.size() * 4), RenderFormat::R32_UINT);
                     commandList->setIndexBuffer(&view);
