@@ -35,6 +35,7 @@ public final class RuntimeActivity extends SDLActivity {
     private static final long BOOT_SETTLED_MS = 15000;
 
     private TouchControlsView touchControls;
+    private TvDisplayDiagnostics tvDiagnostics;
     /** Why the renderer could not start with the selected driver; set from native code. */
     private volatile String graphicsFailure;
     private final Handler bootHandler = new Handler(Looper.getMainLooper());
@@ -65,6 +66,8 @@ public final class RuntimeActivity extends SDLActivity {
             return insets;
         });
         GameStorage.prepare(this);
+        tvDiagnostics = new TvDisplayDiagnostics(this, PlayerLogs.directory(this));
+        tvDiagnostics.start();
         GpuDriverStore.markBootPending(this);
         if (mLayout != null && !mBrokenLibraries) {
             touchControls = new TouchControlsView(this);
@@ -131,6 +134,7 @@ public final class RuntimeActivity extends SDLActivity {
 
     @Override
     protected void onPause() {
+        if (tvDiagnostics != null) tvDiagnostics.event("runtime pause");
         if (touchControls != null) touchControls.onHostPause();
         // Leaving the game is when a player connects USB to fetch the log.
         PlayerLogs.publish(this);
@@ -185,6 +189,7 @@ public final class RuntimeActivity extends SDLActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (tvDiagnostics != null) tvDiagnostics.snapshot("runtime-resume");
         hideSystemBars();
         if (touchControls != null) touchControls.onHostResume();
         bootHandler.removeCallbacks(bootSettled);
@@ -201,6 +206,7 @@ public final class RuntimeActivity extends SDLActivity {
 
     @Override
     protected void onDestroy() {
+        if (tvDiagnostics != null) tvDiagnostics.stop();
         if (touchControls != null) touchControls.clearTouches();
         bootHandler.removeCallbacks(bootSettled);
         bootHandler.removeCallbacks(hideSystemBarsRunnable);
