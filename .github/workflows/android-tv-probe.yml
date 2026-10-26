@@ -23,10 +23,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      # GitHub-hosted Ubuntu runners include the Android SDK. setup-android@v3
+      # still attempts to install the obsolete SDK package "tools", failing
+      # before the diagnostic APK can be built.
+      - name: Install required Android SDK packages
+        run: |
+          test -n "$ANDROID_HOME"
+          sdkmanager --install 'platforms;android-35' 'build-tools;35.0.0'
       - run: python3 tools/android/test-tv.py
-      - run: python3 tools/android/build-tv-probe.py
+      - run: python3 tools/android/build-tv-probe.py --sdk "$ANDROID_HOME" --jdk "$JAVA_HOME"
       - uses: actions/upload-artifact@v4
         with:
           name: LostOdyssey-TV-Probe
