@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<!-- This experimental TV page currently provides English and Italian. Other
+     app locales intentionally use Android's English fallback for this page. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="tv_mode">TV mode</string>
     <string-array name="tv_modes"><item>Automatic</item><item>TV 16:9</item><item>Original mirroring</item><item>Off</item></string-array>
     <string name="tv_resolution">TV render resolution</string>

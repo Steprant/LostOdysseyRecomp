@@ -41,6 +41,10 @@ Open native Settings → System → TV mode (Android), or CTRL → TV mode on th
 phone. Native menu access remains available with a controller. Android TV
 settings themselves appear on the phone.
 
+The Android TV page currently includes English and Italian. Other locales use
+English fallback. Only this new resource file opts out of missing-translation
+lint errors while translations remain incomplete.
+
 * **Automatic**: use an eligible external display whose current mode is 16:9,
   within 2%. This also includes eligible wireless/virtual displays.
 * **TV 16:9**: use another eligible presentation display too. Fit without
