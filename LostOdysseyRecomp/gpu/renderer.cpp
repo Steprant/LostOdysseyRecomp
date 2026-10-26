@@ -1092,6 +1092,11 @@ namespace gpu::renderer
                 return !value || std::string_view(value) != "0";
             }();
             uint32_t resolveCopiesRecorded = 0, resolveCopiesSkipped = 0;
+            const bool skipReadOnlyDepthDraws = [] {
+                const char* value = getenv("LO_SKIP_READ_ONLY_DEPTH_DRAWS");
+                return !value || std::string_view(value) != "0";
+            }();
+            uint32_t readOnlyDepthDrawsSkipped = 0;
             temporal::SceneObservation temporalScene;
             temporal::DrawTemporalTracker drawTemporalTracker;
             temporal::SuspectTracker suspectTracker;
@@ -9599,6 +9604,15 @@ void main()
                     drops.modeMask |= 1u << modeControl;
                     return;
                 }
+                // Mode 5 has no pixel shader or color exports. With both Z
+                // writes and stencil disabled, its translated vertex shader
+                // only reads resources and no attachment can change. Query
+                // samples remain observable even for these read-only draws.
+                if (skipReadOnlyDepthDraws && modeControl == 5 &&
+                    (Reg(REG_RB_DEPTHCONTROL) & 5u) == 0 && !occlusion.Active()) {
+                    ++readOnlyDepthDrawsSkipped;
+                    return;
+                }
                 RefreshAnisotropicFiltering();
                 samplerState.BeginDraw();
 
@@ -15216,6 +15230,10 @@ void main()
                 LOG_INFO("renderer resolve copies frame={} recorded={} skipped={} reuse={} scope=current_frame_consecutive_color_resolves",
                     g_renderer->frame, g_renderer->resolveCopiesRecorded, g_renderer->resolveCopiesSkipped, g_renderer->resolveCopyReuse);
             g_renderer->resolveCopiesRecorded = g_renderer->resolveCopiesSkipped = 0;
+            if (render_timing::Enabled())
+                LOG_INFO("renderer read-only depth draws frame={} skipped={} enabled={} scope=current_frame_no_attachment_writes_no_query",
+                    g_renderer->frame, g_renderer->readOnlyDepthDrawsSkipped, g_renderer->skipReadOnlyDepthDraws);
+            g_renderer->readOnlyDepthDrawsSkipped = 0;
             if (g_renderer->vertexTimingEnabled)
             {
                 auto& r = *g_renderer;
