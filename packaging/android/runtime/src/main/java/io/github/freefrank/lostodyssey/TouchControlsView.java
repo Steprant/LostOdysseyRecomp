@@ -448,6 +448,9 @@ final class TouchControlsView extends View {
         hideAll.setText(strings.getString(R.string.touch_hide_all));
         hideAll.setChecked(ctrl.hideAll());
         content.addView(hideAll);
+        Button tvButton = new Button(activity);
+        tvButton.setText(R.string.tv_mode);
+        content.addView(tvButton);
         TextView hideAllHelp = new TextView(activity);
         hideAllHelp.setText(strings.getString(R.string.touch_hide_all_help));
         content.addView(hideAllHelp);
@@ -492,6 +495,10 @@ final class TouchControlsView extends View {
             settingsChoiceEdited = false;
             settingsDialogOpen = false;
             syncCtrlPin();
+        });
+        tvButton.setOnClickListener(v -> {
+            settingsDialog.dismiss();
+            activity.openTvSettings();
         });
         if (driverButton != null) {
             driverButton.setOnClickListener(v -> {
