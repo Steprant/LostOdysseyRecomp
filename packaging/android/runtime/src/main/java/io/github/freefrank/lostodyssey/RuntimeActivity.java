@@ -106,6 +106,7 @@ public final class RuntimeActivity extends SDLActivity {
             if (!getIntent().getBooleanExtra(EXTRA_IMPORT, false)) {
                 tvOutput = new TvOutputController(this, mLayout, mSurface, tvDiagnostics, (external, height) -> {
                     nativeSetTvOutput(external, height);
+                    if (touchControls != null) touchControls.setTvControlsHidden(external && tvOutput.hideTouch());
                     if (external) {
                         mLayout.setFocusableInTouchMode(true);
                         mLayout.requestFocus();
@@ -144,7 +145,10 @@ public final class RuntimeActivity extends SDLActivity {
     }
 
     void openTvSettings() {
-        if (tvOutput != null) TvSettingsDialog.show(this, tvOutput);
+        if (tvOutput != null) {
+            tvOutput.wakePhone();
+            TvSettingsDialog.show(this, tvOutput, tvDiagnostics);
+        }
     }
 
     @Override

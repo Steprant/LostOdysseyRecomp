@@ -36,6 +36,9 @@ final class TvOutputController implements DisplayManager.DisplayListener {
     private int rejectedDisplay = Display.INVALID_DISPLAY, appliedHeight;
     private boolean started, resumed, changing;
     private String status = "";
+    private View phoneBlackout;
+    private float previousBrightness;
+    private boolean dimDismissed;
 
     TvOutputController(Activity activity, ViewGroup phone, SurfaceView surface,
                        TvDisplayDiagnostics diagnostics, Listener listener) {
@@ -60,7 +63,7 @@ final class TvOutputController implements DisplayManager.DisplayListener {
         if (displays != null) displays.registerDisplayListener(this, handler);
     }
     void resume() { resumed = true; schedule(); }
-    void pause() { resumed = false; }
+    void pause() { resumed = false; restorePhoneBrightness(); }
     void stop() {
         started = false;
         resumed = false;
@@ -68,7 +71,9 @@ final class TvOutputController implements DisplayManager.DisplayListener {
         if (displays != null) displays.unregisterDisplayListener(this);
         leave();
     }
-    void settingsChanged() { rejectedDisplay = Display.INVALID_DISPLAY; schedule(); }
+    void settingsChanged() { rejectedDisplay = Display.INVALID_DISPLAY; dimDismissed = false; schedule(); }
+    boolean hideTouch() { return active() && preferences.getBoolean("hide_touch", true); }
+    void wakePhone() { dimDismissed = true; restorePhoneBrightness(); }
     private void schedule() {
         handler.removeCallbacks(update);
         if (started) handler.post(update);
@@ -97,8 +102,9 @@ final class TvOutputController implements DisplayManager.DisplayListener {
         if (presentation != null && (target == null
                 || target.getDisplayId() != presentation.getDisplay().getDisplayId())) leave();
         if (target == null) {
-            status = activity.getString(mode() == TvModePolicy.ORIGINAL_MIRROR || mode() == TvModePolicy.OFF
-                ? R.string.tv_status_mirroring : R.string.tv_status_no_display);
+            status = activity.getString(rejectedDisplay != Display.INVALID_DISPLAY ? R.string.tv_status_rejected
+                : mode() == TvModePolicy.ORIGINAL_MIRROR || mode() == TvModePolicy.OFF
+                    ? R.string.tv_status_mirroring : R.string.tv_status_no_display);
             return;
         }
         if (presentation == null && resumed) enter(target);
@@ -127,6 +133,7 @@ final class TvOutputController implements DisplayManager.DisplayListener {
             // Validate before detaching the phone's surface. An OEM may reject show().
             next.show();
             presentation = next;
+            dimDismissed = false;
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -169,12 +176,13 @@ final class TvOutputController implements DisplayManager.DisplayListener {
                 diagnostics.event("preferred TV mode=" + preferred + " (request only; Android may ignore)");
             }
         }
+        listener.outputChanged(true, height);
         if (appliedHeight != height) {
             appliedHeight = height;
-            listener.outputChanged(true, height);
             surface.getHolder().setFixedSize(TvModePolicy.width(height), height);
             diagnostics.event("TV render buffer requested=" + TvModePolicy.width(height) + "x" + height);
         }
+        applyConsole();
         status = activity.getString(R.string.tv_status_active, TvModePolicy.width(height), height);
     }
 
@@ -197,8 +205,38 @@ final class TvOutputController implements DisplayManager.DisplayListener {
         if (surface.getParent() instanceof ViewGroup) ((ViewGroup)surface.getParent()).removeView(surface);
     }
 
+    private void applyConsole() {
+        if (!active() || !resumed || dimDismissed || !preferences.getBoolean("dim_phone", false)) {
+            restorePhoneBrightness();
+            return;
+        }
+        if (phoneBlackout != null) return;
+        previousBrightness = activity.getWindow().getAttributes().screenBrightness;
+        WindowManager.LayoutParams attributes = activity.getWindow().getAttributes();
+        attributes.screenBrightness = 0f; // Public per-window minimum, NOT panel power-off.
+        activity.getWindow().setAttributes(attributes);
+        phoneBlackout = new View(activity);
+        phoneBlackout.setBackgroundColor(Color.BLACK);
+        phoneBlackout.setKeepScreenOn(true);
+        phoneBlackout.setOnTouchListener((view, event) -> { wakePhone(); return true; });
+        phone.addView(phoneBlackout, new ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        diagnostics.event("phone software blackout active; physical-panel-off=false");
+    }
+
+    private void restorePhoneBrightness() {
+        if (phoneBlackout == null) return;
+        phone.removeView(phoneBlackout);
+        phoneBlackout = null;
+        WindowManager.LayoutParams attributes = activity.getWindow().getAttributes();
+        attributes.screenBrightness = previousBrightness;
+        activity.getWindow().setAttributes(attributes);
+        diagnostics.event("phone brightness restored");
+    }
+
     private void leave() {
         Presentation previous = presentation;
+        restorePhoneBrightness();
         if (previous == null) return;
         presentation = null; // Dismiss callback must not trigger another migration.
         detach();

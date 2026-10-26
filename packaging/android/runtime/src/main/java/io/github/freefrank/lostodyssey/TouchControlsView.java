@@ -73,6 +73,7 @@ final class TouchControlsView extends View {
     private TextView controllerHint;
     private boolean settingsChoiceEdited, syncingSettingsToggle;
     private boolean editing, customLayout, hostResumed, deviceListenerRegistered;
+    private boolean tvControlsHidden;
     private int settingsPointer = -1, dragPointer = -1, toolbarPointer = -1;
     private int selected = -1, toolbarPressed = -1;
     private float dragOffsetX, dragOffsetY, baseUnit;
@@ -166,7 +167,14 @@ final class TouchControlsView extends View {
     }
 
     private boolean controlsVisible() {
-        return !ctrl.hideAll() && visibility.visible();
+        return !tvControlsHidden && !ctrl.hideAll() && visibility.visible();
+    }
+
+    void setTvControlsHidden(boolean hidden) {
+        if (tvControlsHidden == hidden) return;
+        tvControlsHidden = hidden;
+        clearTouches();
+        invalidate();
     }
 
     boolean hidesAllControls() { return ctrl.hideAll(); }
