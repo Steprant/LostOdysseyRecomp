@@ -70,6 +70,14 @@ escluso dal confronto combinato perché l'ambiente lo impedisce e il primo
 tentativo era andato in timeout. Lo stesso test risulta saltato anche in CI.
 I due test SDL passano in CI.
 
+Anche il ramo combinato finale supera la
+[suite CI: 51 test passati e uno saltato](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40279634091),
+su 52 casi registrati. Passano sia la
+[compilazione Windows di renderer/video/bridge e il collegamento degli adapter](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40279634215)
+sia i [contratti FG CPU](https://github.com/Steprant/LostOdysseyRecomp/actions/runs/40279634086).
+Questi controlli riguardano il codice combinato definitivo, inclusa la
+conservazione della contabilità EDRAM durante l'omissione del draw nativo.
+
 Il renderer completo, con le tre modifiche insieme, compila con GCC 13 e con
 Android NDK r28c/Clang 19 per arm64-v8a/API 26. Il percorso dei draw è stato
 compilato anche con Clang 18 sul sistema ospite. Le tre fixture compilano e
