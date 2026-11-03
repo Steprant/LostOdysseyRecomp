@@ -8,11 +8,13 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 
 ### English
 
+- Android: experimental H.264 MP4 replacement-movie decoding through MediaCodec, with the original video retained on failure.
 - Fixed an audio streaming wait that could block other voices and retire an unwritten output buffer.
 - Changing internal or shadow resolution preserves the paused scene's textures until the game draws them again.
 
 ### 简体中文
 
+- Android：新增通过 MediaCodec 解码 H.264 MP4 替换视频的实验性支持，解码失败时保留原始视频。
 - 修复音频流等待时可能阻塞其他声音并错误结束未写入输出缓冲区的问题。
 - 调整内部或阴影分辨率时，保留暂停场景仍在读取的纹理，直到游戏重新绘制。
 
