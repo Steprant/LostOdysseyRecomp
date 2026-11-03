@@ -1,0 +1,1529 @@
+{
+  "release_tag": "v1.1.0",
+  "release_commit": "fcfda1311f6e87a196124865afd2343508fb043f",
+  "integration_original_head": "a5b630422fa42340cd1acf1c224bbc8bcd00d48b",
+  "first_verification_commit": "ad0fb6e69f8d5aebcfcb2d4610d6495c518ac958",
+  "main_expected": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+  "note": "Source blob equality is recorded per file. Shared files intentionally include other reviewed contributions; equality is not a gameplay assertion. Officially merged contributions are checked through their squash merge commits.",
+  "prs": [
+    {
+      "upstream_pr": 707,
+      "head": "14f776a1afe45cc11d72bf6761989ac3a09653e9",
+      "source_base": "2128383494a53071db658cbf550778beedc6240d",
+      "merged_officially": true,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/gpu/renderer.cpp",
+          "source_blob": "c57e41bbdce2cbe5c91cd3f4eca5d2b0d102dcee",
+          "integrated_blob": "f91841ad85d22feba3ef60b63f29cf97a88f5cb6",
+          "byte_identical": false
+        }
+      ],
+      "official_merge_sha": "57feee5e3987de236d70ed9d760191a1aa245846"
+    },
+    {
+      "upstream_pr": 709,
+      "head": "a727a19bed88a4ae0140bca1dd352b334e7e3618",
+      "source_base": "f26d829f59903e3760d33f0df115aeff9cfd05bb",
+      "merged_officially": true,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "tools/patches/plume-lostodyssey.patch",
+          "source_blob": "fa06703ccf2c36d3d2bc752e0fc2ca73e1316db9",
+          "integrated_blob": "fa06703ccf2c36d3d2bc752e0fc2ca73e1316db9",
+          "byte_identical": true
+        }
+      ],
+      "official_merge_sha": "e4dc49b29a719d68975dadfbb0395183c436396b"
+    },
+    {
+      "upstream_pr": 711,
+      "head": "68086e8dbb953498e18e3c626ef8c4166dd7ff2a",
+      "source_base": "2128383494a53071db658cbf550778beedc6240d",
+      "merged_officially": true,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "tools/patches/plume-lostodyssey.patch",
+          "source_blob": "c8edac1d54c8eae0dde21c270e5d9800f0d18d91",
+          "integrated_blob": "fa06703ccf2c36d3d2bc752e0fc2ca73e1316db9",
+          "byte_identical": false
+        }
+      ],
+      "official_merge_sha": "f26d829f59903e3760d33f0df115aeff9cfd05bb"
+    },
+    {
+      "upstream_pr": 712,
+      "head": "131a09dba5382e5ec1a9fba43e11e09499f9924f",
+      "source_base": "2128383494a53071db658cbf550778beedc6240d",
+      "merged_officially": true,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/apu/xma.cpp",
+          "source_blob": "7317eca440efddfe7c41b63fdc030bae00ba62f9",
+          "integrated_blob": "446571a18d253c739964fa427435e2651df36c8f",
+          "byte_identical": false
+        }
+      ],
+      "official_merge_sha": "ca189df1b19f38d95929d93b13227a43af1a885d"
+    },
+    {
+      "upstream_pr": 717,
+      "head": "3f683713ed19d378183c4be1e535aaa93963d109",
+      "source_base": "5fd18ccca9c98a5f8a3fda15e4af6eeac592c45a",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/gpu/shader/sgsr1_source.h",
+          "source_blob": "59f3b6e701d046b367d0308fcedc05ecb62506e9",
+          "integrated_blob": "59f3b6e701d046b367d0308fcedc05ecb62506e9",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/sgsr1-presentation.md",
+          "source_blob": "e4b6168d298c4c772fed9c06d317007d66b90351",
+          "integrated_blob": "e4b6168d298c4c772fed9c06d317007d66b90351",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/build.gradle",
+          "source_blob": "4767b7360aee131c940d172acacf78c1197491f9",
+          "integrated_blob": "4767b7360aee131c940d172acacf78c1197491f9",
+          "byte_identical": true
+        },
+        {
+          "path": "thirdparty/licenses/SnapdragonGSR.txt",
+          "source_blob": "fdd38336e7f2f531a7417593cd1b5ee8f6b1e190",
+          "integrated_blob": "fdd38336e7f2f531a7417593cd1b5ee8f6b1e190",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/package_appimage.py",
+          "source_blob": "97a5dfec40cba21eba6c393b81e2f3dba5ab4bdc",
+          "integrated_blob": "97a5dfec40cba21eba6c393b81e2f3dba5ab4bdc",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/package_flatpak.py",
+          "source_blob": "c372b2f86f40a9aff4cf9042c4db8d923c1c3144",
+          "integrated_blob": "c372b2f86f40a9aff4cf9042c4db8d923c1c3144",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/package_release.py",
+          "source_blob": "bd6197fd35c9e946ba055792e1ae42cdd554b5dd",
+          "integrated_blob": "bd6197fd35c9e946ba055792e1ae42cdd554b5dd",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/package_appimage_test.py",
+          "source_blob": "edab2337b34032240aad3facf6de15527effb1b6",
+          "integrated_blob": "edab2337b34032240aad3facf6de15527effb1b6",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/package_flatpak_test.py",
+          "source_blob": "3d1005f5a9273258112b7cddd7c6ae8bfb421393",
+          "integrated_blob": "3d1005f5a9273258112b7cddd7c6ae8bfb421393",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/package_release_test.py",
+          "source_blob": "4c5259e5a13e8d4aa25671ef5e89468746eeabc2",
+          "integrated_blob": "4c5259e5a13e8d4aa25671ef5e89468746eeabc2",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/sgsr1_shader_test.py",
+          "source_blob": "700b42d29ec7471df6a2c9b103df0046f8109ba0",
+          "integrated_blob": "700b42d29ec7471df6a2c9b103df0046f8109ba0",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/presentation.cpp",
+          "source_blob": "955e11ca0101cadff9cc8fdd54b20f0559af1d9c",
+          "integrated_blob": "a0c69d98f11f940fcba26e8c4049fb851aa56fbf",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/package_macos.py",
+          "source_blob": "436a1241d270323e9cba78d8e370db0c430be0f5",
+          "integrated_blob": "9513118cca6303d4194e08ffd4a2134cf01ec4a3",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/presentation_test.cpp",
+          "source_blob": "d59174d5af02e1fd705f7044b6f6f0f0b64dfbb2",
+          "integrated_blob": "0eac79fe720e57f1f008d4bde3860fb4ca60b37a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 718,
+      "head": "c9dd13888f206b3341a6bc6c59fdb7870c075fdd",
+      "source_base": "5fd18ccca9c98a5f8a3fda15e4af6eeac592c45a",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/gpu/texture_descriptor_cache.h",
+          "source_blob": "7a24f83731c0ab399cadf6be863a55e8c2808717",
+          "integrated_blob": "7a24f83731c0ab399cadf6be863a55e8c2808717",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/renderer-sparse-descriptor-writes.md",
+          "source_blob": "8b3e4b8430d2a7c18a5b02669f8cf9e5e39cf8c3",
+          "integrated_blob": "8b3e4b8430d2a7c18a5b02669f8cf9e5e39cf8c3",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/texture_descriptor_cache_test.cpp",
+          "source_blob": "409142df5e1930d9c2f5a25607b9b925a473e25e",
+          "integrated_blob": "409142df5e1930d9c2f5a25607b9b925a473e25e",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/texture_descriptor_rewrite_bench.cpp",
+          "source_blob": "91c9f5898239d9035508ef432aeca7da4cfdfc24",
+          "integrated_blob": "91c9f5898239d9035508ef432aeca7da4cfdfc24",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/renderer.cpp",
+          "source_blob": "c6e4c25e829ad81ec9ff53227822029113559be2",
+          "integrated_blob": "f91841ad85d22feba3ef60b63f29cf97a88f5cb6",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 719,
+      "head": "2bda8bab86b70a4641bb2c6d976536d4444880f8",
+      "source_base": "5fd18ccca9c98a5f8a3fda15e4af6eeac592c45a",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/os/host_scheduling.cpp",
+          "source_blob": "5ad199ec14517397377b4fba537a47117a26d67c",
+          "integrated_blob": "5ad199ec14517397377b4fba537a47117a26d67c",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/android-thermal-stats.md",
+          "source_blob": "e08fae0816e85374710ef7948310876f6e026be9",
+          "integrated_blob": "e08fae0816e85374710ef7948310876f6e026be9",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/android_thermal_test.py",
+          "source_blob": "42c56c99dd5f0641987504c0de8e0199028225f0",
+          "integrated_blob": "42c56c99dd5f0641987504c0de8e0199028225f0",
+          "byte_identical": true
+        }
+      ]
+    },
+    {
+      "upstream_pr": 720,
+      "head": "7e163de22386a3675195ee73d890732f447f9ab9",
+      "source_base": "5fd18ccca9c98a5f8a3fda15e4af6eeac592c45a",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "docs/notes/android-descriptor-buffer-probe.md",
+          "source_blob": "386f2c26bccecfe8fc8f91829a1d0abf6ea14099",
+          "integrated_blob": "386f2c26bccecfe8fc8f91829a1d0abf6ea14099",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/android_probe/descriptor_buffer_probe.h",
+          "source_blob": "1446cb1df2122ccc3f58aeea8fee7d0ed0dc68bf",
+          "integrated_blob": "1446cb1df2122ccc3f58aeea8fee7d0ed0dc68bf",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/android_probe/vulkan_probe.cpp",
+          "source_blob": "46fabf84cd60f8569c304a793284381c43c19947",
+          "integrated_blob": "46fabf84cd60f8569c304a793284381c43c19947",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/descriptor_buffer_probe_test.cpp",
+          "source_blob": "6d3a7ba272bcf8e1ef1c7acf03c9f9bb55383d82",
+          "integrated_blob": "6d3a7ba272bcf8e1ef1c7acf03c9f9bb55383d82",
+          "byte_identical": true
+        }
+      ]
+    },
+    {
+      "upstream_pr": 721,
+      "head": "d2722f6fba2fd6ed2673a71c6029b244d5aed156",
+      "source_base": "5fd18ccca9c98a5f8a3fda15e4af6eeac592c45a",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": ".github/workflows/movie-tests.yml",
+          "source_blob": "64b97d10d842c9435283e744b21a68032dea6ee4",
+          "integrated_blob": "64b97d10d842c9435283e744b21a68032dea6ee4",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/movie/h264_sample.h",
+          "source_blob": "f303c01c6161b2584bdce97f7d52c4853a5be5d3",
+          "integrated_blob": "f303c01c6161b2584bdce97f7d52c4853a5be5d3",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/movie/movie_decoder.cpp",
+          "source_blob": "704dd159753fb4e3475d74b6e46d0f96e7831d72",
+          "integrated_blob": "704dd159753fb4e3475d74b6e46d0f96e7831d72",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/movie/movie_decoder.h",
+          "source_blob": "b1bdaceb14465e02c637989278be6c3f7e760be7",
+          "integrated_blob": "b1bdaceb14465e02c637989278be6c3f7e760be7",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/movie/movie_decoder_android.cpp",
+          "source_blob": "48dd0c4bc7a4f37d8fdb4a30c101b47e0d5a316d",
+          "integrated_blob": "48dd0c4bc7a4f37d8fdb4a30c101b47e0d5a316d",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/movie/movie_decoder_mf.cpp",
+          "source_blob": "950122d0600b32f6a79a620601d9dd0d46c9e57a",
+          "integrated_blob": "950122d0600b32f6a79a620601d9dd0d46c9e57a",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/movie/movie_player.cpp",
+          "source_blob": "7e0e4c656e56730957d71b05868d6c7aa4109a91",
+          "integrated_blob": "7e0e4c656e56730957d71b05868d6c7aa4109a91",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/movie/yuv420_frame.h",
+          "source_blob": "0ef68b47b81b8c38a87b59924f95a100bc0c117e",
+          "integrated_blob": "0ef68b47b81b8c38a87b59924f95a100bc0c117e",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/android-movie-decoder.md",
+          "source_blob": "34e6fd5c1de7f0a9b0e56edfc5914f3fa0029d8e",
+          "integrated_blob": "34e6fd5c1de7f0a9b0e56edfc5914f3fa0029d8e",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/app/src/main/java/io/github/freefrank/lostodyssey/probe/ProbeActivity.java",
+          "source_blob": "9797932a39aac2629701b5139fcb9dd198eef2d7",
+          "integrated_blob": "9797932a39aac2629701b5139fcb9dd198eef2d7",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/android_probe/CMakeLists.txt",
+          "source_blob": "69ff7edb0130b9d23f9b5f8b3c463445efbbfc32",
+          "integrated_blob": "69ff7edb0130b9d23f9b5f8b3c463445efbbfc32",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/android_probe/main.cpp",
+          "source_blob": "3f3af54c9a02d01f8635e1b59876b9e439a47585",
+          "integrated_blob": "3f3af54c9a02d01f8635e1b59876b9e439a47585",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/android_probe/movie_probe.cpp",
+          "source_blob": "9438d2c38310c5c62d8d18607c13393f93318f90",
+          "integrated_blob": "9438d2c38310c5c62d8d18607c13393f93318f90",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/android_probe/movie_probe.h",
+          "source_blob": "e6f0714f1368e9e687f978d6a87530daf67a24f4",
+          "integrated_blob": "e6f0714f1368e9e687f978d6a87530daf67a24f4",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/movie/CMakeLists.txt",
+          "source_blob": "9f239f1f5567c83e14f1e15033469f7e2f4c1684",
+          "integrated_blob": "9f239f1f5567c83e14f1e15033469f7e2f4c1684",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/movie_data_test.cpp",
+          "source_blob": "daa78970de7b844c4c4f34b06c0e8f833a43a2db",
+          "integrated_blob": "daa78970de7b844c4c4f34b06c0e8f833a43a2db",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/movie_decode_test.cpp",
+          "source_blob": "440bd0646921350a6eab3b4e81f3bb18369e9587",
+          "integrated_blob": "440bd0646921350a6eab3b4e81f3bb18369e9587",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/movie_jni_test.cpp",
+          "source_blob": "619cf6c2945e30ac100c47068ea67199d09456f3",
+          "integrated_blob": "619cf6c2945e30ac100c47068ea67199d09456f3",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/movie_jni_test.py",
+          "source_blob": "098c7bb53e1c560f6820adbf1069eac482563d79",
+          "integrated_blob": "098c7bb53e1c560f6820adbf1069eac482563d79",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/movie_session_test.cpp",
+          "source_blob": "1c12c9607d4e5d04aecafb9d0c1e27faf2fd29d3",
+          "integrated_blob": "1c12c9607d4e5d04aecafb9d0c1e27faf2fd29d3",
+          "byte_identical": true
+        },
+        {
+          "path": "CHANGELOG.md",
+          "source_blob": "3f2545aaf726e9f14caf131bbddbd6eeb28c5233",
+          "integrated_blob": "0802c6e3d4bf98ab35b2df9a0c604d00c3628321",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "48a9eb9ca051dbc76b376c8eaa63c29884cd362e",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 722,
+      "head": "bbc7a67c65e0458c35c014d4596ad19a24d85589",
+      "source_base": "5fd18ccca9c98a5f8a3fda15e4af6eeac592c45a",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/gpu/pipeline_cache.h",
+          "source_blob": "de2e30a1f07c64b6f53c72d1aa46461bf5d62df3",
+          "integrated_blob": "de2e30a1f07c64b6f53c72d1aa46461bf5d62df3",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/pipeline-key-lookup-hash.md",
+          "source_blob": "c482160f9b61309057684543b24499235efb3018",
+          "integrated_blob": "c482160f9b61309057684543b24499235efb3018",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/pipeline_cache_test.cpp",
+          "source_blob": "2b3b7252be3d52fae869c9301026055081e24dc9",
+          "integrated_blob": "2b3b7252be3d52fae869c9301026055081e24dc9",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/pipeline_key_hash_bench.cpp",
+          "source_blob": "666eb23b8b798ac4e3ec5d082874fbc29d19f40a",
+          "integrated_blob": "666eb23b8b798ac4e3ec5d082874fbc29d19f40a",
+          "byte_identical": true
+        }
+      ]
+    },
+    {
+      "upstream_pr": 723,
+      "head": "1e75ba543489b73eaaa0d39131d63e17008141b0",
+      "source_base": "5fd18ccca9c98a5f8a3fda15e4af6eeac592c45a",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": ".github/workflows/shadow-budget.yml",
+          "source_blob": "e9c12d9263d3ac9840f274b2797baa42f4a7b79e",
+          "integrated_blob": "e9c12d9263d3ac9840f274b2797baa42f4a7b79e",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/patches/shadow_budget.cpp",
+          "source_blob": "30fee15597b967633f84f2c44261f39776172b33",
+          "integrated_blob": "30fee15597b967633f84f2c44261f39776172b33",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/shadow-low-budget-cache.md",
+          "source_blob": "2c936b3cfff5a42f4a759a2dfd1768f478c8b9a0",
+          "integrated_blob": "2c936b3cfff5a42f4a759a2dfd1768f478c8b9a0",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/shadow_budget/CMakeLists.txt",
+          "source_blob": "7dfe90d2af431a427f6db122b94bbd623851edbf",
+          "integrated_blob": "7dfe90d2af431a427f6db122b94bbd623851edbf",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/shadow_budget/budget_test.cpp",
+          "source_blob": "ea6c1f90b9fe7a0989fb5c81492cb84030364b5a",
+          "integrated_blob": "ea6c1f90b9fe7a0989fb5c81492cb84030364b5a",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/shadow_budget/compare.py",
+          "source_blob": "d04cc38f94f65cf4dbaaccc1d787d1b1d093e445",
+          "integrated_blob": "d04cc38f94f65cf4dbaaccc1d787d1b1d093e445",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/shadow_budget/stubs/kernel/memory.h",
+          "source_blob": "ef29418bde4ea8a195c61d9600bc0511d5c9acb2",
+          "integrated_blob": "ef29418bde4ea8a195c61d9600bc0511d5c9acb2",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/shadow_budget/stubs/os/logger.h",
+          "source_blob": "68d50e362f674094a89e72f586d83bf1a674d0c4",
+          "integrated_blob": "68d50e362f674094a89e72f586d83bf1a674d0c4",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/shadow_budget/stubs/settings/config.h",
+          "source_blob": "20b576693d7458d888a14c2bb862c8ccedd26e42",
+          "integrated_blob": "20b576693d7458d888a14c2bb862c8ccedd26e42",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/shadow_budget/stubs/stdafx.h",
+          "source_blob": "e397eefbd5cdc29dd639f824d31c1f648b33d7e1",
+          "integrated_blob": "e397eefbd5cdc29dd639f824d31c1f648b33d7e1",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "289686b3ea35dad6d1f0766e531f1b8f9fb95392",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 726,
+      "head": "29bcc388a6a32bd1977cb6a9e51d8d1d7eb083ed",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "docs/notes/resolve-reconfigure.md",
+          "source_blob": "d387b0053d16ce3e43a2c525ef5e90d596971f30",
+          "integrated_blob": "d387b0053d16ce3e43a2c525ef5e90d596971f30",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/resolve_reconfigure/CMakeLists.txt",
+          "source_blob": "057a255250d7127a335f818626d41e9d4aed225a",
+          "integrated_blob": "057a255250d7127a335f818626d41e9d4aed225a",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/resolve_reconfigure/fixture.cpp.in",
+          "source_blob": "8769c05b231b400dd46c520684ca22f2b0fc131b",
+          "integrated_blob": "8769c05b231b400dd46c520684ca22f2b0fc131b",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/resolve_reconfigure/generate.py",
+          "source_blob": "476cafacf77f22e65e2b2e3a8b523180e5dc3ee9",
+          "integrated_blob": "476cafacf77f22e65e2b2e3a8b523180e5dc3ee9",
+          "byte_identical": true
+        },
+        {
+          "path": "CHANGELOG.md",
+          "source_blob": "0fe254296be2e6668a6e97ea2e804bb1db405ab7",
+          "integrated_blob": "0802c6e3d4bf98ab35b2df9a0c604d00c3628321",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/renderer.cpp",
+          "source_blob": "d0bb4f0f3d05123f9fbaac795e5c2b9948ff3dc4",
+          "integrated_blob": "f91841ad85d22feba3ef60b63f29cf97a88f5cb6",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/README.md",
+          "source_blob": "094449617ac127311d8d2c17c37b9a226cee39a8",
+          "integrated_blob": "d393c65655f5c66876fca50e82a79945cac42405",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "51e23b7a12b9120fc968854fb02ec6346e5c2c47",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 727,
+      "head": "bb5bad435f2d8b15443b69e5c32359f3dabfbcc6",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "docs/notes/xma-refill-wait.md",
+          "source_blob": "aef0422e46ae789a8785bb3743dfd78086b5c397",
+          "integrated_blob": "aef0422e46ae789a8785bb3743dfd78086b5c397",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/CMakeLists.txt",
+          "source_blob": "0ea00b2befa15aef594ff4431e7247751e43543b",
+          "integrated_blob": "0ea00b2befa15aef594ff4431e7247751e43543b",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/fixture.cpp",
+          "source_blob": "c0c2d1ee323c31327d8bc4ff5850798d049f317e",
+          "integrated_blob": "c0c2d1ee323c31327d8bc4ff5850798d049f317e",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/kernel/memory.h",
+          "source_blob": "a27452966a593fe76439c724d8efe9c813cf0bfc",
+          "integrated_blob": "a27452966a593fe76439c724d8efe9c813cf0bfc",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/libavcodec/avcodec.h",
+          "source_blob": "d8a8b0efef57a6382fbe5345175e0b232d1505b3",
+          "integrated_blob": "d8a8b0efef57a6382fbe5345175e0b232d1505b3",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/libavutil/log.h",
+          "source_blob": "ca4a2944d0bbc3174c211a155d97a5c3f0ff3728",
+          "integrated_blob": "ca4a2944d0bbc3174c211a155d97a5c3f0ff3728",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/os/logger.h",
+          "source_blob": "51d91dc6bcd33048151acb05313b3f4ec81a8f45",
+          "integrated_blob": "51d91dc6bcd33048151acb05313b3f4ec81a8f45",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/os/thread_name.h",
+          "source_blob": "fd794b3076336e8120ced3517e2c09778f2d6e44",
+          "integrated_blob": "fd794b3076336e8120ced3517e2c09778f2d6e44",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/stdafx.h",
+          "source_blob": "1743f32c3cc3d9079ed96ac212d200eb6203db82",
+          "integrated_blob": "1743f32c3cc3d9079ed96ac212d200eb6203db82",
+          "byte_identical": true
+        },
+        {
+          "path": "CHANGELOG.md",
+          "source_blob": "cd0dbee4a9409e8f5b5183ad232d6b391c7a1e95",
+          "integrated_blob": "0802c6e3d4bf98ab35b2df9a0c604d00c3628321",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/apu/xma.cpp",
+          "source_blob": "887366140db13143842e0f8727151826fd552349",
+          "integrated_blob": "446571a18d253c739964fa427435e2651df36c8f",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/README.md",
+          "source_blob": "dcb448663e87b8862ad204ae024d08b01124fbfd",
+          "integrated_blob": "d393c65655f5c66876fca50e82a79945cac42405",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "8cc437f92b101f9cb6811de9c4e4b265f5766521",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 731,
+      "head": "467ac9a1c3c83ae2b4937e1ce23def158e32bdd6",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "docs/notes/vulkan-resolve-barrier-reuse.md",
+          "source_blob": "58e53c3f9a4249b416f09cf01680fcb3e6966545",
+          "integrated_blob": "58e53c3f9a4249b416f09cf01680fcb3e6966545",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/resolve_barrier_reuse_test.py",
+          "source_blob": "ca04eccbdecb3befd2fb376ee67122c75cd9fc7f",
+          "integrated_blob": "ca04eccbdecb3befd2fb376ee67122c75cd9fc7f",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/resolve_copy_gpu_test.cpp",
+          "source_blob": "ff43d0670d7c3cdb97bb575e3cfdeba160dc71ef",
+          "integrated_blob": "ff43d0670d7c3cdb97bb575e3cfdeba160dc71ef",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/renderer.cpp",
+          "source_blob": "81c18c58204b81aa27a4a066d733478a86924736",
+          "integrated_blob": "f91841ad85d22feba3ef60b63f29cf97a88f5cb6",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "7aaa0e4458d6cdbb9a7b6dd163575d432fa5d744",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 732,
+      "head": "6a2c1cfa9b2ee2f9cebc94de0468872a787cf677",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "docs/notes/read-only-depth-draws.md",
+          "source_blob": "fd4038d65c450df7e3d52880388344ed231f37df",
+          "integrated_blob": "fd4038d65c450df7e3d52880388344ed231f37df",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/read_only_depth_draw_test.py",
+          "source_blob": "1ce49dea9a618a11d516f6b82f85b3e9c5c204ec",
+          "integrated_blob": "1ce49dea9a618a11d516f6b82f85b3e9c5c204ec",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/renderer.cpp",
+          "source_blob": "d893b1086e1b4cd6404a2720451fdb1553faf1f1",
+          "integrated_blob": "f91841ad85d22feba3ef60b63f29cf97a88f5cb6",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "dc92fbc0392f2bad77ef3c5a4fe7677b28021666",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 733,
+      "head": "454d40befb83501ab03b18c240756fae6e899b7f",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/gpu/pending_clear.h",
+          "source_blob": "a2978ae7756779988feb3ad3facf2e86040a49b8",
+          "integrated_blob": "a2978ae7756779988feb3ad3facf2e86040a49b8",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/pending-clear-coverage.md",
+          "source_blob": "2e9b96a3364d00d0bebc9faf19cc3c8f7bfe80ca",
+          "integrated_blob": "2e9b96a3364d00d0bebc9faf19cc3c8f7bfe80ca",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/pending_clear_coverage_test.cpp",
+          "source_blob": "b7deabcde2ce008633e6f7b09ca57e3b422f2505",
+          "integrated_blob": "b7deabcde2ce008633e6f7b09ca57e3b422f2505",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "f173eeac8a02131ce8e273dd76eb40fa8dbdd2b2",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 736,
+      "head": "32d42febcbd2574771ac9e1911ac9f0222de7f85",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "docs/notes/edram-partial-clear-transfers.md",
+          "source_blob": "462796d6bc128ae8c3d13b6af6466433e5612cda",
+          "integrated_blob": "462796d6bc128ae8c3d13b6af6466433e5612cda",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/edram_partial_clear_test.py",
+          "source_blob": "f65d947832a61879c266c482303f038c5bd881c2",
+          "integrated_blob": "f65d947832a61879c266c482303f038c5bd881c2",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/edram_partial_clear_test.template.cpp",
+          "source_blob": "6dc9d02bae751824fbbbc708505aed47fa1f638c",
+          "integrated_blob": "6dc9d02bae751824fbbbc708505aed47fa1f638c",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/lazy_clear_gpu_test.cpp",
+          "source_blob": "09b2c8660b8eeb7d1d2f63b9ad4a61fd466b484a",
+          "integrated_blob": "09b2c8660b8eeb7d1d2f63b9ad4a61fd466b484a",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/motion_replay/CMakeLists.txt",
+          "source_blob": "b8de82273258df8e4a3ed53db1ee1d99bf8b309f",
+          "integrated_blob": "b8de82273258df8e4a3ed53db1ee1d99bf8b309f",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/renderer.cpp",
+          "source_blob": "a84b1fae8ee7dec7eb436a57203dc7a9a2b14e7b",
+          "integrated_blob": "f91841ad85d22feba3ef60b63f29cf97a88f5cb6",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "2cd2b83ac38f59ecfb449f391e85dba20a2d2c70",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 738,
+      "head": "1a5c5e0ab28b07ef53bca6bb94be946405be639b",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": ".github/workflows/guest-entry.yml",
+          "source_blob": "54f197ee7648ee469fca11939a8ea2245988ddd2",
+          "integrated_blob": "54f197ee7648ee469fca11939a8ea2245988ddd2",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecompLib/config/LostOdysseyRecomp.toml",
+          "source_blob": "e1a5a6044c8a433e224e49552ab047585f219f2c",
+          "integrated_blob": "e1a5a6044c8a433e224e49552ab047585f219f2c",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecompLib/config/function_bounds_manual.txt",
+          "source_blob": "6980eadb37e62df04cf2ca475ffbf281c1c64880",
+          "integrated_blob": "6980eadb37e62df04cf2ca475ffbf281c1c64880",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecompLib/config/switch_tables.toml",
+          "source_blob": "302f160b0e0c819ba6646ff86df68c06ddacfeff",
+          "integrated_blob": "302f160b0e0c819ba6646ff86df68c06ddacfeff",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecompLib/config/switch_tables_manual.toml",
+          "source_blob": "df095b0ff22017a018f011fb77f42ec794f5f2f8",
+          "integrated_blob": "df095b0ff22017a018f011fb77f42ec794f5f2f8",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/android-60fps-runtime-20261026.md",
+          "source_blob": "65801c1a102787cdce5d21a5ba314b2149e78293",
+          "integrated_blob": "65801c1a102787cdce5d21a5ba314b2149e78293",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/xma-refill-wait.md",
+          "source_blob": "aef0422e46ae789a8785bb3743dfd78086b5c397",
+          "integrated_blob": "aef0422e46ae789a8785bb3743dfd78086b5c397",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/guest_dispatch_test.cpp",
+          "source_blob": "d16f5ac78f50ea1a8bc3cc3b5336c47aa2717d74",
+          "integrated_blob": "d16f5ac78f50ea1a8bc3cc3b5336c47aa2717d74",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/guest_entry/CMakeLists.txt",
+          "source_blob": "be636aad44e6a2fa6d8784cd10a394fd8e579e9f",
+          "integrated_blob": "be636aad44e6a2fa6d8784cd10a394fd8e579e9f",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/guest_entry/check.cpp",
+          "source_blob": "e15ba8abd4e32fe8fe37fbdd1beffc557be988a6",
+          "integrated_blob": "e15ba8abd4e32fe8fe37fbdd1beffc557be988a6",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/guest_entry/generate.cpp",
+          "source_blob": "89c335dec9b4e787256fc88e069013ffdfda8897",
+          "integrated_blob": "89c335dec9b4e787256fc88e069013ffdfda8897",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/guest_entry/inspect_release.py",
+          "source_blob": "7408f552f4592f570d5ba02938ff7290ac616f21",
+          "integrated_blob": "7408f552f4592f570d5ba02938ff7290ac616f21",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/CMakeLists.txt",
+          "source_blob": "0ea00b2befa15aef594ff4431e7247751e43543b",
+          "integrated_blob": "0ea00b2befa15aef594ff4431e7247751e43543b",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/fixture.cpp",
+          "source_blob": "c0c2d1ee323c31327d8bc4ff5850798d049f317e",
+          "integrated_blob": "c0c2d1ee323c31327d8bc4ff5850798d049f317e",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/kernel/memory.h",
+          "source_blob": "a27452966a593fe76439c724d8efe9c813cf0bfc",
+          "integrated_blob": "a27452966a593fe76439c724d8efe9c813cf0bfc",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/libavcodec/avcodec.h",
+          "source_blob": "d8a8b0efef57a6382fbe5345175e0b232d1505b3",
+          "integrated_blob": "d8a8b0efef57a6382fbe5345175e0b232d1505b3",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/libavutil/log.h",
+          "source_blob": "ca4a2944d0bbc3174c211a155d97a5c3f0ff3728",
+          "integrated_blob": "ca4a2944d0bbc3174c211a155d97a5c3f0ff3728",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/os/logger.h",
+          "source_blob": "51d91dc6bcd33048151acb05313b3f4ec81a8f45",
+          "integrated_blob": "51d91dc6bcd33048151acb05313b3f4ec81a8f45",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/os/thread_name.h",
+          "source_blob": "fd794b3076336e8120ced3517e2c09778f2d6e44",
+          "integrated_blob": "fd794b3076336e8120ced3517e2c09778f2d6e44",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/xma_streaming/stubs/stdafx.h",
+          "source_blob": "1743f32c3cc3d9079ed96ac212d200eb6203db82",
+          "integrated_blob": "1743f32c3cc3d9079ed96ac212d200eb6203db82",
+          "byte_identical": true
+        },
+        {
+          "path": "CHANGELOG.md",
+          "source_blob": "cd0dbee4a9409e8f5b5183ad232d6b391c7a1e95",
+          "integrated_blob": "0802c6e3d4bf98ab35b2df9a0c604d00c3628321",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/apu/xma.cpp",
+          "source_blob": "887366140db13143842e0f8727151826fd552349",
+          "integrated_blob": "446571a18d253c739964fa427435e2651df36c8f",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/README.md",
+          "source_blob": "ca049bd87e2c95f2daa6fa1f1bf59ea0fb57639c",
+          "integrated_blob": "d393c65655f5c66876fca50e82a79945cac42405",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "8cc437f92b101f9cb6811de9c4e4b265f5766521",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 739,
+      "head": "45c6f0b90f61642740839a1842483f18ff092493",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": ".github/workflows/android-tv-probe.yml",
+          "source_blob": "02c6361ede7ce5e40cb6812cfba0f5b0b024595b",
+          "integrated_blob": "02c6361ede7ce5e40cb6812cfba0f5b0b024595b",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/android_tv.h",
+          "source_blob": "a6e4346f61068b4c005ffcc217320e3dc3767ade",
+          "integrated_blob": "a6e4346f61068b4c005ffcc217320e3dc3767ade",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/frame_plan.cpp",
+          "source_blob": "c8730a9f44f73c83f77fd5ee545d8517827319ae",
+          "integrated_blob": "c8730a9f44f73c83f77fd5ee545d8517827319ae",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/ANDROID_TV_HDMI.md",
+          "source_blob": "3556b9ef3dae8876ee985daf1d2a45a07fa19b3d",
+          "integrated_blob": "3556b9ef3dae8876ee985daf1d2a45a07fa19b3d",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/PlayerLogs.java",
+          "source_blob": "c9081bf4bdf9e9e467f8a206caa255b7d1f318f8",
+          "integrated_blob": "c9081bf4bdf9e9e467f8a206caa255b7d1f318f8",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/TouchControlsView.java",
+          "source_blob": "02850f7f89de570666097219815e4602667f2785",
+          "integrated_blob": "02850f7f89de570666097219815e4602667f2785",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/TvAudioProbe.java",
+          "source_blob": "695ac61fcc3646ace74f6d50b774fc7a17d53ff6",
+          "integrated_blob": "695ac61fcc3646ace74f6d50b774fc7a17d53ff6",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/TvDisplayDiagnostics.java",
+          "source_blob": "110c013f9f7901fe8163cc1a9bfda78aa378bde7",
+          "integrated_blob": "110c013f9f7901fe8163cc1a9bfda78aa378bde7",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/TvModePolicy.java",
+          "source_blob": "942f3b681458b1c862decb1f3125b1738649b3a9",
+          "integrated_blob": "942f3b681458b1c862decb1f3125b1738649b3a9",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/TvOutputController.java",
+          "source_blob": "21b3064d23367d61e89cf7394fdd14ae04d639e1",
+          "integrated_blob": "21b3064d23367d61e89cf7394fdd14ae04d639e1",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/TvSettingsDialog.java",
+          "source_blob": "9eecb4257774f3907be822c8a19ba1d397ceee6d",
+          "integrated_blob": "9eecb4257774f3907be822c8a19ba1d397ceee6d",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/res/values-it/tv.xml",
+          "source_blob": "43723c482fa1a5809fca58663036e7161ab33d5c",
+          "integrated_blob": "43723c482fa1a5809fca58663036e7161ab33d5c",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/res/values/tv.xml",
+          "source_blob": "5263b0b5aaf9580fde444ad0129f7551509b8087",
+          "integrated_blob": "5263b0b5aaf9580fde444ad0129f7551509b8087",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/test/java/io/github/freefrank/lostodyssey/PlayerLogsTest.java",
+          "source_blob": "3f451ad933506693f731a636b64e76177f670fe5",
+          "integrated_blob": "3f451ad933506693f731a636b64e76177f670fe5",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/settings.gradle",
+          "source_blob": "574d95df6ac0310a42cf9e4b3fd00f8839ed908d",
+          "integrated_blob": "574d95df6ac0310a42cf9e4b3fd00f8839ed908d",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/tvprobe/build.gradle",
+          "source_blob": "6216122ed83c02005e1b3caac8b978bf33c64409",
+          "integrated_blob": "6216122ed83c02005e1b3caac8b978bf33c64409",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/tvprobe/src/main/AndroidManifest.xml",
+          "source_blob": "5654acdc63e0d4827a02612a0f6a0acd12b98683",
+          "integrated_blob": "5654acdc63e0d4827a02612a0f6a0acd12b98683",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/tvprobe/src/main/java/io/github/freefrank/lostodyssey/TvProbeActivity.java",
+          "source_blob": "de4ba1208090c7ae619349c461836b9c541195a6",
+          "integrated_blob": "de4ba1208090c7ae619349c461836b9c541195a6",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/android/build-tv-probe.py",
+          "source_blob": "7098f4905fa8485a5b9444320e09e0e54ecda10e",
+          "integrated_blob": "7098f4905fa8485a5b9444320e09e0e54ecda10e",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/android/collect-tv-diagnostics.py",
+          "source_blob": "65596fbc840273bdb4e35a9a73b0388dc2ff01a7",
+          "integrated_blob": "65596fbc840273bdb4e35a9a73b0388dc2ff01a7",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/android/test-tv.py",
+          "source_blob": "49c865f9d434b4417b8ed822f16b44ed107fab50",
+          "integrated_blob": "49c865f9d434b4417b8ed822f16b44ed107fab50",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/TvModePolicyTest.java",
+          "source_blob": "28c8fe3587b2ca112c0dd01d92aad05cea8e865c",
+          "integrated_blob": "28c8fe3587b2ca112c0dd01d92aad05cea8e865c",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/android_tv_test.cpp",
+          "source_blob": "b240a8ac5047a34f03326c2f66a4b1e4e169f2e2",
+          "integrated_blob": "b240a8ac5047a34f03326c2f66a4b1e4e169f2e2",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/video.cpp",
+          "source_blob": "11377122e4904b5bd3fb8af91e74a8b630e1b802",
+          "integrated_blob": "2f85346791602cc9f7e4bd57443dd1acc486a2d9",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/settings/graphics_menu.h",
+          "source_blob": "34d0ad4bcde9ae3e4c9bd8a7426e343eaa7d4d96",
+          "integrated_blob": "4524a3d448bbd390f4d4759e53f8c2c919adbe8a",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/settings/menu.cpp",
+          "source_blob": "81b8ee7d30d77aa1fb029b6a1023a27c843289ac",
+          "integrated_blob": "1e243aaaad7ab7bd98a35326540eb799b8f6fb7f",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/settings/menu.h",
+          "source_blob": "a1f65db7c93437ee166ac629908d2242e4075f01",
+          "integrated_blob": "97d411d16fafa0c9202b23df402da5b3eafedb14",
+          "byte_identical": false
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/RuntimeActivity.java",
+          "source_blob": "631ece95d84a279696d25c34b1066e85c0304da7",
+          "integrated_blob": "12cfc12e39523951bb79a3e048b7e0d6c78f761f",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 745,
+      "head": "d9b00e43a7de7720a920e106d571f5a0246a4eb9",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/apu/audio.cpp",
+          "source_blob": "89a79c8cbd83bed8d06e52856e285729c59cf86a",
+          "integrated_blob": "89a79c8cbd83bed8d06e52856e285729c59cf86a",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/diagnostics/android_tester.h",
+          "source_blob": "ed2b7ab00433580b43c1bc29510113634c18238f",
+          "integrated_blob": "ed2b7ab00433580b43c1bc29510113634c18238f",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/diagnostics/android_tester_jni.cpp",
+          "source_blob": "0ac6a377c41438dbaa468bd036c61a87a81263c1",
+          "integrated_blob": "0ac6a377c41438dbaa468bd036c61a87a81263c1",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/gpu_busy.h",
+          "source_blob": "c9d84470bca4a0a2337138401630a8ee3d1b4b5a",
+          "integrated_blob": "c9d84470bca4a0a2337138401630a8ee3d1b4b5a",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/movie_replace.cpp",
+          "source_blob": "a144f6e02395ff5525e318569d644022330708e2",
+          "integrated_blob": "a144f6e02395ff5525e318569d644022330708e2",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/video.h",
+          "source_blob": "eee8c7f4cd219de7846b078b674a76313e7592e8",
+          "integrated_blob": "eee8c7f4cd219de7846b078b674a76313e7592e8",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/settings/translations.h",
+          "source_blob": "7c15507f734d1d9bcaa31b378cf7b7d39d79d249",
+          "integrated_blob": "7c15507f734d1d9bcaa31b378cf7b7d39d79d249",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/settings/translations_eu.h",
+          "source_blob": "c412ef7b1e55584f35ed3494ca250162aa7b553e",
+          "integrated_blob": "c412ef7b1e55584f35ed3494ca250162aa7b553e",
+          "byte_identical": true
+        },
+        {
+          "path": "PRIVACY.md",
+          "source_blob": "17970323e89e491bcb9567f46ff9b4f2ba76947a",
+          "integrated_blob": "17970323e89e491bcb9567f46ff9b4f2ba76947a",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/ANDROID_TESTER.md",
+          "source_blob": "346827208176119d8f5453562f2ce8a66e776670",
+          "integrated_blob": "346827208176119d8f5453562f2ce8a66e776670",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/README.md",
+          "source_blob": "dc6b891ac6992439c0408351fa1895e75e8497fc",
+          "integrated_blob": "dc6b891ac6992439c0408351fa1895e75e8497fc",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/AndroidTester.java",
+          "source_blob": "a30e08ebbcc0937d28e975733acd43becdfc2eb4",
+          "integrated_blob": "a30e08ebbcc0937d28e975733acd43becdfc2eb4",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/SaveTransferActivity.java",
+          "source_blob": "9f2782a954a9da050c6d466d7899809963aeb326",
+          "integrated_blob": "9f2782a954a9da050c6d466d7899809963aeb326",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/TesterThreadStats.java",
+          "source_blob": "a2aae2dec822999f4e3b2d9162b841697d5f34fc",
+          "integrated_blob": "a2aae2dec822999f4e3b2d9162b841697d5f34fc",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/TesterTraceFiles.java",
+          "source_blob": "b5d33c27bf64d0a9ecb04288f67e2f7912ee00d2",
+          "integrated_blob": "b5d33c27bf64d0a9ecb04288f67e2f7912ee00d2",
+          "byte_identical": true
+        },
+        {
+          "path": "packaging/android/runtime/src/test/java/io/github/freefrank/lostodyssey/TesterTraceFilesTest.java",
+          "source_blob": "010ecfdef86498ac5a83be8c8d1c534c94b23908",
+          "integrated_blob": "010ecfdef86498ac5a83be8c8d1c534c94b23908",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/AndroidTesterTraceTest.java",
+          "source_blob": "6a8e24542472b763eab6ee6da0160768d4c036ef",
+          "integrated_blob": "6a8e24542472b763eab6ee6da0160768d4c036ef",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/android_tester_test.cpp",
+          "source_blob": "d37c6c1640d36bd86a6db51e43df29a43f6639e3",
+          "integrated_blob": "d37c6c1640d36bd86a6db51e43df29a43f6639e3",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/settings_menu/CMakeLists.txt",
+          "source_blob": "03d1209d395c0b451bb2e29b42eba7155acc08da",
+          "integrated_blob": "d1e3f0d144d54ab3c6767e62b89989045bcfb6cc",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/settings_menu/generate_runtime_fixture.py",
+          "source_blob": "225e13f4ddfdd63a4f51f078091e37c0d98f4e45",
+          "integrated_blob": "b4d18ab64538250556698bddfc1f4e926e2109db",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/apu/xma.cpp",
+          "source_blob": "d62882899ce46ba1766bf1a745c5af56b256bfe2",
+          "integrated_blob": "446571a18d253c739964fa427435e2651df36c8f",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/renderer.cpp",
+          "source_blob": "1d27e693e23d686490dfa3bb6ceca9dffa3b78f8",
+          "integrated_blob": "f91841ad85d22feba3ef60b63f29cf97a88f5cb6",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/video.cpp",
+          "source_blob": "e9efa454e391ac281ad97f5b47a66e02e439873d",
+          "integrated_blob": "2f85346791602cc9f7e4bd57443dd1acc486a2d9",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/settings/graphics_menu.h",
+          "source_blob": "8f4fce1789296bdf6446052cb36e19216a01a7c2",
+          "integrated_blob": "4524a3d448bbd390f4d4759e53f8c2c919adbe8a",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/settings/menu.cpp",
+          "source_blob": "0a30bfa1bcbb0b59e17fadae287b820bc5ab5ed4",
+          "integrated_blob": "1e243aaaad7ab7bd98a35326540eb799b8f6fb7f",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/settings/menu.h",
+          "source_blob": "b15a1a4283cef90ff0b53fb290bf62e7ff653ef7",
+          "integrated_blob": "97d411d16fafa0c9202b23df402da5b3eafedb14",
+          "byte_identical": false
+        },
+        {
+          "path": "packaging/android/runtime/src/main/java/io/github/freefrank/lostodyssey/RuntimeActivity.java",
+          "source_blob": "7af0c89090410ca95d44185f08c4d9202da2a143",
+          "integrated_blob": "12cfc12e39523951bb79a3e048b7e0d6c78f761f",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 746,
+      "head": "3a428eb920252c42f7f41bd93b70c9c7af0fbb98",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/gpu/shader/rect_list_hlsl.h",
+          "source_blob": "685b253b6e9215b0d44de44b450047fde07eaa98",
+          "integrated_blob": "685b253b6e9215b0d44de44b450047fde07eaa98",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/rect-list-corner-reuse.md",
+          "source_blob": "a180f7403a5829e8a8cb7ee2df622aa3e8ff1d33",
+          "integrated_blob": "a180f7403a5829e8a8cb7ee2df622aa3e8ff1d33",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/rect_list/CMakeLists.txt",
+          "source_blob": "ceabcbd252f71f86d0d371b239ad594f2a6d0215",
+          "integrated_blob": "ceabcbd252f71f86d0d371b239ad594f2a6d0215",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/rect_list_gpu_test.cpp",
+          "source_blob": "dac491a27e89bb3be2edeedad55aa8d86f6ff114",
+          "integrated_blob": "dac491a27e89bb3be2edeedad55aa8d86f6ff114",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/rect_list_test.cpp",
+          "source_blob": "40f046f2541befd79a863941cb0e094ef94cb2dd",
+          "integrated_blob": "40f046f2541befd79a863941cb0e094ef94cb2dd",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/renderer.cpp",
+          "source_blob": "0564ac11136d39922e4accacc1424a20ccc696ef",
+          "integrated_blob": "f91841ad85d22feba3ef60b63f29cf97a88f5cb6",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "997920fc641ebbb2d9e66430fbbc7be51e98c956",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 748,
+      "head": "c0a8fef07145414966b7404e89ba5cbf42f6fefb",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/gpu/hdr_output.h",
+          "source_blob": "b9b58d56193d2cdf14b6ca22d76e6182d17049ab",
+          "integrated_blob": "b9b58d56193d2cdf14b6ca22d76e6182d17049ab",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/presentation.h",
+          "source_blob": "49f4d6aff84ac5857a861d57085bc29bee00cad1",
+          "integrated_blob": "49f4d6aff84ac5857a861d57085bc29bee00cad1",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/hdr-output.md",
+          "source_blob": "f62a0340fe5fe0013c4b88c3c0560c4d2990f9d1",
+          "integrated_blob": "f62a0340fe5fe0013c4b88c3c0560c4d2990f9d1",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/hdr-shadow-transfer-744.md",
+          "source_blob": "4b3fa27f53f024e3a5edce9f42ee5aa98b3cd62a",
+          "integrated_blob": "4b3fa27f53f024e3a5edce9f42ee5aa98b3cd62a",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/hdr_output_test.cpp",
+          "source_blob": "5f2d2a7e0f414b65b3cc8e69582ec9b669adc16c",
+          "integrated_blob": "5f2d2a7e0f414b65b3cc8e69582ec9b669adc16c",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/hdr_transfer/CMakeLists.txt",
+          "source_blob": "dd17c55d96023ab63331cb723e5892f9f60a764d",
+          "integrated_blob": "dd17c55d96023ab63331cb723e5892f9f60a764d",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/hdr_transfer/compile_shaders.py",
+          "source_blob": "2808ae194eb40fb10ef91200eb4b775ef9236edb",
+          "integrated_blob": "12a544b331cb6447ec12bcf7c5ef7ee11ca490f2",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/hdr_transfer/cpu_test.cpp",
+          "source_blob": "0e29ef069243858647b35efff64a66df910cecd9",
+          "integrated_blob": "0e29ef069243858647b35efff64a66df910cecd9",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/hdr_transfer/gpu_test.h",
+          "source_blob": "840640157c8441619772800e0defe9bd4774799a",
+          "integrated_blob": "840640157c8441619772800e0defe9bd4774799a",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/hdr_transfer/reference.h",
+          "source_blob": "aaec8176c165df820d90b6ca6ec12c5c31c13eb3",
+          "integrated_blob": "aaec8176c165df820d90b6ca6ec12c5c31c13eb3",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/hdr_transfer/stdafx.h",
+          "source_blob": "443c3a2f41bc37d5775d1ae370611a915ff77dcb",
+          "integrated_blob": "443c3a2f41bc37d5775d1ae370611a915ff77dcb",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/presentation.cpp",
+          "source_blob": "d826c79f47c6ceab1c421e445aed6e3f82d8cd79",
+          "integrated_blob": "a0c69d98f11f940fcba26e8c4049fb851aa56fbf",
+          "byte_identical": false
+        },
+        {
+          "path": "LostOdysseyRecomp/gpu/video.cpp",
+          "source_blob": "ba447c64c531b570424b08074a30a4bd88bd4d6d",
+          "integrated_blob": "2f85346791602cc9f7e4bd57443dd1acc486a2d9",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/presentation_test.cpp",
+          "source_blob": "9441bb70c7773803cc2c163e58a5431526efa714",
+          "integrated_blob": "0eac79fe720e57f1f008d4bde3860fb4ca60b37a",
+          "byte_identical": false
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "b56d0deb2d46cee5a75491347352d48581646157",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    },
+    {
+      "upstream_pr": 756,
+      "head": "b6e3b21a8a8c62522436b7d44d02e2b4d87ca332",
+      "source_base": "f9da0ae9bdd481a5ea4fe6431f3a4724d8261147",
+      "merged_officially": false,
+      "ancestry": true,
+      "files": [
+        {
+          "path": "LostOdysseyRecomp/debug/cheat_data.h",
+          "source_blob": "04672f9a6ff13ee63a8ef99c5ff2fc707ae5cdae",
+          "integrated_blob": "04672f9a6ff13ee63a8ef99c5ff2fc707ae5cdae",
+          "byte_identical": true
+        },
+        {
+          "path": "LostOdysseyRecomp/debug/cheats.h",
+          "source_blob": "27ab815be51c1dcf0a739a0c7a141ef10e27cd2b",
+          "integrated_blob": "27ab815be51c1dcf0a739a0c7a141ef10e27cd2b",
+          "byte_identical": true
+        },
+        {
+          "path": "docs/notes/cheats.md",
+          "source_blob": "df46ce51595cfc5b2d94d83a650b1232da138b11",
+          "integrated_blob": "df46ce51595cfc5b2d94d83a650b1232da138b11",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/cheats/import_ct_catalog.py",
+          "source_blob": "a6fbb7fde050586e9a01d33a54773a5fa1825d69",
+          "integrated_blob": "a6fbb7fde050586e9a01d33a54773a5fa1825d69",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/cheat_catalog_test.py",
+          "source_blob": "b80e207ef6378a7821374be0e95cfba4c1f477a7",
+          "integrated_blob": "b80e207ef6378a7821374be0e95cfba4c1f477a7",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/cheats_skill_test.cpp",
+          "source_blob": "974ce7f7323a4c10768a58a1f4dc6895c2560b76",
+          "integrated_blob": "974ce7f7323a4c10768a58a1f4dc6895c2560b76",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/data/skill_names_issue_755.txt",
+          "source_blob": "af9578ffc7919c0583fc3c70ae889c2d3085bbb8",
+          "integrated_blob": "af9578ffc7919c0583fc3c70ae889c2d3085bbb8",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/debug_menu_interaction_test.cpp",
+          "source_blob": "abb1dd05289590cb5a8c85c4a3c7251fed1808a6",
+          "integrated_blob": "abb1dd05289590cb5a8c85c4a3c7251fed1808a6",
+          "byte_identical": true
+        },
+        {
+          "path": "tools/tests/review_regressions/CMakeLists.txt",
+          "source_blob": "060548e6e15b03438aa98a1858d732fc82f5751b",
+          "integrated_blob": "e9bc9e2a72c4ba16a0a787ee7f93a63c24476a4a",
+          "byte_identical": false
+        }
+      ]
+    }
+  ]
+}

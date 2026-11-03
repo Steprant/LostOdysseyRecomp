@@ -119,12 +119,14 @@ jobs:
           out/build/tools/xexdump LostOdysseyRecompLib/private/disc1/default.xex LostOdysseyRecompLib/private/image_disc1.bin
           python tools/ppc_codegen.py generate --executable out/build/tools/XenonRecomp/XenonRecomp/XenonRecomp
       - name: Build the APK
+        env:
+          RELEASE_TAG: ${{ github.ref_name == 'integration/v1.1.0-steprant-all' && 'v1.1.0-Steprant' || '' }}
         run: bash tools/android/ci_build.sh
       - name: Verify and name the integrated APK
         if: github.ref_name == 'integration/v1.1.0-steprant-all'
         run: |
           set -euo pipefail
-          apk=out/apk/LostOdysseyRecomp-android-arm64-debug.apk
+          apk=out/apk/LostOdysseyRecomp-android-arm64-v1.1.0-Steprant.apk
           "$LO_ANDROID_CI_CACHE/android-sdk/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk"
           "$LO_ANDROID_CI_CACHE/android-sdk/build-tools/35.0.0/zipalign" -c -P 16 4 "$apk"
           python tools/android/verify-apk.py "$apk"
@@ -132,7 +134,7 @@ jobs:
           sha256sum out/apk/*.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: LostOdysseyRecomp-android-arm64-debug
+          name: LostOdysseyRecomp-android-arm64
           path: out/apk/*.apk
           if-no-files-found: error
       - uses: actions/upload-artifact@v4

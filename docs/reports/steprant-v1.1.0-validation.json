@@ -1,0 +1,114 @@
+[
+  {
+    "suite": "review_regressions",
+    "passed": 65,
+    "total": 66,
+    "blocked": 1,
+    "details": "64 passed in the full 65-test run; the added input-selector CTest also passed. ImportLinuxHome times out after reporting unavailable user/mount namespaces. ASan/UBSan enabled; host leak detection disabled."
+  },
+  {
+    "suite": "settings_menu",
+    "passed": 13,
+    "total": 13,
+    "details": "Includes actual production Android menu input, TV entry, Tester recording/export, desktop configurations and raster fixtures."
+  },
+  {
+    "suite": "Android Java",
+    "passed": 82,
+    "total": 82,
+    "details": "38 production Java/SDL/generated-R sources compiled with official SDK 35 and JDK 17. aapt2 resource compilation/link and ten JUnit test classes pass. Pinned SDL HID overlay reproduced. AndroidX Core 1.15.0, JUnit 4.13.2 and org.json 20240303."
+  },
+  {
+    "suite": "movie",
+    "passed": 3,
+    "total": 3,
+    "details": "Data/demux, session lifecycle, real host JNI calls against scripted Android codec classes; no physical MediaCodec test."
+  },
+  {
+    "suite": "HDR/presentation Vulkan",
+    "passed": 6,
+    "total": 6,
+    "details": "Mesa lavapipe 25.2.8. Actual production presentation.cpp. HDR transfer: 151 cases and 185922 RGB comparisons, zero failures."
+  },
+  {
+    "suite": "rect_list Vulkan",
+    "passed": 2,
+    "total": 2,
+    "details": "CPU corner/index equivalence and real translated-shader Vulkan readbacks."
+  },
+  {
+    "suite": "SGSR1",
+    "passed": true,
+    "details": "8 production SPIR-V variants plus presentation readbacks with --vulkan --sgsr1."
+  },
+  {
+    "suite": "HDR shader baseline",
+    "passed": true,
+    "details": "32 DXIL/SPIR-V compilations; eight fixed-SDR binaries byte-identical to official v1.1.0."
+  },
+  {
+    "suite": "Python discovery",
+    "passed": 44,
+    "total": 44
+  },
+  {
+    "suite": "Android thermal",
+    "passed": 9,
+    "total": 9,
+    "details": "Host fake ABI and lifecycle cases; no physical thermal measurement."
+  },
+  {
+    "suite": "TV/touch/layout/pacing",
+    "passed": true,
+    "details": "Two production Java policy fixtures and four C++ fixtures, including 30/60/90/120 FPS pacing."
+  },
+  {
+    "suite": "Java/native integration",
+    "passed": true,
+    "details": "Five unique Java/native command IDs and six javac-generated Tester JNI declarations checked against the production C++ TU. Host and pinned ARM64 NDK syntax checks plus ARM64 TV/Tester object compilation pass."
+  },
+  {
+    "suite": "NDK shadow hooks",
+    "passed": true,
+    "details": "Official NDK 28.2.13676358, API 26, arm64-v8a: complete production hooks compile and link to an AArch64 ELF. Not executed on Android."
+  },
+  {
+    "suite": "guest comparison switch",
+    "passed": 1,
+    "total": 1,
+    "details": "Production analyzer/recompiler emits and executes synthetic PPC fixture with Clang 18."
+  },
+  {
+    "suite": "frame generation core",
+    "passed": 1,
+    "total": 1
+  },
+  {
+    "suite": "FG CPU contracts",
+    "passed": 38,
+    "total": 43,
+    "failed_environment": 5,
+    "details": "discord_rpc_ipc/lifecycle/unresponsive/retry/diagnostics fail with create private socket; Android does not build desktop Discord IPC."
+  },
+  {
+    "suite": "fast-forward audio",
+    "passed": 1,
+    "total": 1
+  },
+  {
+    "suite": "private input selection",
+    "passed": 4,
+    "total": 4,
+    "details": "Runs actual workflow shell for absent input, private URL, deploy key and URL precedence, checking that fake secret contents are not printed."
+  },
+  {
+    "suite": "Gradle/lint",
+    "blocked": true,
+    "details": "Both direct and configured-proxy JVM attempts fail with java.net.SocketException: Network is unreachable. Direct SDK/JDK compilation and JUnit provide separate evidence, not a Gradle/lint result."
+  },
+  {
+    "suite": "full Android runtime/APK",
+    "blocked": true,
+    "details": "Official Android CMake settings resolve android-aarch64 and then fail in LostOdysseyRecompLib/CMakeLists.txt:8: No recompiled sources. No local XEX or input environment variables are available. GitHub Actions are suspended on the fork; the latest historical APK run failed retrieving the private input repository."
+  }
+]
