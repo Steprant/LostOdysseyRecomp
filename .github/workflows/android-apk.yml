@@ -121,6 +121,8 @@ jobs:
       - name: Build the APK
         env:
           RELEASE_TAG: ${{ github.ref_name == 'integration/v1.1.0-steprant-all' && 'v1.1.0-Steprant' || '' }}
+          ORG_GRADLE_PROJECT_loApplicationId: ${{ github.ref_name == 'integration/v1.1.0-steprant-all' && 'io.github.freefrank.lostodyssey.steprant' || 'io.github.freefrank.lostodyssey' }}
+          ORG_GRADLE_PROJECT_loAppLabel: ${{ github.ref_name == 'integration/v1.1.0-steprant-all' && 'Lost Odyssey Recomp Steprant' || 'Lost Odyssey Recomp' }}
         run: bash tools/android/ci_build.sh
       - name: Verify and name the integrated APK
         if: github.ref_name == 'integration/v1.1.0-steprant-all'
