@@ -69,7 +69,11 @@ add_custom_command(OUTPUT "${battle_exp_fixture}"
     DEPENDS generate_battle_exp_fixture.py "${RUNTIME}/debug/battle_exp.cpp"
     VERBATIM)
 add_executable(LoBattleExpTest "${battle_exp_fixture}")
-foreach(target IN ITEMS LoSettingsInteraction LoSettingsInteractionFsr LoSettingsInteractionBoth LoSettingsInteractionXess LoSettingsRaster LoDebugOverlayTest LoDebugMenuInteractionTest LoEncounterConfigTest LoBattleExpTest)
+set(lo_settings_targets LoSettingsInteraction LoSettingsInteractionFsr LoSettingsInteractionBoth LoSettingsInteractionXess LoSettingsRaster LoDebugOverlayTest LoDebugMenuInteractionTest LoEncounterConfigTest LoBattleExpTest LoAndroidTesterTest)
+if(TARGET LoSettingsInteractionAndroid)
+    list(APPEND lo_settings_targets LoSettingsInteractionAndroid)
+endif()
+foreach(target IN LISTS lo_settings_targets)
     target_include_directories(${target} PRIVATE "${RUNTIME}")
     target_compile_features(${target} PRIVATE cxx_std_20)
     target_compile_definitions(${target} PRIVATE NOMINMAX)

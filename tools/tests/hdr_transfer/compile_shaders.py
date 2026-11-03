@@ -11,7 +11,12 @@ import subprocess
 
 
 def strings(path):
-    return dict(re.findall(r'const char \*(\w+) = R"\((.*?)\)";', path.read_text(), re.S))
+    result = dict(re.findall(r'\b(\w+)\s*=\s*R"\((.*?)\)";', path.read_text(), re.S))
+    # SGSR1 splits the production source around its optional helper. Compose
+    # the default (SGSR1 disabled) variant exactly as presentation.cpp does.
+    if 'source' not in result:
+        result['source'] = result['sourcePrefix'] + result['sourceSuffix']
+    return result
 
 
 def main():

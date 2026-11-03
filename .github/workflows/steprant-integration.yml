@@ -1,0 +1,128 @@
+name: Steprant v1.1.0 integration
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['integration/v1.1.0-steprant-all']
+    paths:
+      - '.github/workflows/steprant-integration.yml'
+      - 'LostOdysseyRecomp/**'
+      - 'LostOdysseyRecompLib/config/**'
+      - 'tools/tests/**'
+      - 'packaging/android/**'
+
+permissions:
+  contents: read
+
+jobs:
+  host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install host dependencies
+        run: sudo apt-get update && sudo apt-get install -y ninja-build bubblewrap
+      - name: Run integrated native menus and review regressions
+        run: |
+          cmake -S tools/tests/review_regressions -B out/verify/review -G Ninja -DLO_REVIEW_SANITIZE=ON
+          cmake --build out/verify/review --parallel 4
+          ctest --test-dir out/verify/review --output-on-failure --parallel 4
+          cmake -S tools/tests/settings_menu -B out/verify/settings -G Ninja -DLO_MENU_SANITIZE=ON
+          cmake --build out/verify/settings --parallel 4
+          ctest --test-dir out/verify/settings --output-on-failure --parallel 4
+      - name: Run Java, JNI, thermal and Python regressions
+        run: |
+          python tools/android/test-tv.py
+          python tools/tests/android_integration_test.py
+          python tools/tests/android_thermal_test.py
+          python -m unittest discover -s tools/tests -p 'test_*.py'
+          cmake -S tools/tests/movie -B out/verify/movie -G Ninja -DLO_MOVIE_SANITIZE=ON
+          cmake --build out/verify/movie --parallel 4
+          ctest --test-dir out/verify/movie --output-on-failure
+      - name: Compile generated PPC comparison fixture
+        run: |
+          git -C tools/XenonRecomp apply ../patches/XenonRecomp-lostodyssey.patch
+          cmake -S tools/tests/guest_entry -B out/verify/guest -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DLO_GUEST_ENTRY_SANITIZE=ON
+          cmake --build out/verify/guest --parallel 4
+          ctest --test-dir out/verify/guest --output-on-failure
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: steprant-host-test-logs
+          path: out/verify/**/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore
+
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+      - name: Install official pinned Android toolchain
+        run: sdkmanager 'ndk;28.2.13676358' 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Check Java and JNI with the ARM64 NDK
+        run: |
+          python tools/tests/android_integration_test.py --ndk "$ANDROID_HOME/ndk/28.2.13676358"
+          cmake -S tools/tests/shadow_budget -B out/verify/android-shadow -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$ANDROID_HOME/ndk/28.2.13676358/build/cmake/android.toolchain.cmake" -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=26
+          cmake --build out/verify/android-shadow --parallel 4
+      - name: Run production Android Java unit tests and lint without packaging
+        working-directory: packaging/android
+        run: ./gradlew :runtime:testDebugUnitTest :runtime:lintDebug -x :runtime:checkNativeLibraries
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: steprant-android-test-reports
+          path: |
+            packaging/android/runtime/build/reports/**
+            packaging/android/runtime/build/test-results/**
+          if-no-files-found: ignore
+
+  vulkan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Install Vulkan software device and validation layers
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libvulkan-dev mesa-vulkan-drivers vulkan-validationlayers libx11-dev
+      - name: Apply the official Plume overlays
+        run: |
+          git -C thirdparty/plume apply ../../tools/patches/plume-lostodyssey.patch
+          git -C thirdparty/plume apply ../../tools/patches/plume-sdl3.patch
+      - name: Compile shaders and read back production Vulkan presentation
+        env:
+          LO_DXC_PATH: ${{ github.workspace }}/tools/XenosRecomp/thirdparty/dxc-bin/lib/x64/libdxcompiler.so
+          LD_LIBRARY_PATH: ${{ github.workspace }}/tools/XenosRecomp/thirdparty/dxc-bin/lib/x64
+        run: |
+          python tools/tests/sgsr1_shader_test.py --dxc tools/XenosRecomp/thirdparty/dxc-bin/bin/x64/dxc-linux
+          python tools/tests/hdr_transfer/compile_shaders.py --dxc tools/XenosRecomp/thirdparty/dxc-bin/bin/x64/dxc-linux --output out/verify/hdr-shaders
+          cmake -S tools/tests/hdr_transfer -B out/verify/hdr -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build out/verify/hdr --parallel 4
+          ctest --test-dir out/verify/hdr --output-on-failure
+          cmake -S tools/tests/rect_list -B out/verify/rect -G Ninja -DLO_RECT_LIST_GPU_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build out/verify/rect --parallel 4
+          ctest --test-dir out/verify/rect --output-on-failure
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: steprant-vulkan-test-logs
+          path: out/verify/**/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore

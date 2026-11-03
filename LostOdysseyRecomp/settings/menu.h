@@ -92,7 +92,7 @@ void PointerDrag(float x, float y, bool held);
 //   1 Audio (voice language, volumes, audio output, rear angle), 2 Graphics (display, rendering,
 //   frame rate, HDR), 3 System (interface and game language, updates, Discord status, debug log,
 //   Achievements, TAA shader collection, Mods, Import discs & DLC, Shader bundle,
-//   Prepare shaders again, Save).
+//   Prepare shaders again, TV and Android diagnostics on Android, Save).
 // - Gameplay starts with the seven retail guest settings in their retail order;
 //   host rows follow them.
 // - Host rows are grouped by topic. Controller and keyboard settings (button

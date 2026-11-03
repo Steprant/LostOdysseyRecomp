@@ -189,7 +189,15 @@ int main(int argc, char** argv) {
     settings::tab=0;settings::row=0;tick(0x100);
     Check(settings::tab==3,"LB reaches the System category");
     settings::row=settings::SystemShaderPreparationRow;tick(2);
-    Check(settings::row==settings::SystemAndroidDiagnosticsRow,"Android diagnostics follows shader preparation");
+    Check(settings::row==settings::SystemTvOutputRow,"TV follows shader preparation");
+    tick(0x1000);
+    Check(androidMessage==0x8001 && !settings::testerOpen,"TV opens its own Android dialog");
+    tick(2);
+    Check(settings::row==settings::SystemAndroidDiagnosticsRow,"Android diagnostics follows TV");
+    Check(settings::snapshot.rows.size()==settings::SystemRowCount &&
+          !settings::snapshot.rows[settings::SystemTvOutputRow].hidden &&
+          !settings::snapshot.rows[settings::SystemAndroidDiagnosticsRow].hidden,
+          "TV and diagnostics retain separate actionable rows");
     tick(0x1000);
     Check(settings::testerOpen && settings::snapshot.pageTitle==L"Android diagnostics","confirm opens diagnostics page");
     settings::edit.uiLanguage=8;tick();
@@ -204,13 +212,13 @@ int main(int argc, char** argv) {
     tick(2);tick(8);Check(d.profile==1,"right selects advanced profile");
     tick(0x200);Check(settings::testerOpen && settings::tab==3,"RB does not change tabs inside the page");
     settings::testerFocus=settings::TesterRecording;tick(0x1000);
-    Check(d.recording && androidMessage==0x8001,"record starts the Android collector");
+    Check(d.recording && androidMessage==0x8002,"record starts the Android collector");
     settings::testerFocus=settings::TesterProfile;tick(8);Check(d.profile==1,"profile remains fixed during recording");
     settings::testerFocus=settings::TesterRecording;tick(0x1000);
-    Check(!d.recording && androidMessage==0x8002,"stop stops recording");
+    Check(!d.recording && androidMessage==0x8003,"stop stops recording");
     d.collectorIdle=true;
     settings::testerFocus=settings::TesterExport;tick(0x1000);
-    Check(androidMessage==0x8003,"export requests the Android document picker");
+    Check(androidMessage==0x8004,"export requests the Android document picker");
     tick(0x2000);Check(!settings::testerOpen && settings::tab==3,"back returns to System");
     tick(0x200);Check(settings::tab==0,"RB changes category after leaving the page");
     printf("PASS: %u Android settings hook/input checks (synthetic services, no game)\n",checks);
