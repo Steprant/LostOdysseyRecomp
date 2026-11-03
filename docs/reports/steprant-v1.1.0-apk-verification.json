@@ -1,0 +1,228 @@
+{
+  "date": "2026-11-03",
+  "source_commit": "1d102312609ed45117a4da28c86624ffa85d6b4f",
+  "embedded_revision": "1d102312609e-dirty",
+  "revision_note": "Official dependency overlays modify submodules; all project source changes are committed at source_commit.",
+  "official_base_commit": "fcfda1311f6e87a196124865afd2343508fb043f",
+  "filename": "LostOdysseyRecomp-v1.1.0-Steprant-Android-arm64.apk",
+  "size_bytes": 47680318,
+  "sha256": "b84e9d33042acb878f9b8bd2c24ff5f5197430ca2db26fada5746d3f81a0d598",
+  "package": "io.github.freefrank.lostodyssey.steprant",
+  "label": "Lost Odyssey Recomp Steprant",
+  "version_name": "1.1.0-Steprant",
+  "version_code": 1010000,
+  "min_sdk": 26,
+  "target_sdk": 35,
+  "abi": [
+    "arm64-v8a"
+  ],
+  "apk_signature_v2": true,
+  "certificate_sha256": "ecaadcdc715ff7e4aeaaf265ec11f1854d4039175dbc7e53fd4f86fd03af6f3f",
+  "zip_integrity": true,
+  "zipalign_16k": true,
+  "elf_load_alignment_16k": true,
+  "native_libraries": [
+    {
+      "name": "libSDL3.so",
+      "size_bytes": 2192824,
+      "sha256": "5082766fe90b059faf41e88881a5a4dae287788dca844917afea06c8a51f246f",
+      "load_segment_alignment": [
+        16384,
+        16384,
+        16384
+      ],
+      "needed": [
+        "libm.so",
+        "libOpenSLES.so",
+        "libdl.so",
+        "liblog.so",
+        "libandroid.so",
+        "libGLESv1_CM.so",
+        "libGLESv2.so",
+        "libc++_shared.so",
+        "libc.so"
+      ]
+    },
+    {
+      "name": "libc++_shared.so",
+      "size_bytes": 1253544,
+      "sha256": "cd61762848882a16c8244c964a6f396c0caa0b440588a210ce9cc4ab0e6d9f0c",
+      "load_segment_alignment": [
+        16384,
+        16384,
+        16384,
+        16384
+      ],
+      "needed": [
+        "libc.so",
+        "libm.so",
+        "libdl.so"
+      ]
+    },
+    {
+      "name": "libdxcompiler.so",
+      "size_bytes": 26536408,
+      "sha256": "f27d9850a3b43c26eac55a33119fdd519daac7b67c3f80515dd79cb1d08a51d7",
+      "load_segment_alignment": [
+        16384,
+        16384,
+        16384
+      ],
+      "needed": [
+        "libdl.so",
+        "libm.so",
+        "libc.so"
+      ]
+    },
+    {
+      "name": "libfile_redirect_hook.so",
+      "size_bytes": 4032,
+      "sha256": "c5d710a195313996ba9a9a758b766b499c44c15a530e41f05a15cf3ee27454bd",
+      "load_segment_alignment": [
+        16384,
+        16384
+      ],
+      "needed": [
+        "libhook_impl.so",
+        "libandroid.so",
+        "libdl.so",
+        "liblog.so",
+        "libm.so",
+        "libc++_shared.so",
+        "libc.so"
+      ]
+    },
+    {
+      "name": "libgsl_alloc_hook.so",
+      "size_bytes": 4344,
+      "sha256": "57cc25325531faac027a00dc074aa9160b67050005af9e48eef321d79265cc6d",
+      "load_segment_alignment": [
+        16384,
+        16384
+      ],
+      "needed": [
+        "libhook_impl.so",
+        "libandroid.so",
+        "libdl.so",
+        "liblog.so",
+        "libm.so",
+        "libc++_shared.so",
+        "libc.so"
+      ]
+    },
+    {
+      "name": "libhook_impl.so",
+      "size_bytes": 38792,
+      "sha256": "b4f37eab7a68a632c306409f7ea04029bba1ec6ee26665062d5dcd87ca88e492",
+      "load_segment_alignment": [
+        16384,
+        16384,
+        16384
+      ],
+      "needed": [
+        "liblog.so",
+        "libandroid.so",
+        "libdl.so",
+        "libm.so",
+        "libc++_shared.so",
+        "libc.so"
+      ]
+    },
+    {
+      "name": "libmain.so",
+      "size_bytes": 92440864,
+      "sha256": "06466c107bd71c2df256e1e465d6670267e3e4002e05bf1f7c817eaf675bb8fa",
+      "load_segment_alignment": [
+        16384,
+        16384,
+        16384
+      ],
+      "needed": [
+        "libandroid.so",
+        "liblog.so",
+        "libdl.so",
+        "libSDL3.so",
+        "libm.so",
+        "libc++_shared.so",
+        "libc.so"
+      ]
+    },
+    {
+      "name": "libmain_hook.so",
+      "size_bytes": 4248,
+      "sha256": "6b6ee00a6d2586b148d196228d3c9645ae02c11e6537847ac9104bb2fa5f2c7c",
+      "load_segment_alignment": [
+        16384,
+        16384
+      ],
+      "needed": [
+        "libhook_impl.so",
+        "libandroid.so",
+        "libdl.so",
+        "liblog.so",
+        "libm.so",
+        "libc++_shared.so",
+        "libc.so"
+      ]
+    }
+  ],
+  "app_jni_exports": [
+    "Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeSetTouchInput",
+    "Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeHasConnectedController",
+    "Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeSetTvOutput",
+    "Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeTesterStatus",
+    "Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeTesterGpu",
+    "Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeTesterGpuDriver",
+    "Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeTesterDrain",
+    "Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeTesterStop",
+    "Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeTesterCollectorFinished"
+  ],
+  "guest_subroutine_exports": 125235,
+  "guest_routine_entry_exports": 62614,
+  "runtime_activity_present": true,
+  "original_game_input_or_assets_packaged": false,
+  "license_assets": [
+    "assets/dexopt/baseline.prof",
+    "assets/dexopt/baseline.profm",
+    "assets/licenses/LostOdysseyRecomp-LICENSE.txt",
+    "assets/licenses/Plume-LICENSE.txt",
+    "assets/licenses/SDL3-LICENSE.txt",
+    "assets/licenses/Signalsmith-Linear.txt",
+    "assets/licenses/Signalsmith-Stretch.txt",
+    "assets/licenses/SnapdragonGSR.txt",
+    "assets/licenses/dxc/LICENSE-LLVM.txt",
+    "assets/licenses/dxc/LICENSE-MIT.txt",
+    "assets/licenses/dxc/LICENSE-MS.txt",
+    "assets/licenses/dxc/PROVENANCE.json"
+  ],
+  "gradle_unit_tests": {
+    "tests": 82,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint_severity": {
+    "Warning": 60
+  },
+  "gradle_tasks": [
+    ":runtime:assembleRelease",
+    ":runtime:testReleaseUnitTest",
+    ":runtime:lintRelease"
+  ],
+  "toolchain": {
+    "ndk": "28.2.13676358",
+    "jdk": "17",
+    "gradle": "8.11.1",
+    "agp": "8.9.3",
+    "build_tools": "35.0.0",
+    "native_configuration": "Release, API 26, GPU and generated PPC runtime enabled"
+  },
+  "gradle_environment_note": "Exact official Maven artifacts mirrored over HTTPS by Python because JVM egress is unavailable; real Gradle/AGP/aapt2/D8/lint tasks resolve and build offline. Runtime module configured on demand, SDK auto-download disabled.",
+  "dxc_provenance": {
+    "source": "https://github.com/freefrank/LostOdysseyRecomp/releases/download/v1.1.0/LostOdysseyRecomp-android-arm64-v1.1.0.apk",
+    "apk_sha256": "41ec5d557cc78fdc72feb00754a48e7b2851730c27344eaa1619f6478850877a",
+    "library_sha256": "f27d9850a3b43c26eac55a33119fdd519daac7b67c3f80515dd79cb1d08a51d7",
+    "note": "Only the public open-source DXC dependency was reused; the full game runtime was rebuilt from integrated sources and the supplied supported input."
+  },
+  "physical_android_install_or_gameplay_tested": false
+}

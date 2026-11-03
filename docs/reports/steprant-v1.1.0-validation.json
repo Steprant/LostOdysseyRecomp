@@ -103,12 +103,23 @@
   },
   {
     "suite": "Gradle/lint",
-    "blocked": true,
-    "details": "Both direct and configured-proxy JVM attempts fail with java.net.SocketException: Network is unreachable. Direct SDK/JDK compilation and JUnit provide separate evidence, not a Gradle/lint result."
+    "passed": true,
+    "unit_tests": {
+      "tests": 82,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "lint": {
+      "Warning": 60
+    },
+    "details": "Actual Gradle 8.11.1 / AGP 8.9.3 release assemble, test and lint succeeded in a clean runtime build. Exact dependencies downloaded from official Maven registries and resolved offline because Java external networking is unavailable. 60 lint warnings, zero errors; warnings retained."
   },
   {
     "suite": "full Android runtime/APK",
-    "blocked": true,
-    "details": "Official Android CMake settings resolve android-aarch64 and then fail in LostOdysseyRecompLib/CMakeLists.txt:8: No recompiled sources. No local XEX or input environment variables are available. GitHub Actions are suspended on the fork; the latest historical APK run failed retrieving the private input repository."
+    "passed": true,
+    "source_commit": "1d102312609ed45117a4da28c86624ffa85d6b4f",
+    "apk_sha256": "b84e9d33042acb878f9b8bd2c24ff5f5197430ca2db26fada5746d3f81a0d598",
+    "details": "User supplied the exact supported USA/Europe disc 1 XEX privately. Official xexdump/XenonRecomp generated 246 PPC translation units; full ARM64 Release runtime compiled and linked with pinned NDK r28c, GPU, HDR, XMA, TV, Tester and MediaCodec enabled. Real signed game APK generated, not a diagnostic app. Signature, ZIP, manifest, DEX, JNI, ABI and 16 KB ELF/ZIP alignment verified. No physical Android install/gameplay test."
   }
 ]
