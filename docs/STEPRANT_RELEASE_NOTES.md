@@ -1,15 +1,15 @@
-# Steprant Android v1.1.0 — test build
+# Steprant Android v1.1.0
 
-> This test build is available in [GitHub Releases](https://github.com/Steprant/LostOdysseyRecomp/releases/tag/v1.1.0-steprant.20261104).
+> This build is available in [GitHub Releases](https://github.com/Steprant/LostOdysseyRecomp/releases/tag/v1.1.0-steprant.20261104).
 
-An experimental Android-focused build based on Lost Odyssey Recomp v1.1.0. The fork aims to improve sustained performance and investigate heat and battery use. Device benchmarks are still needed.
+An Android-focused build based on Lost Odyssey Recomp v1.1.0. The fork aims to improve sustained performance and investigate heat and battery use. Results depend on the device and settings.
 
 ## Highlights
 
 - Optional Qualcomm SGSR1 for eligible Vulkan SDR upscaling. Turn **Settings → Graphics → SGSR1** on, select the **High** filter and a lower render resolution such as 720p for 1080p output; save and restart.
-- Experimental TV/HDMI output with 16:9 fitting, resolution requests, controller forwarding and optional phone dimming.
+- TV/HDMI output with 16:9 fitting, resolution requests, controller forwarding and optional phone dimming.
 - Renderer and CPU work to reduce redundant graphics operations, with an in-game Android diagnostic mode for frame timing, audio and available thermal/battery readings.
-- Experimental audio queue recovery, AAudio stall detection and XMA scheduling changes. MediaCodec replacement-video support, HDR work and debug-menu skill additions are also included.
+- Audio queue recovery, AAudio stall detection and XMA scheduling changes. MediaCodec replacement-video support, HDR work and debug-menu skill additions are also included.
 - Separate **Lost Odyssey Steprant** app identity and icon. Its package can coexist with the official app; private saves and settings are separate.
 
 ## APK
@@ -20,6 +20,6 @@ An experimental Android-focused build based on Lost Odyssey Recomp v1.1.0. The f
 - Embedded runtime revision: `ffadae541193-dirty`. The exact relationship between local build changes and the committed source tree has not been established.
 - Supply your own supported game data. The APK is not a substitute for the game discs.
 
-This is a test build. Audio quality, A/V sync, stable 60 FPS, image quality, power consumption and thermals need physical-device checks; improvements are not guaranteed.
+Audio quality, A/V sync, frame pacing, image quality, power consumption and thermals vary by device and settings.
 
 Full details: [Android fork update](STEPRANT_ANDROID.md). General changes are proposed upstream in [SGSR1 #717](https://github.com/freefrank/LostOdysseyRecomp/pull/717), [AAudio #767](https://github.com/freefrank/LostOdysseyRecomp/pull/767), and [audio #769](https://github.com/freefrank/LostOdysseyRecomp/pull/769).

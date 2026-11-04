@@ -4,7 +4,7 @@
 
 # Lost Odyssey Recomp — Steprant Android fork
 
-**An experimental Android-focused fork of [Lost Odyssey Recomp](https://github.com/freefrank/LostOdysseyRecomp), aiming for better performance, sustained thermals and battery efficiency.**
+**An Android-focused fork of [Lost Odyssey Recomp](https://github.com/freefrank/LostOdysseyRecomp), aiming for better performance, sustained thermals and battery efficiency.**
 
 [![Upstream release](https://img.shields.io/github/v/release/freefrank/LostOdysseyRecomp?label=upstream%20release)](https://github.com/freefrank/LostOdysseyRecomp/releases/latest)
 [![Upstream downloads](https://img.shields.io/github/downloads/freefrank/LostOdysseyRecomp/total?label=upstream%20downloads)](https://github.com/freefrank/LostOdysseyRecomp/releases)
@@ -31,19 +31,19 @@
 
 ## Steprant Android fork
 
-Based on the official v1.1.0 release, this branch brings together experimental Android work focused on stable frame pacing, efficient graphics and measuring heat and battery use. The goal is better sustained play; **FPS, temperature and battery improvements have not yet been established on physical devices**.
+Based on the official v1.1.0 release, this branch brings together Android work focused on stable frame pacing, efficient graphics and measuring heat and battery use. Results vary by device and settings.
 
 - **SGSR1:** optional Qualcomm spatial upscaling for Vulkan SDR. Choose **Settings → Graphics → SGSR1 → On**, use the **High** scaling filter and a lower render resolution, then save and restart.
-- **TV / HDMI:** experimental independent 16:9 external output, resolution requests, controller support and optional phone dimming. See the [TV guide](docs/ANDROID_TV_HDMI.md).
+- **TV / HDMI:** independent 16:9 external output, resolution requests, controller support and optional phone dimming. See the [TV guide](docs/ANDROID_TV_HDMI.md).
 - **Performance and diagnostics:** renderer work to reduce redundant operations, plus an in-game [Android tester](docs/ANDROID_TESTER.md) for frame timing, audio, thermal and battery data where Android exposes it.
-- **Audio:** experimental queue-reserve recovery and XMA scheduling corrections; listening and A/V sync still need device validation.
-- **More:** experimental MediaCodec for supported replacement movies, HDR work, and additional debug-menu skills. See the [full Android update](docs/STEPRANT_ANDROID.md).
+- **Audio:** queue-reserve recovery and XMA scheduling corrections. Some audio disturbances remain; A/V sync requires further checking.
+- **More:** MediaCodec for supported replacement movies, HDR work, and additional debug-menu skills. See the [full Android update](docs/STEPRANT_ANDROID.md).
 
-> **Android test release:** [Download the APK](https://github.com/Steprant/LostOdysseyRecomp/releases/download/v1.1.0-steprant.20261104/LostOdyssey-Steprant-v1.1.0-SGSR1-AudioFix.apk) or read the [release notes](https://github.com/Steprant/LostOdysseyRecomp/releases/tag/v1.1.0-steprant.20261104).
+> **Android release:** [Download the APK](https://github.com/Steprant/LostOdysseyRecomp/releases/download/v1.1.0-steprant.20261104/LostOdyssey-Steprant-v1.1.0-SGSR1-AudioFix.apk) or read the [release notes](https://github.com/Steprant/LostOdysseyRecomp/releases/tag/v1.1.0-steprant.20261104).
 
 The fork's package and icon are separate from the official app, and game data is supplied by the player. This branch is `integration/v1.1.0-steprant-all`. General improvements are proposed to the upstream project for review.
 
-> The reference section below is retained from the original project. Its platform downloads refer to the **upstream** release, not this experimental fork.
+> The reference section below is retained from the original project. Its platform downloads refer to the **upstream** release, not this fork.
 
 ## Contents
 
