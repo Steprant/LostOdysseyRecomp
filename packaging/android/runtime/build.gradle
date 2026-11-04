@@ -55,6 +55,7 @@ def loDebugKeystore = System.getenv('LO_ANDROID_DEBUG_KEYSTORE')
 // Java/JNI namespace stays fixed; only the installed package identity changes.
 def loApplicationId = (project.findProperty('loApplicationId') ?: 'io.github.freefrank.lostodyssey').toString()
 def loAppLabel = (project.findProperty('loAppLabel') ?: 'Lost Odyssey Recomp').toString()
+def loAppIcon = (project.findProperty('loAppIcon') ?: '@mipmap/ic_launcher').toString()
 
 android {
     namespace 'io.github.freefrank.lostodyssey'
@@ -63,7 +64,7 @@ android {
     ndkVersion '28.2.13676358'
     defaultConfig {
         applicationId loApplicationId
-        manifestPlaceholders = [loAppLabel: loAppLabel]
+        manifestPlaceholders = [loAppLabel: loAppLabel, loAppIcon: loAppIcon]
         minSdk 26
         targetSdk 35
         versionCode loVersionCode
