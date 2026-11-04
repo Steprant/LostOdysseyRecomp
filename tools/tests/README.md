@@ -88,6 +88,7 @@ Run directly with `python`. Unless noted, they use synthetic data.
 - `android_bda_spirv_contract.py` compiles Android's vertex-fetch prelude and validates its SPIR-V; it needs DXC and SPIRV-Tools.
 - `fsr/check-fsr-isolated-timing.py` summarizes `FSR GPU timing:` lines from a runtime log; `temporal_geometry_analysis.py` analyzes the frames that `LoTemporalAATest` keeps from its geometry case.
 - Android touch: `android_touch_layout_test.py`, `android_touch_visibility_test.py`.
+- The review suite also registers `xma_output_ring_test.py` and `driver_pipeline_cache_export_test.py` on Unix. `vulkan_queue_submit_test.py` and `vulkan_texture_creation_test.py` run in the Steprant integration Vulkan job and can be run directly after initializing the pinned Plume, Vulkan-Headers, VulkanMemoryAllocator and SDL submodules and applying `tools/patches/plume-lostodyssey.patch` and `tools/patches/plume-sdl3.patch` to Plume. Each accepts `--cxx`, `--out` and `--sanitize`; these two Plume fixtures are not registered in the default review suite.
 
 ## Recompiler word-switch regression
 

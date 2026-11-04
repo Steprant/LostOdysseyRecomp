@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/review-regressions.yml'
       - 'LostOdysseyRecomp/apu/audio*'
+      - 'LostOdysseyRecomp/apu/xma.cpp'
       - 'LostOdysseyRecomp/gpu/command_processor.*'
       - 'LostOdysseyRecomp/gpu/indirect_buffer_guard.h'
       - 'LostOdysseyRecomp/gpu/shader/cpx_decode.h'
@@ -44,6 +45,7 @@ on:
     paths:
       - '.github/workflows/review-regressions.yml'
       - 'LostOdysseyRecomp/apu/audio*'
+      - 'LostOdysseyRecomp/apu/xma.cpp'
       - 'LostOdysseyRecomp/gpu/command_processor.*'
       - 'LostOdysseyRecomp/gpu/indirect_buffer_guard.h'
       - 'LostOdysseyRecomp/gpu/shader/cpx_decode.h'

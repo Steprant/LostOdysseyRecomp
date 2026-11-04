@@ -2,16 +2,15 @@
 
 <img src="assets/lost-odyssey-recomp.png" alt="Lost Odyssey Recomp logo" width="112">
 
-# Lost Odyssey Recomp
+# Lost Odyssey Recomp — Steprant Android fork
 
-**A native port of Lost Odyssey for Xbox 360.**
+**An experimental Android-focused fork of [Lost Odyssey Recomp](https://github.com/freefrank/LostOdysseyRecomp), aiming for better performance, sustained thermals and battery efficiency.**
 
-[![Latest release](https://img.shields.io/github/v/release/freefrank/LostOdysseyRecomp?label=release)](https://github.com/freefrank/LostOdysseyRecomp/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/freefrank/LostOdysseyRecomp/total?label=downloads)](https://github.com/freefrank/LostOdysseyRecomp/releases)
-[![Stars](https://img.shields.io/github/stars/freefrank/LostOdysseyRecomp?style=flat)](https://github.com/freefrank/LostOdysseyRecomp/stargazers)
+[![Upstream release](https://img.shields.io/github/v/release/freefrank/LostOdysseyRecomp?label=upstream%20release)](https://github.com/freefrank/LostOdysseyRecomp/releases/latest)
+[![Upstream downloads](https://img.shields.io/github/downloads/freefrank/LostOdysseyRecomp/total?label=upstream%20downloads)](https://github.com/freefrank/LostOdysseyRecomp/releases)
+[![Upstream stars](https://img.shields.io/github/stars/freefrank/LostOdysseyRecomp?label=upstream%20stars)](https://github.com/freefrank/LostOdysseyRecomp/stargazers)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
-[![Last commit](https://img.shields.io/github/last-commit/freefrank/LostOdysseyRecomp?label=last%20commit)](https://github.com/freefrank/LostOdysseyRecomp/commits/main)
-[![Open issues](https://img.shields.io/github/issues/freefrank/LostOdysseyRecomp?label=issues)](https://github.com/freefrank/LostOdysseyRecomp/issues)
+[![Upstream issues](https://img.shields.io/github/issues/freefrank/LostOdysseyRecomp?label=upstream%20issues)](https://github.com/freefrank/LostOdysseyRecomp/issues)
 [![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/dotslash)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/z2yPct6z2w)
 
@@ -24,11 +23,25 @@
 ![Vulkan](https://img.shields.io/badge/Vulkan-AC162C?logo=vulkan&logoColor=white)
 ![Metal](https://img.shields.io/badge/Metal-147EFB)
 
-### [Download](https://github.com/freefrank/LostOdysseyRecomp/releases/latest) · [Installation guide](docs/INSTALLING.md) · [简体中文](README.zh-CN.md)
+### [Steprant Android builds](https://github.com/Steprant/LostOdysseyRecomp/releases) · [Android fork update](docs/STEPRANT_ANDROID.md) · [Upstream downloads](https://github.com/freefrank/LostOdysseyRecomp/releases/latest) · [Installation guide](docs/INSTALLING.md)
 
 [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/freefrank/LostOdysseyRecomp/issues) · [Discord](https://discord.gg/z2yPct6z2w) · [Project board](https://github.com/users/freefrank/projects/3) · [Build from source](docs/BUILDING.md)
 
 </div>
+
+## Steprant Android fork
+
+Based on the official v1.1.0 release, this branch brings together experimental Android work focused on stable frame pacing, efficient graphics and measuring heat and battery use. The goal is better sustained play; **FPS, temperature and battery improvements have not yet been established on physical devices**.
+
+- **SGSR1:** optional Qualcomm spatial upscaling for Vulkan SDR. Choose **Settings → Graphics → SGSR1 → On**, use the **High** scaling filter and a lower render resolution, then save and restart.
+- **TV / HDMI:** experimental independent 16:9 external output, resolution requests, controller support and optional phone dimming. See the [TV guide](docs/ANDROID_TV_HDMI.md).
+- **Performance and diagnostics:** renderer work to reduce redundant operations, plus an in-game [Android tester](docs/ANDROID_TESTER.md) for frame timing, audio, thermal and battery data where Android exposes it.
+- **Audio:** experimental queue-reserve recovery and XMA scheduling corrections; listening and A/V sync still need device validation.
+- **More:** experimental MediaCodec for supported replacement movies, HDR work, and additional debug-menu skills. See the [full Android update](docs/STEPRANT_ANDROID.md).
+
+The fork's package and icon are separate from the official app, and game data is supplied by the player. This branch is `integration/v1.1.0-steprant-all`. General improvements are proposed to the upstream project for review.
+
+> The reference section below is retained from the original project. Its platform downloads refer to the **upstream** release, not this experimental fork.
 
 ## Contents
 
@@ -70,7 +83,9 @@ The app is not notarized, so macOS blocks the first launch: try to open it once,
 
 ### Android
 
-- **Game data:** opening the app creates `Android/data/io.github.freefrank.lostodyssey/files/game/`. Copy your extracted `disc1`–`disc4` into it over USB, or import disc images with **Game folder → Import disc images…**. **CTRL → Game folder** can point the game at another folder or an SD card.
+The Steprant package is `io.github.freefrank.lostodyssey.steprant`. It can be installed alongside the official app; private saves and settings are separate. Export and import saves as needed. An update to this fork must use the same package and signing key.
+
+- **Game data:** opening the official app creates `Android/data/io.github.freefrank.lostodyssey/files/game/`; the Steprant package uses `Android/data/io.github.freefrank.lostodyssey.steprant/files/game/`. Copy your extracted `disc1`–`disc4` into the appropriate folder over USB, or import disc images with **Game folder → Import disc images…**. **CTRL → Game folder** can point the game at another folder or an SD card.
 - **Qualcomm devices:** the **GPU driver** page opens before the first start. Download a Turnip driver there.
 - **Mali devices:** the **GPU driver** page also opens first. Download the recommended PanVK driver there; it needs a Mali-G57, G68, G77, G78 or Mali-G610 and newer GPU.
 - **Controls:** the touch controls hide when a controller is connected. **CTRL** sets their size, opacity and layout. **Hide all touch controls** hides them completely; reveal the system bars or use Android Back to show CTRL for 4 seconds.

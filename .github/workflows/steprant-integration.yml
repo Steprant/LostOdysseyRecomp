@@ -107,6 +107,10 @@ jobs:
         run: |
           git -C thirdparty/plume apply ../../tools/patches/plume-lostodyssey.patch
           git -C thirdparty/plume apply ../../tools/patches/plume-sdl3.patch
+      - name: Check Vulkan submission and texture failure handling
+        run: |
+          python tools/tests/vulkan_queue_submit_test.py --cxx g++ --out "$RUNNER_TEMP/lo-vulkan-queue" --sanitize
+          python tools/tests/vulkan_texture_creation_test.py --cxx g++ --out "$RUNNER_TEMP/lo-vulkan-texture" --sanitize
       - name: Compile shaders and read back production Vulkan presentation
         env:
           LO_DXC_PATH: ${{ github.workspace }}/tools/XenosRecomp/thirdparty/dxc-bin/lib/x64/libdxcompiler.so
