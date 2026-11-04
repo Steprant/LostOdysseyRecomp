@@ -40,6 +40,7 @@ public final class AndroidTesterTraceTest {
         }
         check(files.get("frame_timing.csv").startsWith(TesterTraceFiles.FRAME_HEADER), "frame header");
         check(files.get("summary.json").contains("\"p95_interval_ns\":1000000000"), "p95");
+        check(files.get("summary.json").contains("\"estimated_1pct_low_accepted_present_fps\":1.000"), "1% low accepted presents");
         String window = files.get("events/event-1.csv");
         check(window != null && window.contains("\n5000000000,") && window.contains("\n45000000000,"), "before/after window");
         check(!window.contains("\n4000000000,") && !window.contains("\n46000000000,"), "bounded event window");

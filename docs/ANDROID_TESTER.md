@@ -36,7 +36,10 @@ between accepted present calls, not a display scanout timestamp. The present
 wall time and thread CPU time measure the host present call. Draw count is the
 renderer frame most recently submitted. GPU columns are cumulative completed
 timestamped queue intervals and completed-batch counts; they are not GPU load
-percentage, isolated shader duration or an exact per-frame GPU time. The XMA
+percentage, isolated shader duration or an exact per-frame GPU time.
+`summary.json` includes an estimated 1% low accepted-present rate, calculated
+from the slowest one percent of retained intervals. This is not displayed FPS;
+pauses and the finite rolling window affect it. The XMA
 columns are cumulative decoder send/receive attempts, failures and elapsed
 wall time since recording started, not thread CPU time. Movie fields are guest
 frame update/PTS observations, not isolated video decoder time or A/V sync.

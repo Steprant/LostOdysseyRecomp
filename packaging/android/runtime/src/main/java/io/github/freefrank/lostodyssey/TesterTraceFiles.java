@@ -230,8 +230,14 @@ final class TesterTraceFiles {
         Collections.sort(intervals);
         long p95 = percentile(intervals, 95), p99 = percentile(intervals, 99);
         String fps = totalInterval > 0 ? String.format(java.util.Locale.US, "%.3f", intervals.size() * 1_000_000_000.0 / totalInterval) : "null";
+        int slowestOnePercent = (intervals.size() + 99) / 100;
+        double slowestTime = 0;
+        for (int i = intervals.size() - slowestOnePercent; i < intervals.size(); ++i)
+            slowestTime += intervals.get(i);
+        String onePercentLow = slowestTime > 0 ? String.format(java.util.Locale.US, "%.3f", slowestOnePercent * 1_000_000_000.0 / slowestTime) : "null";
         zipText(zip, "summary.json", "{\"retained_intervals\":" + intervals.size() + ",\"p95_interval_ns\":" + (p95 == 0 ? "null" : p95) +
-            ",\"p99_interval_ns\":" + (p99 == 0 ? "null" : p99) + ",\"accepted_presents_per_second\":" + fps + ",\"slow_intervals\":" + spikes +
+            ",\"p99_interval_ns\":" + (p99 == 0 ? "null" : p99) + ",\"accepted_presents_per_second\":" + fps +
+            ",\"estimated_1pct_low_accepted_present_fps\":" + onePercentLow + ",\"slow_intervals\":" + spikes +
             ",\"scope\":\"retained accepted-present intervals; not display latency or whole-frame GPU time\"}\n");
         zipText(zip, "events.json", "{\"slow_intervals_in_retained_trace\":" + spikes +
             ",\"saved_windows\":" + files(dir, "event").length +

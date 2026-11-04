@@ -29,6 +29,7 @@ public class TesterTraceFilesTest {
                 files.put(entry.getName(), new String(zip.readAllBytes(), StandardCharsets.UTF_8));
         }
         assertTrue(files.get("summary.json").contains("\"p95_interval_ns\":1000000000"));
+        assertTrue(files.get("summary.json").contains("\"estimated_1pct_low_accepted_present_fps\":1.000"));
         assertTrue(files.get("events/event-1.csv").contains("\n5000000000,"));
         assertTrue(files.get("events/event-1.csv").contains("\n45000000000,"));
         assertFalse(files.get("events/event-1.csv").contains("\n46000000000,"));
