@@ -220,7 +220,7 @@ final class AndroidTester {
     private JSONObject settings() throws IOException, JSONException {
         Set<String> allowed = new HashSet<>(Arrays.asList("frame_rate", "internal_resolution", "antialiasing",
             "width", "height", "shadow_resolution", "dynamic_shadows", "ambient_occlusion", "anisotropic_filtering",
-            "depth_of_field", "bloom", "motion_blur", "vsync", "scaling_quality", "upscaler", "fsr_quality", "culling"));
+            "depth_of_field", "bloom", "motion_blur", "vsync", "scaling_quality", "sgsr1", "upscaler", "fsr_quality", "culling"));
         JSONObject result = new JSONObject();
         File ini = new File(new File(context.getFilesDir(), "config"), "settings.ini");
         if (!ini.isFile()) return result;
