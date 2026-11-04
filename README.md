@@ -25,7 +25,7 @@
 
 ### [Steprant Android builds](https://github.com/Steprant/LostOdysseyRecomp/releases) · [Android fork update](docs/STEPRANT_ANDROID.md) · [Upstream downloads](https://github.com/freefrank/LostOdysseyRecomp/releases/latest) · [Installation guide](docs/INSTALLING.md)
 
-[Changelog](CHANGELOG.md) · [Report an issue](https://github.com/freefrank/LostOdysseyRecomp/issues) · [Discord](https://discord.gg/z2yPct6z2w) · [Project board](https://github.com/users/freefrank/projects/3) · [Build from source](docs/BUILDING.md)
+[Steprant history: 26 Oct–4 Nov 2026](docs/audit/STORICO_20261026_20261104.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/freefrank/LostOdysseyRecomp/issues) · [Discord](https://discord.gg/z2yPct6z2w) · [Project board](https://github.com/users/freefrank/projects/3) · [Build from source](docs/BUILDING.md)
 
 </div>
 
