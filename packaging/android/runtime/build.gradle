@@ -38,12 +38,13 @@ def checkNativeLibraries = tasks.register('checkNativeLibraries') {
 }
 
 // Release packaging (tools/android/ci_build.sh) passes the version tag:
-// -PloVersionName=v0.8.0 gives versionName 0.8.0 and versionCode 80000
+// -PloVersionName=v0.8.0 gives versionName 0.8.0 and versionCode 80000.
+// A two-component name such as 1.5 uses patch zero, preserving upgrade order.
 // (major*1000000 + minor*10000 + patch), so updates install over each other.
 def loVersionName = (project.findProperty('loVersionName') ?: '0.1.0-dev').toString().replaceFirst(/^v/, '')
-def loVersionMatch = loVersionName =~ /^(\d+)\.(\d+)\.(\d+)/
+def loVersionMatch = loVersionName =~ /^(\d+)\.(\d+)(?:\.(\d+))?/
 def loVersionCode = loVersionMatch.find()
-    ? loVersionMatch.group(1).toInteger() * 1000000 + loVersionMatch.group(2).toInteger() * 10000 + loVersionMatch.group(3).toInteger()
+    ? loVersionMatch.group(1).toInteger() * 1000000 + loVersionMatch.group(2).toInteger() * 10000 + (loVersionMatch.group(3) ?: '0').toInteger()
     : 1
 // Signing: the app is debug-signed, always (maintainer decision, 2026-10-03:
 // no release keystore). LO_ANDROID_DEBUG_KEYSTORE points the debug signing

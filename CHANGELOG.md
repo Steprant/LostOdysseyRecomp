@@ -8,6 +8,7 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 
 ### English
 
+- Steprant Android APK version 1.5 with the fork's separate package, icon and signing identity.
 - Android TV: optional phone blackout returns ten seconds after the last touch; touching again resets the timer without changing HDMI output.
 - Android diagnostics: remove the intensive recording time limit, offer a 250–2000 ms sample period, and add bounded process-memory samples with a low-space stop.
 - Debug menu: independently double the SP awarded after a victory, before it is applied to skill learning.
