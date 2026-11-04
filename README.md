@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/steprant-android-logo.jpg" alt="Lost Odyssey Recomp Android — Steprant logo" width="220">
+<img src="assets/steprant-android-logo.webp" alt="Lost Odyssey Recomp Android — Steprant logo" width="360">
 
 # Lost Odyssey Recomp — Steprant Android fork
 
