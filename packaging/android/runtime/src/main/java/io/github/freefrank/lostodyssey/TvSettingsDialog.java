@@ -50,7 +50,8 @@ final class TvSettingsDialog {
                     .putInt("height", resolution.getSelectedItemPosition() == 0 ? 720 : 1080)
                     .putBoolean("hide_touch", touch.isChecked()).putBoolean("dim_phone", dim.isChecked()).apply();
                 output.settingsChanged();
-            }).setNegativeButton(android.R.string.cancel, null).show();
+            }).setNegativeButton(android.R.string.cancel, null)
+            .setOnDismissListener(dialog -> output.settingsClosed()).show();
     }
     private static Spinner choice(Activity activity, LinearLayout content, int label, int values, int selected) {
         TextView title = new TextView(activity);

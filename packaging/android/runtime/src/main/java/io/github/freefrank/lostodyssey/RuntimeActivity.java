@@ -136,6 +136,14 @@ public final class RuntimeActivity extends SDLActivity {
     }
 
     @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (tvOutput != null && (event.getActionMasked() == MotionEvent.ACTION_DOWN
+                || event.getActionMasked() == MotionEvent.ACTION_MOVE
+                || event.getActionMasked() == MotionEvent.ACTION_UP)) tvOutput.phoneInteraction();
+        return super.dispatchTouchEvent(event);
+    }
+
+    @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         InputDevice device = event.getDevice();
         if (tvOutput != null && tvOutput.active() && device != null
@@ -155,7 +163,7 @@ public final class RuntimeActivity extends SDLActivity {
 
     void openTvSettings() {
         if (tvOutput != null) {
-            tvOutput.wakePhone();
+            tvOutput.settingsOpened();
             TvSettingsDialog.show(this, tvOutput, tvDiagnostics);
         }
     }

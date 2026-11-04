@@ -12,6 +12,7 @@ import android.os.Looper;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.SurfaceView;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -31,6 +32,8 @@ final class TvOutputController implements DisplayManager.DisplayListener {
     final SharedPreferences preferences;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable update = this::reconcile;
+    private static final long BLACKOUT_IDLE_MS = 10_000L;
+    private final Runnable blackoutAfterIdle = () -> { dimDismissed = false; applyConsole(); };
     private Presentation presentation;
     private FrameLayout tvRoot;
     private int rejectedDisplay = Display.INVALID_DISPLAY, appliedHeight;
@@ -38,7 +41,7 @@ final class TvOutputController implements DisplayManager.DisplayListener {
     private String status = "";
     private View phoneBlackout;
     private float previousBrightness;
-    private boolean dimDismissed;
+    private boolean dimDismissed, settingsOpen;
 
     TvOutputController(Activity activity, ViewGroup phone, SurfaceView surface,
                        TvDisplayDiagnostics diagnostics, Listener listener) {
@@ -62,18 +65,31 @@ final class TvOutputController implements DisplayManager.DisplayListener {
         started = true;
         if (displays != null) displays.registerDisplayListener(this, handler);
     }
-    void resume() { resumed = true; schedule(); }
-    void pause() { resumed = false; restorePhoneBrightness(); }
+    void resume() { resumed = true; dimDismissed = false; schedule(); }
+    void pause() { resumed = false; handler.removeCallbacks(blackoutAfterIdle); restorePhoneBrightness(); }
     void stop() {
         started = false;
         resumed = false;
         handler.removeCallbacks(update);
+        handler.removeCallbacks(blackoutAfterIdle);
         if (displays != null) displays.unregisterDisplayListener(this);
         leave();
     }
-    void settingsChanged() { rejectedDisplay = Display.INVALID_DISPLAY; dimDismissed = false; schedule(); }
+    void settingsChanged() { rejectedDisplay = Display.INVALID_DISPLAY; schedule(); }
     boolean hideTouch() { return active() && preferences.getBoolean("hide_touch", true); }
-    void wakePhone() { dimDismissed = true; restorePhoneBrightness(); }
+    void settingsOpened() { settingsOpen = true; wakePhone(); }
+    void settingsClosed() { settingsOpen = false; phoneInteraction(); }
+    void phoneInteraction() {
+        if (!active() || !resumed || !preferences.getBoolean("dim_phone", false)) return;
+        wakePhone();
+    }
+    private void wakePhone() {
+        dimDismissed = true;
+        restorePhoneBrightness();
+        handler.removeCallbacks(blackoutAfterIdle);
+        if (!settingsOpen && active() && resumed && preferences.getBoolean("dim_phone", false))
+            handler.postDelayed(blackoutAfterIdle, BLACKOUT_IDLE_MS);
+    }
     private void schedule() {
         handler.removeCallbacks(update);
         if (started) handler.post(update);
@@ -134,6 +150,7 @@ final class TvOutputController implements DisplayManager.DisplayListener {
             next.show();
             presentation = next;
             dimDismissed = false;
+            handler.removeCallbacks(blackoutAfterIdle);
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -206,7 +223,7 @@ final class TvOutputController implements DisplayManager.DisplayListener {
     }
 
     private void applyConsole() {
-        if (!active() || !resumed || dimDismissed || !preferences.getBoolean("dim_phone", false)) {
+        if (!active() || !resumed || dimDismissed || settingsOpen || !preferences.getBoolean("dim_phone", false)) {
             restorePhoneBrightness();
             return;
         }
@@ -218,7 +235,10 @@ final class TvOutputController implements DisplayManager.DisplayListener {
         phoneBlackout = new View(activity);
         phoneBlackout.setBackgroundColor(Color.BLACK);
         phoneBlackout.setKeepScreenOn(true);
-        phoneBlackout.setOnTouchListener((view, event) -> { wakePhone(); return true; });
+        phoneBlackout.setOnTouchListener((view, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) phoneInteraction();
+            return true; // The waking gesture belongs to this overlay; subsequent touches reach the controls.
+        });
         phone.addView(phoneBlackout, new ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         diagnostics.event("phone software blackout active; physical-panel-off=false");
@@ -236,6 +256,8 @@ final class TvOutputController implements DisplayManager.DisplayListener {
 
     private void leave() {
         Presentation previous = presentation;
+        handler.removeCallbacks(blackoutAfterIdle);
+        dimDismissed = false;
         restorePhoneBrightness();
         if (previous == null) return;
         presentation = null; // Dismiss callback must not trigger another migration.
