@@ -1,0 +1,71 @@
+# Traceability-only CI: checks historical commit objects, not game files or build outputs.
+name: Steprant historical provenance (Oct 26 - Nov 4)
+on:
+  workflow_dispatch:
+  push:
+    branches: ['integration/v1.1.0-steprant-all']
+    paths:
+      - '.github/workflows/history-provenance.yml'
+      - 'docs/audit/STORICO_20261026_20261104.md'
+permissions:
+  contents: read
+jobs:
+  provenance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify historical commit IDs and create report
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+          import subprocess
+
+          doc = Path('docs/audit/STORICO_20261026_20261104.md').read_text(encoding='utf-8')
+          commit_ids = re.findall(r'https://github\.com/Steprant/LostOdysseyRecomp/commit/([0-9a-f]{40})', doc)
+          if len(commit_ids) != 66 or len(set(commit_ids)) != 66:
+              raise SystemExit(f'Expected 66 unique historical commits, found {len(commit_ids)} links and {len(set(commit_ids))} unique')
+          missing = []
+          for sha in commit_ids:
+              result = subprocess.run(['git', 'cat-file', '-e', sha + '^{commit}'], capture_output=True)
+              if result.returncode:
+                  missing.append(sha)
+          report = {
+              'scope': '2026-10-26 through 2026-11-04 UTC',
+              'checked_commits': len(commit_ids),
+              'missing_commit_objects': missing,
+              'revision_checked': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+              'note': 'Verifies provenance and commit object availability, NOT historical test success or APK build.'
+          }
+          Path('historical-provenance-report.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+          print(json.dumps(report, indent=2))
+          if missing:
+              raise SystemExit('Some historical commit objects are unavailable in the repository checkout')
+          PY
+      - name: Record provenance summary
+        if: always()
+        run: |
+          {
+            echo '## Historical provenance: 26 October – 4 November 2026'
+            echo ''
+            echo 'Checks the 66 recorded historical SHAs. This is **not** a retroactively dated test run.'
+            echo ''
+            if [ -f historical-provenance-report.json ]; then
+              echo '\`\`\`json'
+              cat historical-provenance-report.json
+              echo '\`\`\`'
+            else
+              echo 'Report unavailable; inspect job logs.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: historical-provenance-20261026-20261104
+          path: historical-provenance-report.json
+          if-no-files-found: warn
