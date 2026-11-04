@@ -8,6 +8,9 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 
 ### English
 
+- Android TV: optional phone blackout returns ten seconds after the last touch; touching again resets the timer without changing HDMI output.
+- Android diagnostics: remove the intensive recording time limit, offer a 250–2000 ms sample period, and add bounded process-memory samples with a low-space stop.
+- Debug menu: independently double the SP awarded after a victory, before it is applied to skill learning.
 - Android: experimental H.264 MP4 replacement-movie decoding through MediaCodec, with the original video retained on failure.
 - Fixed an audio streaming wait that could block other voices and retire an unwritten output buffer.
 - Changing internal or shadow resolution preserves the paused scene's textures until the game draws them again.

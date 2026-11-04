@@ -18,8 +18,10 @@ Tester mode starts off on every process start and its choices are not persisted.
   wall time, synchronous inline pipeline creation and per-thread
   `/proc/self/task` CPU ticks. Queries are read only
   after existing submission fences; no new GPU wait is introduced.
-- **Intensive:** the advanced probes with process sampling every 250 ms;
-  recording stops after two minutes. It may alter performance. Thread sampling
+- **Intensive:** the advanced probes with process sampling every 250 ms by
+  default. The selectable 250/500/1000/2000 ms sample period affects process
+  sampling; recording continues until stopped manually or an I/O error. It may
+  alter performance. Thread sampling
   is limited to once per second, CPU frequency and thermal headroom to once
   per ten seconds. Headroom can be unavailable even on a supported API.
 
@@ -45,12 +47,15 @@ background pipeline jobs and cache hits are excluded. The two shader hashes
 belong to the latest such attempt, not to every shader used by the frame.
 
 The ZIP includes device/build metadata, selected non-identifying settings,
-frame, CPU, thread, frequency and thermal CSVs, summary and event information,
+frame, CPU, thread, frequency, memory and thermal CSVs, summary and event information,
 and up to 2 MiB from the newest runtime log. GPU hardware utilization/frequency,
 CPU/GPU sensor temperatures, A/V synchronization and display latency are not
 implemented. Zero counts mean no recorded observations, not necessarily that
 the underlying subsystem was available. The export may include no runtime log
-if none exists. The log can contain file paths despite limited path redaction:
+if none exists. `memory.csv` samples process PSS (KiB) and native-heap
+allocation (bytes) every ten seconds. These do not measure GPU VRAM. Recording
+stops with an error if app-private usable space falls below 32 MiB, checked at
+start and every ten seconds. The log can contain file paths despite limited path redaction:
 review the archive before sharing it. Nothing is uploaded automatically.
 
 The slow-interval detector uses 1.3 times the configured frame interval with a
@@ -60,7 +65,7 @@ trigger, subject to data availability, process termination and a 4 MiB window
 cap. The background writer keeps up to four 2 MiB segments per CSV stream and
 at most three private sessions. A bounded native queue drops samples instead of
 blocking presentation, with its dropped count in `session.json`. Recent context
-is also bounded to 16,384 samples. Files left by an interrupted process remain
+  is also bounded to 16,384 samples. Files left by an interrupted process remain
 exportable; a session marked `recording: true` may have ended abruptly.
 
 ## Validation still needed
@@ -70,7 +75,7 @@ the game, SDL lifecycle, an Android driver or a physical controller. Build the
 complete app with the project's authorized generated PPC/native inputs and its
 signing key, then test on Android 8 and a recent Android device. On Xiaomi 14,
 verify controller navigation, start/stop/export, background/resume, a CGI, the
-intro boss and the two-minute limit. Compare repeated identical scenes with
+  intro boss and recordings longer than two minutes. Compare repeated identical scenes with
 the same build, graphics settings, temperature and diagnostic mode off versus
 each profile; report frame-time percentiles, sustained temperature and power.
 No device run, APK build or overhead measurement is claimed by this change.

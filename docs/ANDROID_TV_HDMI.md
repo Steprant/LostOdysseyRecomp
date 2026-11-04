@@ -73,7 +73,11 @@ ordinary input path. Bluetooth and USB must each be tested on real hardware.
 The touch gamepad can be hidden temporarily, independently of its saved touch
 preference. CTRL stays available. Phone blackout is optional, defaults off, and
 uses a black view plus the public per-window minimum brightness. Touching the
-phone wakes it. Pause, removal and teardown restore brightness. **The panel is
+phone wakes it and the normal touch controls remain usable. Ten seconds after
+the last touch, the black view and minimum brightness return on the phone
+Activity only. Each touch resets this UI-thread timer; pause cancels it and
+resume/reconnection reapplies the appropriate state. TV settings temporarily
+suspend blackout until dismissed. Pause, removal and teardown restore brightness. **The panel is
 still physically on.** Locking the phone may pause rendering or cut HDMI.
 This implementation does not bypass normal Android pause/stop behavior.
 

@@ -179,7 +179,7 @@ Press **F1**, or **LB+RB** on a controller (**L1+R1** on PlayStation layouts), t
 
 | Category | What it does |
 | :--- | :--- |
-| **Quick tools** | Fast-forward, **Encounter rate**, **Battle EXP ×2**, menu animation speed, **Allow memory edits**, gold and HP/MP. |
+| **Quick tools** | Fast-forward, **Encounter rate**, independent **Battle EXP ×2** and **Battle SP ×2**, menu animation speed, **Allow memory edits**, gold and HP/MP. |
 | **Characters** | HP/MP, EXP (0–99, not the level) and skills. |
 | **Inventory** | Set items and materials to 1, 10, 50 or 99, or fill whole categories. Sort the in-game inventory to refresh it. |
 | **Equipment** | Weapon, ring and accessory changes. |
@@ -192,7 +192,7 @@ Press **F1**, or **LB+RB** on a controller (**L1+R1** on PlayStation layouts), t
 
 **Encounter rate** offers **Normal**, **Half**, **None** and **Every step**. Half skips every other random encounter; Every step starts a battle on each step in areas with random encounters. Story battles and bosses are unaffected. Every step is a temporary testing aid: restarting restores your last Normal/Half/None choice. **Battle EXP ×2** is a separate, saved switch for experience earned from won battles.
 
-The EXP bonus applies after the game's level-based calculation and keeps its normal per-battle cap. SP and gold stay the same.
+The EXP bonus applies after the game's level-based calculation and keeps its normal per-battle cap. **Battle SP ×2** doubles the victory SP award before skill learning consumes it; existing skill progress is unchanged. Both switches are saved independently. Gold is unchanged.
 
 **Memory edits** are off by default. Back up your save, turn on **Allow memory edits**, choose an action, confirm **Yes** and close F1 to apply it.
 
