@@ -120,6 +120,8 @@ settings::EncounterRate GetEncounterRate() { return g_encounterRate.load(); }
 void SetEncounterRate(settings::EncounterRate rate) { g_encounterRate = rate; g_everyStep = false; }
 bool BattleExpDoubleEnabled() { return false; }
 void SetBattleExpDoubleEnabled(bool) {}
+bool BattleSpDoubleEnabled() { return false; }
+void SetBattleSpDoubleEnabled(bool) {}
 bool EncounterEveryStepEnabled() { return g_everyStep.load(); }
 void SetEncounterEveryStepEnabled(bool enabled) { g_everyStep = enabled; }
 bool RequestVictory() { return true; }
@@ -344,6 +346,9 @@ int main(int argc, char** argv)
     renderFrame();
     capture("battle-exp-en.ppm");
     debug_menu::HandleInput(debug_menu::InputAction::Down);
+    renderFrame();
+    capture("battle-sp-en.ppm");
+    debug_menu::HandleInput(debug_menu::InputAction::Down);
     debug_menu::HandleInput(debug_menu::InputAction::Right);
     debug_menu::HandleInput(debug_menu::InputAction::Right);
     renderFrame();
@@ -360,8 +365,8 @@ int main(int argc, char** argv)
 
     debug_menu::HandleInput(debug_menu::InputAction::Cancel); // Dismiss picker
     debug_menu::HandleInput(debug_menu::InputAction::PrevCategory);
-    for(int i=0;i<9;++i) debug_menu::HandleInput(debug_menu::InputAction::Down);
-    debug_menu::HandleInput(debug_menu::InputAction::Confirm); // Row 9: memory edits confirmation
+    for(int i=0;i<10;++i) debug_menu::HandleInput(debug_menu::InputAction::Down);
+    debug_menu::HandleInput(debug_menu::InputAction::Confirm); // Row 10: memory edits confirmation
     g_playStation = false;
     const auto confirmReference = renderFrame();
     g_playStation = true;

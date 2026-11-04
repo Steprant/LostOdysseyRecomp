@@ -69,7 +69,14 @@ add_custom_command(OUTPUT "${battle_exp_fixture}"
     DEPENDS generate_battle_exp_fixture.py "${RUNTIME}/debug/battle_exp.cpp"
     VERBATIM)
 add_executable(LoBattleExpTest "${battle_exp_fixture}")
-set(lo_settings_targets LoSettingsInteraction LoSettingsInteractionFsr LoSettingsInteractionBoth LoSettingsInteractionXess LoSettingsRaster LoDebugOverlayTest LoDebugMenuInteractionTest LoEncounterConfigTest LoBattleExpTest LoAndroidTesterTest)
+set(battle_sp_fixture "${CMAKE_CURRENT_BINARY_DIR}/battle_sp_fixture.cpp")
+add_custom_command(OUTPUT "${battle_sp_fixture}"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/generate_battle_sp_fixture.py"
+        --root "${REPO_ROOT}" --output "${battle_sp_fixture}"
+    DEPENDS generate_battle_sp_fixture.py "${RUNTIME}/debug/battle_sp.cpp"
+    VERBATIM)
+add_executable(LoBattleSpTest "${battle_sp_fixture}")
+set(lo_settings_targets LoSettingsInteraction LoSettingsInteractionFsr LoSettingsInteractionBoth LoSettingsInteractionXess LoSettingsRaster LoDebugOverlayTest LoDebugMenuInteractionTest LoEncounterConfigTest LoBattleExpTest LoBattleSpTest LoAndroidTesterTest)
 if(TARGET LoSettingsInteractionAndroid)
     list(APPEND lo_settings_targets LoSettingsInteractionAndroid)
 endif()
@@ -98,5 +105,7 @@ add_test(NAME debug_menu_interaction COMMAND LoDebugMenuInteractionTest)
 add_test(NAME encounter_config COMMAND LoEncounterConfigTest)
 add_test(NAME battle_exp_hook COMMAND LoBattleExpTest)
 add_test(NAME battle_exp_startup_on COMMAND LoBattleExpTest persisted-on)
+add_test(NAME battle_sp_hook COMMAND LoBattleSpTest)
+add_test(NAME battle_sp_startup_on COMMAND LoBattleSpTest persisted-on)
 set_tests_properties(settings_interaction settings_interaction_fsr settings_interaction_both settings_interaction_xess settings_raster PROPERTIES TIMEOUT 120)
-set_tests_properties(debug_overlay debug_menu_interaction encounter_config battle_exp_hook battle_exp_startup_on PROPERTIES TIMEOUT 120)
+set_tests_properties(debug_overlay debug_menu_interaction encounter_config battle_exp_hook battle_exp_startup_on battle_sp_hook battle_sp_startup_on PROPERTIES TIMEOUT 120)

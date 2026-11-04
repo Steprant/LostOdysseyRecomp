@@ -43,6 +43,7 @@ struct MockServices
     settings::EncounterRate encounterRate = settings::EncounterRate::Normal;
     int encounterRateSaveCalls = 0;
     bool battleExpDouble = false;
+    bool battleSpDouble = false;
     bool everyStep = false;
     bool allowVictory = true;
     bool victoryRequested = false;
@@ -126,6 +127,8 @@ void SetEncounterRate(settings::EncounterRate rate)
 }
 bool BattleExpDoubleEnabled() { return g_mock.battleExpDouble; }
 void SetBattleExpDoubleEnabled(bool enabled) { g_mock.battleExpDouble = enabled; }
+bool BattleSpDoubleEnabled() { return g_mock.battleSpDouble; }
+void SetBattleSpDoubleEnabled(bool enabled) { g_mock.battleSpDouble = enabled; }
 bool EncounterEveryStepEnabled() { return g_mock.everyStep; }
 void SetEncounterEveryStepEnabled(bool enabled) { g_mock.everyStep = enabled; }
 
@@ -475,6 +478,7 @@ int main()
         for (const auto* label : {debug_menu::cheat_overlay::FastForwardAudioLabel[zh],
                                  debug_menu::cheat_overlay::EncounterRateLabel[zh],
                                  debug_menu::cheat_overlay::BattleExpLabel[zh],
+                                 debug_menu::cheat_overlay::BattleSpLabel[zh],
                                  debug_menu::cheat_overlay::MenuAnimationLabel[zh]})
             Require(rasterizer.MeasureWString(label) <= 170,
                 "Quick-tool label exceeds the Cheats label column");
@@ -499,7 +503,7 @@ int main()
             std::wstring(debug_menu::cheat_overlay::FastForwardButtonValues[1]) == L"LB",
         "Fast-forward button menu offers only LT and LB in persisted order");
     const debug_menu::cheat_overlay::Model quickTools;
-    Require(quickTools.Rows() == 13 &&
+    Require(quickTools.Rows() == 14 &&
             (int(quickTools.Rows()) - 1) * debug_menu::cheat_overlay::QuickToolRowHeight + 23 <= 296,
         "Quick-tool rows overlap the help area");
 
@@ -574,8 +578,14 @@ int main()
     Require(!debug_menu::cheats::session.Get().enabled, "Quick options enabled memory edits");
     debug_menu::RenderOverlay(rasterizer);
 
+    // SP and EXP are independent battle awards.
+    debug_menu::HandleInput(debug_menu::InputAction::Down); // Row 8: battle SP
+    debug_menu::HandleInput(debug_menu::InputAction::Confirm);
+    Require(g_mock.battleSpDouble && !g_mock.battleExpDouble, "SP toggle changed EXP");
+    debug_menu::HandleInput(debug_menu::InputAction::Left);
+    Require(!g_mock.battleSpDouble && !g_mock.battleExpDouble, "SP toggle failed to disable");
     // Cheats / Quick tools / Menu animations: forward/backward cycling persists each choice.
-    debug_menu::HandleInput(debug_menu::InputAction::Down); // Row 8: Menu animations
+    debug_menu::HandleInput(debug_menu::InputAction::Down); // Row 9: Menu animations
     Require(g_mock.menuAnimationRate == 1, "Menu animation speed should initially be Normal");
     debug_menu::HandleInput(debug_menu::InputAction::Confirm);
     Require(g_mock.menuAnimationRate == 2, "Confirm should select and save Fast");

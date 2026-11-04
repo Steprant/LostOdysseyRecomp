@@ -3,6 +3,7 @@
 #include "fast_forward.h"
 #include "no_encounters.h"
 #include "battle_exp.h"
+#include "battle_sp.h"
 #include "../host_ui/rasterizer.h"
 #include "../settings/config.h"
 #include "controller_hint.h"
@@ -18,7 +19,7 @@ inline constexpr const wchar_t* Categories[][2] = {
     {L"Inventory",L"物品与素材"}, {L"Equipment",L"装备"},
     {L"Party",L"队伍"}, {L"Developer",L"开发者"}};
 inline constexpr unsigned Quantities[] = {1,10,50,99};
-inline constexpr int QuickToolRowHeight = 22;
+inline constexpr int QuickToolRowHeight = 20;
 inline constexpr const wchar_t* FastForwardButtonLabel[] = {L"Fast-forward button",L"变速按键"};
 inline constexpr const wchar_t* FastForwardButtonValues[] = {L"LT",L"LB"};
 inline constexpr const wchar_t* FastForwardAudioLabel[] = {L"Fast-forward audio",L"变速音频"};
@@ -34,6 +35,7 @@ inline unsigned EncounterRateIndex() {
     return debug_menu::EncounterEveryStepEnabled() ? 3 : unsigned(debug_menu::GetEncounterRate());
 }
 inline constexpr const wchar_t* BattleExpLabel[] = {L"Battle EXP ×2",L"战斗 EXP ×2"};
+inline constexpr const wchar_t* BattleSpLabel[] = {L"Battle SP ×2",L"战斗 SP ×2"};
 inline constexpr const wchar_t* MenuAnimationLabel[] = {L"Menu animations",L"菜单动画"};
 inline constexpr const wchar_t* MenuAnimationValues[][2] = {
     {L"Normal (1x)",L"正常 (1x)"}, {L"Fast (2x)",L"快速 (2x)"}, {L"Faster (4x)",L"更快 (4x)"}};
@@ -58,7 +60,7 @@ struct Model {
     Request request;
     std::wstring notice;
     unsigned menuAnimationRate=1;
-    unsigned Rows() const { constexpr unsigned rows[]={13,8,6,5,7,2}; return rows[category]; }
+    unsigned Rows() const { constexpr unsigned rows[]={14,8,6,5,7,2}; return rows[category]; }
     void ChangeCategory(int direction) { category=Wrap(category,direction,unsigned(std::size(Categories))); row=0; }
     std::span<const cheats::data::Entry> EquipmentList() const {
         if (equipmentSlot==0) return cheats::data::Weapons;
@@ -174,16 +176,18 @@ struct Model {
             } else if (row==7) {
                 debug_menu::SetBattleExpDoubleEnabled(!debug_menu::BattleExpDoubleEnabled());
             } else if (row==8) {
+                debug_menu::SetBattleSpDoubleEnabled(!debug_menu::BattleSpDoubleEnabled());
+            } else if (row==9) {
                 unsigned index=0;
                 for(unsigned i=0;i<std::size(settings::MenuAnimationRates);++i)
                     if(settings::MenuAnimationRates[i]==menuAnimationRate)index=i;
                 menuAnimationRate=settings::MenuAnimationRates[Wrap(index,direction,unsigned(std::size(settings::MenuAnimationRates)))];
-            } else if (row==9 && activate) {
+            } else if (row==10 && activate) {
                 if (cheats::session.Get().enabled) cheats::session.Enable(false);
                 else { confirmation=Confirmation::Enable; confirm=true; yes=false; }
-            } else if (activate && row==10) Write(Action::AddGold,100000,0,false,zh);
-            else if (activate && row==11) Write(Action::SetGold,cheats::GoldLimit,0,true,zh);
-            else if (activate && row==12) Write(Action::HealParty,0,0,false,zh);
+            } else if (activate && row==11) Write(Action::AddGold,100000,0,false,zh);
+            else if (activate && row==12) Write(Action::SetGold,cheats::GoldLimit,0,true,zh);
+            else if (activate && row==13) Write(Action::HealParty,0,0,false,zh);
         } else if (category==1) {
             if(row==1) { if(activate)Open(Picker::Character,character);else character=Wrap(character,direction,9); }
             else if(row==2 && activate) Write(Action::Heal,0,0,false,zh);
@@ -245,9 +249,10 @@ inline const wchar_t* QuickToolHelp(unsigned row,bool zh) {
         ? L"仅影响步行遇敌；减半交替跳过成功判定，一步一遇敌不保存。剧情与首领战不受影响。"
         : L"Walking only. Half skips alternate draws; Every step is not saved. Story and boss fights are unchanged.";
     if(row==7) return zh
-        ? L"战斗经验加倍，SP 与金币不变。"
-        : L"Doubles battle EXP. SP and gold stay unchanged.";
-    if(row==8) return MenuAnimationHelp[zh];
+        ? L"战斗经验加倍；SP 和金币由各自的规则决定。"
+        : L"Doubles battle EXP only; SP has its own switch.";
+    if(row==8) return zh ? L"战斗后获得的技能点加倍，已有进度不变。" : L"Doubles SP earned in battle, not previously learned progress.";
+    if(row==9) return MenuAnimationHelp[zh];
     return nullptr;
 }
 inline void Render(host_ui::Rasterizer& r,const Model& m,bool zh,int x,int y,int width,bool playStation) {
@@ -269,7 +274,7 @@ inline void Render(host_ui::Rasterizer& r,const Model& m,bool zh,int x,int y,int
     auto row=[&](unsigned id,const wchar_t* label,std::wstring value,bool enabled=true) {
         const int py=y+int(id)*rowH;
         const bool selected=m.row==id;
-        const int height=m.category==0 ? 21:30, textY=py+(m.category==0 ? 4:7);
+        const int height=m.category==0 ? 19:30, textY=py+(m.category==0 ? 3:7);
         r.FillRect(rx,py,rw,height,selected ? color(255,46,57,72):color(255,29,34,43));
         if(selected)r.FillRect(rx,py,3,height,gold);
         const auto c=enabled ? text:muted;
@@ -292,11 +297,12 @@ inline void Render(host_ui::Rasterizer& r,const Model& m,bool zh,int x,int y,int
         row(5,FastForwardAudioLabel[zh],FastForwardAudioValues[speed.keepAudioPitch ? 0:1][zh]);
         row(6,EncounterRateLabel[zh],EncounterRateValues[EncounterRateIndex()][zh]);
         row(7,BattleExpLabel[zh],debug_menu::BattleExpDoubleEnabled() ? L"ON":L"OFF");
-        row(8,MenuAnimationLabel[zh],MenuAnimationValue(m.menuAnimationRate,zh));
-        row(9,zh ? L"允许内存修改" : L"Allow memory edits",s.enabled ? L"ON":L"OFF");
-        row(10,zh ? L"增加 100,000 金币" : L"Add 100,000 gold",L"",writable);
-        row(11,zh ? L"金币设为 9,999,999" : L"Set gold to 9,999,999",L"",writable);
-        row(12,zh ? L"恢复当前队伍 HP / MP" : L"Restore party HP / MP",L"",writable);
+        row(8,BattleSpLabel[zh],debug_menu::BattleSpDoubleEnabled() ? L"ON":L"OFF");
+        row(9,MenuAnimationLabel[zh],MenuAnimationValue(m.menuAnimationRate,zh));
+        row(10,zh ? L"允许内存修改" : L"Allow memory edits",s.enabled ? L"ON":L"OFF");
+        row(11,zh ? L"增加 100,000 金币" : L"Add 100,000 gold",L"",writable);
+        row(12,zh ? L"金币设为 9,999,999" : L"Set gold to 9,999,999",L"",writable);
+        row(13,zh ? L"恢复当前队伍 HP / MP" : L"Restore party HP / MP",L"",writable);
     } else if(m.category==1) {
         row(1,zh ? L"角色" : L"Character",charName);
         row(2,zh ? L"恢复 HP / MP" : L"Restore HP / MP",L"",writable);

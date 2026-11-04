@@ -323,6 +323,8 @@ Config Read()
             value.encounterRate = ValidEncounterRate(EncounterRate(number));
         else if (key == "battle_exp_double" && number <= 1)
             value.battleExpDouble = number == 1;
+        else if (key == "battle_sp_double" && number <= 1)
+            value.battleSpDouble = number == 1;
         else if (key == "fast_forward" && number <= 1)
             value.fastForward = number == 1;
         else if (key == "fast_forward_mode")
@@ -432,6 +434,7 @@ void PreviewConfig(const Config &value)
     merged.saveAnywhere = Current().saveAnywhere;
     merged.encounterRate = Current().encounterRate;
     merged.battleExpDouble = Current().battleExpDouble;
+    merged.battleSpDouble = Current().battleSpDouble;
     CopyFastForward(merged, Current());
     merged.menuAnimationRate = Current().menuAnimationRate;
     merged.audioOutput = Current().audioOutput;
@@ -522,6 +525,7 @@ static bool WriteConfig(const Config &value)
            << "\nsave_anywhere=" << (value.saveAnywhere ? 1 : 0)
            << "\nencounter_rate=" << uint32_t(value.encounterRate)
            << "\nbattle_exp_double=" << (value.battleExpDouble ? 1 : 0)
+           << "\nbattle_sp_double=" << (value.battleSpDouble ? 1 : 0)
            << "\nfast_forward=" << (value.fastForward ? 1 : 0)
            << "\nfast_forward_mode=" << value.fastForwardMode
            << "\nfast_forward_button=" << value.fastForwardButton
@@ -554,6 +558,7 @@ bool SaveConfig(const Config &requested)
     value.saveAnywhere = Current().saveAnywhere;
     value.encounterRate = Current().encounterRate;
     value.battleExpDouble = Current().battleExpDouble;
+    value.battleSpDouble = Current().battleSpDouble;
     CopyFastForward(value, Current());
     value.menuAnimationRate = Current().menuAnimationRate;
     value.audioOutput = Current().audioOutput;
@@ -633,6 +638,15 @@ bool SaveBattleExpDouble(bool enabled)
     persisted.battleExpDouble = enabled;
     if (!WriteConfig(persisted)) return false;
     Current().battleExpDouble = enabled;
+    return true;
+}
+bool SaveBattleSpDouble(bool enabled)
+{
+    std::lock_guard lock(mutex);
+    auto persisted = Read();
+    persisted.battleSpDouble = enabled;
+    if (!WriteConfig(persisted)) return false;
+    Current().battleSpDouble = enabled;
     return true;
 }
 bool SaveFastForward(bool enabled, uint32_t mode, uint32_t rate, bool keepAudioPitch, uint32_t button)

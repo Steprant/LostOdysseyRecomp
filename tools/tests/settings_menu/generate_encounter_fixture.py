@@ -100,7 +100,7 @@ int main() {
     fs::current_path(scratch);
     using settings::EncounterRate;
     Check(settings::GetConfig().encounterRate==EncounterRate::Normal &&
-        !settings::GetConfig().battleExpDouble,"safe defaults for existing profiles");
+        !settings::GetConfig().battleExpDouble && !settings::GetConfig().battleSpDouble,"safe defaults for existing profiles");
     Check(settings::GetConfig().discordStatus,"Discord status defaults On for existing profiles");
     for (auto text : {"", "sgsr1=2\n", "sgsr1=-1\n", "sgsr1=bad\n"}) {
         Write(text); Check(!settings::Read().sgsr1,"missing/invalid SGSR1 keeps the standard renderer");
@@ -188,23 +188,30 @@ int main() {
     }
     Write("width=1600\nbattle_exp_double=1\n");
     Check(settings::Read().battleExpDouble,"battle EXP key parsed");
+    for(auto text : {"", "battle_sp_double=2\n", "battle_sp_double=-1\n", "battle_sp_double=bad\n"}) {
+        Write(text); Check(!settings::Read().battleSpDouble,"missing/invalid battle SP is off");
+    }
+    Write("width=1600\nbattle_exp_double=1\n");
     auto preview=settings::GetConfig(); preview.width=2000;
     settings::PreviewConfig(preview);
     Check(settings::SaveBattleExpDouble(true) && settings::GetConfig().battleExpDouble,
         "EXP preference persists independently");
+    Check(settings::SaveBattleSpDouble(true) && settings::GetConfig().battleSpDouble &&
+        settings::Read().battleExpDouble && settings::Read().battleSpDouble,
+        "SP setting persists independently of EXP");
     for(auto rate : {EncounterRate::Normal,EncounterRate::Half,EncounterRate::None}) {
         Check(settings::SaveEncounterRate(rate),"encounter preference saved");
-        Check(settings::Read().encounterRate==rate && settings::Read().battleExpDouble,
+        Check(settings::Read().encounterRate==rate && settings::Read().battleExpDouble && settings::Read().battleSpDouble,
             "rate round trip retains independent EXP setting");
         Check(settings::Read().width==1600,"debug save does not commit a graphics preview");
     }
     auto graphics=settings::GetConfig();
-    graphics.encounterRate=EncounterRate::Normal; graphics.battleExpDouble=false;
+    graphics.encounterRate=EncounterRate::Normal; graphics.battleExpDouble=false; graphics.battleSpDouble=false;
     Check(settings::SaveConfig(graphics),"ordinary settings save");
-    Check(settings::Read().encounterRate==EncounterRate::None && settings::Read().battleExpDouble,
+    Check(settings::Read().encounterRate==EncounterRate::None && settings::Read().battleExpDouble && settings::Read().battleSpDouble,
         "ordinary settings save preserves debug preferences");
     settings::PreviewConfig(graphics);
-    Check(settings::GetConfig().encounterRate==EncounterRate::None && settings::GetConfig().battleExpDouble,
+    Check(settings::GetConfig().encounterRate==EncounterRate::None && settings::GetConfig().battleExpDouble && settings::GetConfig().battleSpDouble,
         "graphics preview cannot overwrite debug preferences");
 
     // Execute the real wrapper, including the successful-draw original-body
