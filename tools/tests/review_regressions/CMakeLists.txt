@@ -50,6 +50,7 @@ lo_review_test(LoDebugOverlayTest debug_overlay_test.cpp "${LO_RUNTIME}/debug/me
 lo_review_test(LoDebugMenuInteractionTest debug_menu_interaction_test.cpp "${LO_RUNTIME}/debug/menu_overlay.cpp")
 lo_review_test(LoSoftResetTest soft_reset_test.cpp)
 lo_review_test(LoAudioCallbackTest audio_callback_test.cpp)
+lo_review_test(LoAudioQueueRefillTest audio_queue_refill_test.cpp)
 lo_review_test(LoMovieDataTest movie_data_test.cpp
     "${LO_RUNTIME}/movie/byte_source.cpp" "${LO_RUNTIME}/movie/mp4_demux.cpp" "${LO_RUNTIME}/modding/mod_api.cpp")
 set_tests_properties(LoMovieDataTest PROPERTIES WORKING_DIRECTORY "${LO_TESTS}")

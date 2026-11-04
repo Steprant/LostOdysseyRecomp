@@ -122,10 +122,11 @@ void WaitingForRefill() {
     Check(packetCalls==1,"waiting input spun under the XMA mutex instead of yielding");
 #endif
     d.Load(ContextHost(0));
-    Check(sentFrames.empty() && d.input1Valid() && d.outputValid(),
-          "waiting for refill consumed or invalidated an unrelated buffer");
+    Check(sentFrames.empty() && d.input1Valid() && !d.outputValid(),
+          "waiting for refill changed input ownership or upstream empty-output retirement");
     // Pending PCM must still drain before the worker waits for more input.
     ctx.remainingSubframes=4; ctx.pcmOffset=0; ctx.pcm.fill(0x53);
+    d.setOutputValid(true); d.Store(ContextHost(0)); // guest submits the next output command
     ctx.enabled=true;
     Work(0);
     d.Load(ContextHost(0));
