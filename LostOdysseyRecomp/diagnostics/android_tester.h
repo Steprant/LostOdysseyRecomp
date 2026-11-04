@@ -33,10 +33,11 @@ struct Frame {
 class Recorder {
 public:
     static constexpr size_t Capacity = 16384;
-    static constexpr uint64_t IntensiveLimitNs = 120ull * 1000000000ull;
     std::atomic<bool> enabled{false}, recording{false}, automatic{true}, thermal{true};
     std::atomic<bool> collectorIdle{true};
     std::atomic<uint32_t> profile{0};
+    // Java reads this through nativeTesterStatus; changes take effect next recording.
+    std::atomic<uint32_t> samplePeriodMs{1000};
 
     bool Start(uint64_t now, uint32_t targetFps) {
         if (!enabled.load() || recording.load() || !collectorIdle.exchange(false)) return false;
@@ -108,11 +109,6 @@ public:
         std::unique_lock lock(mutex_, std::try_to_lock);
         if (!lock.owns_lock()) { dropped_.fetch_add(1, std::memory_order_relaxed); return; }
         if (!recording.load(std::memory_order_relaxed)) return;
-        if (profile.load(std::memory_order_relaxed) == uint32_t(Profile::Intensive) && now - started_ >= IntensiveLimitNs) {
-            ended_ = now;
-            recording.store(false, std::memory_order_release);
-            return;
-        }
         Frame sample{now, interval, wall, cpu, rendererFrame_.load(std::memory_order_relaxed),
             draws_.load(std::memory_order_relaxed), gpuTotal, gpuBatches,
             starved_.load(std::memory_order_relaxed), clockResets_.load(std::memory_order_relaxed),

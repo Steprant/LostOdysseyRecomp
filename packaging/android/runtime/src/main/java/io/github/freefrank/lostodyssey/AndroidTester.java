@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
@@ -49,7 +50,7 @@ final class AndroidTester {
     private TesterTraceFiles trace;
     private File directory;
     private ScheduledFuture<?> timer;
-    private long previousTime, previousCpu, lastHeadroom, lastSessionWrite, lastThreads, lastFrequencies, ticksPerSecond;
+    private long previousTime, previousCpu, lastHeadroom, lastSessionWrite, lastThreads, lastFrequencies, lastMemory, ticksPerSecond;
     private final Map<String, Tick> previousThreads = new HashMap<>();
     private double headroom = Double.NaN;
     private long[] status;
@@ -68,19 +69,20 @@ final class AndroidTester {
         try {
             finishOnWorker();
             status = RuntimeActivity.nativeTesterStatus();
-            if (status == null || status.length != 9 || status[4] == 0) throw new IOException("native recorder unavailable");
+            if (status == null || status.length != 10 || status[4] == 0) throw new IOException("native recorder unavailable");
             if (!root.isDirectory() && !root.mkdirs()) throw new IOException("cannot create diagnostics directory");
+            if (root.getUsableSpace() < 32L * 1024 * 1024) throw new IOException("less than 32 MiB free");
             directory = new File(root, "session-" + status[4]);
             trace = new TesterTraceFiles(directory);
             TesterTraceFiles.writeText(new File(directory, "device.json"), deviceJson());
-            previousTime = previousCpu = lastHeadroom = lastSessionWrite = lastThreads = lastFrequencies = 0;
+            previousTime = previousCpu = lastHeadroom = lastSessionWrite = lastThreads = lastFrequencies = lastMemory = 0;
             previousThreads.clear();
             try { ticksPerSecond = Os.sysconf(OsConstants._SC_CLK_TCK); }
             catch (RuntimeException unavailable) { ticksPerSecond = 0; }
             headroom = Double.NaN;
             saveSession(true);
             removeOlderSessions();
-            long period = status[1] == 2 ? 250 : 1000;
+            long period = Math.max(250, Math.min(2000, status[9]));
             timer = worker.scheduleAtFixedRate(this::sampleOnWorker, 0, period, TimeUnit.MILLISECONDS);
         } catch (IOException | RuntimeException error) {
             RuntimeActivity.nativeTesterStop();
@@ -93,7 +95,7 @@ final class AndroidTester {
         if (trace == null) return;
         try {
             status = RuntimeActivity.nativeTesterStatus();
-            if (status == null || status.length != 9) throw new IOException("native recorder unavailable");
+            if (status == null || status.length != 10) throw new IOException("native recorder unavailable");
             String frames = RuntimeActivity.nativeTesterDrain();
             if (frames == null) throw new IOException("could not read native trace");
             trace.appendFrames(frames, status[2] != 0);
@@ -110,13 +112,22 @@ final class AndroidTester {
             if (lastFrequencies == 0 || now - lastFrequencies >= 10_000_000_000L) {
                 sampleFrequencies(now); lastFrequencies = now;
             }
+            if (lastMemory == 0 || now - lastMemory >= 10_000_000_000L) {
+                Debug.MemoryInfo memory = new Debug.MemoryInfo();
+                Debug.getMemoryInfo(memory);
+                trace.appendMemory(now + "," + memory.getTotalPss() + "," + Debug.getNativeHeapAllocatedSize() + "\n");
+                lastMemory = now;
+            }
             if (status[0] == 0 || lastSessionWrite == 0 || now - lastSessionWrite >= 5_000_000_000L) {
+                if (directory.getUsableSpace() < 32L * 1024 * 1024)
+                    throw new IOException("less than 32 MiB free");
                 saveSession(status[0] != 0);
                 lastSessionWrite = now;
             }
             if (status[0] == 0) finishOnWorker();
         } catch (IOException | RuntimeException error) {
             RuntimeActivity.nativeTesterStop();
+            try { saveSession(false); } catch (IOException ignored) { }
             closeQuietly();
             RuntimeActivity.nativeTesterCollectorFinished();
             showError("Diagnostics stopped: " + error.getMessage());
@@ -241,11 +252,13 @@ final class AndroidTester {
                 .put("recording", recording).put("profile", new String[]{"standard", "advanced", "intensive"}[(int)Math.max(0, Math.min(2, status[1]))])
                 .put("automatic_slow_detection", status[2] != 0).put("thermal_monitoring", status[3] != 0)
                 .put("target_fps_at_start", status[7]).put("slow_interval_threshold_ns", status[8])
+                .put("collector_period_ms", status[9])
                 .put("dropped_frame_samples", status[6]).put("settings", settings())
                 .put("gpu_timing_scope", "completed timestamped queue batches; cumulative, not per-frame GPU time")
                 .put("xma_timing_scope", "cumulative send/receive wall time, advanced and intensive only; includes scheduling")
                 .put("pipeline_timing_scope", "synchronous inline creation attempts only; excludes background jobs and cache hits")
                 .put("movie_timing_scope", "guest frame update and guest PTS, not isolated video decode or A/V sync")
+                .put("memory_scope", "process proportional set size and native heap allocation sampled every 10 s; GPU VRAM unavailable")
                 .put("unavailable", "GPU utilization/frequency, CPU/GPU temperature, display latency, actual underruns, isolated CGI decode and A/V sync");
             TesterTraceFiles.writeText(new File(directory, "session.json"), json.toString(2) + "\n");
         } catch (JSONException error) { throw new IOException("session metadata", error); }

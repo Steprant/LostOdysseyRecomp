@@ -21,16 +21,12 @@ Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeTesterGpuDriver(JNIEn
 extern "C" JNIEXPORT jlongArray JNICALL
 Java_io_github_freefrank_lostodyssey_RuntimeActivity_nativeTesterStatus(JNIEnv* env, jclass) {
     const uint64_t now = NowNs();
-    // Also enforce the intensive limit while the app is paused or no frame is
-    // presented. Stop is harmless if the presentation thread stopped it first.
-    if (g_recorder.recording.load() && g_recorder.profile.load() == 2 &&
-        g_recorder.Duration(now) >= ::diagnostics::android_tester::Recorder::IntensiveLimitNs)
-        g_recorder.Stop(now);
     const jlong values[] = {jlong(g_recorder.recording.load()), jlong(g_recorder.profile.load()),
         jlong(g_recorder.automatic.load()), jlong(g_recorder.thermal.load()), jlong(g_recorder.Started()),
-        jlong(g_recorder.Duration(now)), jlong(g_recorder.Dropped()), jlong(g_recorder.TargetFps()), jlong(g_recorder.Threshold())};
-    jlongArray array = env->NewLongArray(9);
-    if (array) env->SetLongArrayRegion(array, 0, 9, values);
+        jlong(g_recorder.Duration(now)), jlong(g_recorder.Dropped()), jlong(g_recorder.TargetFps()), jlong(g_recorder.Threshold()),
+        jlong(g_recorder.samplePeriodMs.load())};
+    jlongArray array = env->NewLongArray(10);
+    if (array) env->SetLongArrayRegion(array, 0, 10, values);
     return array;
 }
 

@@ -26,12 +26,13 @@ final class TesterTraceFiles {
     static final String THERMAL_HEADER = "monotonic_ns,android_thermal_status,thermal_headroom,battery_temperature_c\n";
     static final String THREAD_HEADER = "monotonic_ns,thread_id,name,state,thread_cpu_ticks,ticks_per_second,thread_cpu_percent_one_core\n";
     static final String FREQUENCY_HEADER = "monotonic_ns,cpu_core,scaling_frequency_khz\n";
+    static final String MEMORY_HEADER = "monotonic_ns,process_pss_kb,native_heap_allocated_bytes\n";
     private static final long SEGMENT_SIZE = 2L * 1024 * 1024;
     private static final long EVENT_MAX_SIZE = 4L * 1024 * 1024;
     private static final int SEGMENTS = 4, EVENT_LIMIT = 3, RECENT_LIMIT = 16384;
     private static final long BEFORE_NS = 30_000_000_000L, AFTER_NS = 10_000_000_000L;
     private final File directory;
-    private final Rolling frames, cpu, thermal, threads, frequencies;
+    private final Rolling frames, cpu, thermal, threads, frequencies, memory;
     private final ArrayDeque<Line> recent = new ArrayDeque<>();
     private FileOutputStream event;
     private long eventEnd, eventBytes;
@@ -70,17 +71,18 @@ final class TesterTraceFiles {
     TesterTraceFiles(File directory) throws IOException {
         this.directory = directory;
         if (!directory.isDirectory() && !directory.mkdirs()) throw new IOException("cannot create trace directory");
-        Rolling f = null, c = null, t = null, th = null, freq = null;
+        Rolling f = null, c = null, t = null, th = null, freq = null, mem = null;
         try {
             f = new Rolling(directory, "frames"); c = new Rolling(directory, "cpu");
             t = new Rolling(directory, "thermal"); th = new Rolling(directory, "threads");
             freq = new Rolling(directory, "frequencies");
+            mem = new Rolling(directory, "memory");
         } catch (IOException error) {
-            for (Rolling stream : new Rolling[]{f, c, t, th, freq})
+            for (Rolling stream : new Rolling[]{f, c, t, th, freq, mem})
                 if (stream != null) try { stream.close(); } catch (IOException closeError) { error.addSuppressed(closeError); }
             throw error;
         }
-        frames = f; cpu = c; thermal = t; threads = th; frequencies = freq;
+        frames = f; cpu = c; thermal = t; threads = th; frequencies = freq; memory = mem;
     }
     private static File[] files(File directory, String prefix) {
         File[] list = directory.listFiles((d, name) -> name.startsWith(prefix + "-") && name.endsWith(".csv"));
@@ -125,10 +127,11 @@ final class TesterTraceFiles {
     void appendThermal(String line) throws IOException { thermal.append(line); thermal.flush(); }
     void appendThreads(String lines) throws IOException { if (!lines.isEmpty()) { threads.append(lines); threads.flush(); } }
     void appendFrequencies(String lines) throws IOException { if (!lines.isEmpty()) { frequencies.append(lines); frequencies.flush(); } }
+    void appendMemory(String line) throws IOException { memory.append(line); memory.flush(); }
     void close() throws IOException {
         IOException failure = null;
         if (event != null) { try { event.close(); } catch (IOException error) { failure = error; } event = null; }
-        for (Rolling stream : new Rolling[]{frames, cpu, thermal, threads, frequencies}) {
+        for (Rolling stream : new Rolling[]{frames, cpu, thermal, threads, frequencies, memory}) {
             try { stream.close(); } catch (IOException error) {
                 if (failure == null) failure = error; else failure.addSuppressed(error);
             }
@@ -199,6 +202,7 @@ final class TesterTraceFiles {
         zipSegments(zip, dir, "thermal", "thermal.csv", THERMAL_HEADER);
         zipSegments(zip, dir, "threads", "threads.csv", THREAD_HEADER);
         zipSegments(zip, dir, "frequencies", "cpu_frequencies.csv", FREQUENCY_HEADER);
+        zipSegments(zip, dir, "memory", "memory.csv", MEMORY_HEADER);
         for (File f : files(dir, "event")) { zip.putNextEntry(new ZipEntry("events/" + f.getName())); copy(zip, f); zip.closeEntry(); }
         List<Long> intervals = new ArrayList<>();
         long totalInterval = 0;

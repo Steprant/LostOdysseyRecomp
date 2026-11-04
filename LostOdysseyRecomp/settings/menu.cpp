@@ -152,7 +152,8 @@ std::atomic<bool> achievementsOpen{false};
 #if LO_PLATFORM_ANDROID
 std::atomic<bool> testerOpen{false};
 int testerFocus = 0;
-enum TesterRow { TesterEnabled, TesterProfile, TesterAutomatic, TesterThermal, TesterRecording, TesterExport, TesterRowCount };
+enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterRecording, TesterExport, TesterRowCount };
+constexpr uint32_t TesterPeriodsMs[]{250, 500, 1000, 2000};
 #endif
 std::vector<achievements_page::Item> achievementItems;
 std::vector<std::shared_ptr<const menu_assets::Image>> achievementIcons;
@@ -1336,6 +1337,10 @@ void Publish(uint8_t *base, uint32_t config)
             : Tr(L"D-pad: select / change     A: confirm     B: back", L"方向鍵：選擇 / 調整     A：確認     B：返回");
         addChoices(L"Tester mode", L"測試模式", onOff(), d.enabled.load() ? 0 : 1);
         addChoices(L"Profile", L"設定檔", {Tr(L"Standard", L"標準"), Tr(L"Advanced", L"進階"), Tr(L"Intensive", L"密集")}, d.profile.load(), !recording);
+        const auto period = d.samplePeriodMs.load();
+        size_t periodIndex = 0;
+        while (periodIndex + 1 < std::size(TesterPeriodsMs) && TesterPeriodsMs[periodIndex] != period) ++periodIndex;
+        addChoices(L"Sample period", L"採樣週期", {L"250 ms", L"500 ms", L"1000 ms", L"2000 ms"}, periodIndex, !recording);
         addChoices(L"Detect slow frames", L"偵測慢影格", onOff(), d.automatic.load() ? 0 : 1, !recording);
         addChoices(L"Thermal monitoring", L"溫度監測", onOff(), d.thermal.load() ? 0 : 1, !recording);
         const auto seconds = d.Duration(::diagnostics::android_tester::NowNs()) / 1000000000ull;
@@ -1752,7 +1757,7 @@ void Publish(uint8_t *base, uint32_t config)
                        L"LB / RB：分類     方向鍵：選擇 / 調整     B：確認     A：返回");
 #if LO_PLATFORM_ANDROID
     if (testerOpen)
-        next.help = status.empty() ? Tr(L"Intensive mode can affect performance and stops after 2 minutes.", L"密集模式可能影響效能，並在兩分鐘後停止。") : status;
+        next.help = status.empty() ? Tr(L"Intensive sampling can affect performance. Stop recording manually; files rotate to a fixed size.", L"密集採樣可能影響效能。請手動停止錄製；檔案會循環覆寫。") : status;
 #endif
     if (tab == 0 && row == GameControlsRow)
         next.help = Tr(L"Button prompts, vibration, and the controller and keyboard buttons.",
@@ -3382,6 +3387,13 @@ PPC_FUNC(sub_822F19B0)
             } else if (testerFocus == TesterProfile && !recording) {
                 const int delta = (input & 4) ? -1 : 1;
                 d.profile.store(uint32_t((int(d.profile.load()) + 3 + delta) % 3));
+                d.samplePeriodMs.store(d.profile.load() == uint32_t(::diagnostics::android_tester::Profile::Intensive) ? 250 : 1000);
+            } else if (testerFocus == TesterSampling && !recording) {
+                const int delta = (input & 4) ? -1 : 1;
+                auto current = d.samplePeriodMs.load();
+                size_t index = 0;
+                while (index + 1 < std::size(TesterPeriodsMs) && TesterPeriodsMs[index] != current) ++index;
+                d.samplePeriodMs.store(TesterPeriodsMs[(int(index) + 4 + delta) % 4]);
             } else if (testerFocus == TesterAutomatic && !recording) d.automatic.store(!d.automatic.load());
             else if (testerFocus == TesterThermal && !recording) d.thermal.store(!d.thermal.load());
             else if (testerFocus == TesterRecording && (input & 0x1000) && d.enabled.load()) {

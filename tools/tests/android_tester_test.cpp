@@ -34,8 +34,11 @@ int main() {
     r.profile = uint32_t(Profile::Intensive);
     assert(r.Start(1, 60));
     assert(r.CollectGpu());
-    r.Add(Recorder::IntensiveLimitNs + 1, 1, 1, true, 0, 0);
-    assert(!r.recording && r.Duration(Recorder::IntensiveLimitNs + 100) == Recorder::IntensiveLimitNs);
+    constexpr uint64_t longSession = 3ull * 60 * 60 * 1000000000ull;
+    r.Add(longSession, 1, 1, true, 0, 0);
+    assert(r.recording && r.Duration(longSession + 100) == longSession + 99);
+    r.Stop(longSession + 100);
+    assert(!r.recording && r.Duration(longSession + 200) == longSession + 99);
     r.collectorIdle = true; r.profile = 0; assert(r.Start(1, 30));
     for (size_t i=0; i<Recorder::Capacity+5; ++i) r.Add(1000+i, 0, 0, true, 0, 0);
     assert(r.Dropped() == 5 && r.Drain().size() == Recorder::Capacity);
