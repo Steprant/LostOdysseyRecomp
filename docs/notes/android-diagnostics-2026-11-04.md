@@ -14,6 +14,8 @@ scene can be reconstructed.
 | 18:26 | 652 s | 24,225 | 33.88 / 49.53 ms | 93 / 2 | 181% | 43.0–45.0 °C |
 | 19:09 | 2,431 s | 63,196 (last 1,831 s) | 34.29 / 43.21 ms | 439 / 12 | 202% | 40.2–46.9 °C |
 
+The estimated 1% low accepted-present rates are 3.342 and 17.485 per second;
+the first includes the 57.9-second gap and is not a clean gameplay low.
 The interval statistics describe accepted present calls, not displayed FPS.
 The rolling trace does not retain every frame of the longer session. The first
 trace contains an approximately 57.9-second gap. Both show zero XMA decode

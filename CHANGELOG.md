@@ -8,11 +8,6 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 
 ### English
 
-- Steprant Android APK version 1.5 with the fork's separate package, icon and signing identity.
-- Android TV: optional phone blackout returns ten seconds after the last touch; touching again resets the timer without changing HDMI output.
-- Android diagnostics: remove the intensive recording time limit, offer a 250–2000 ms sample period, and add bounded process-memory samples with a low-space stop.
-- Debug menu: independently double the SP awarded after a victory, before it is applied to skill learning.
-- Diagnostics: clamp a guest wait duration when the watchdog snapshot precedes the wait start, avoiding unsigned-wrap values in stall logs.
 - Android: experimental H.264 MP4 replacement-movie decoding through MediaCodec, with the original video retained on failure.
 - Fixed an audio streaming wait that could block other voices and retire an unwritten output buffer.
 - Changing internal or shadow resolution preserves the paused scene's textures until the game draws them again.
@@ -22,6 +17,16 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - Android：新增通过 MediaCodec 解码 H.264 MP4 替换视频的实验性支持，解码失败时保留原始视频。
 - 修复音频流等待时可能阻塞其他声音并错误结束未写入输出缓冲区的问题。
 - 调整内部或阴影分辨率时，保留暂停场景仍在读取的纹理，直到游戏重新绘制。
+
+## [Steprant Android 1.5](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/tag/v1.5-steprant.20261104) — 2026-11-04
+
+### English
+
+- Separate Steprant package, icon and signing identity; APK versionName 1.5 and versionCode 1050000.
+- TV phone blackout returns ten seconds after the last touch without changing HDMI output.
+- Unlimited intensive diagnostics with a selectable 250–2000 ms sample period, bounded memory samples and an estimated 1% low accepted-present rate.
+- Independent Battle SP ×2 switch applies the victory award before skill learning.
+- Clamp unsigned-wrap guest wait durations in diagnostic logs. Existing audio fixes remain; no new audio root cause is established by the supplied traces.
 
 ## [v1.1.0](https://github.com/freefrank/LostOdysseyRecomp/releases/tag/v1.1.0) — 2026-10-26
 

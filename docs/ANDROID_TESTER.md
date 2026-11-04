@@ -68,34 +68,27 @@ trigger, subject to data availability, process termination and a 4 MiB window
 cap. The background writer keeps up to four 2 MiB segments per CSV stream and
 at most three private sessions. A bounded native queue drops samples instead of
 blocking presentation, with its dropped count in `session.json`. Recent context
-  is also bounded to 16,384 samples. Files left by an interrupted process remain
+is also bounded to 16,384 samples. Files left by an interrupted process remain
 exportable; a session marked `recording: true` may have ended abruptly.
 
 ## Validation still needed
 
 The host settings fixture, native recorder tests and JVM trace tests do not run
-the game, SDL lifecycle, an Android driver or a physical controller. Build the
-complete app with the project's authorized generated PPC/native inputs and its
-signing key, then test on Android 8 and a recent Android device. On Xiaomi 14,
-verify controller navigation, start/stop/export, background/resume, a CGI, the
-  intro boss and recordings longer than two minutes. Compare repeated identical scenes with
+the game, SDL lifecycle, an Android driver or a physical controller. The
+complete ARM64 runtime and Steprant 1.5 APK built with authorized local inputs;
+the APK was signed and statically checked. On Xiaomi 14, verify controller
+navigation, start/stop/export, background/resume, a CGI, the intro boss and
+recordings longer than two minutes. Compare repeated identical scenes with
 the same build, graphics settings, temperature and diagnostic mode off versus
 each profile; report frame-time percentiles, sustained temperature and power.
-No device run, APK build or overhead measurement is claimed by this change.
+No device run or overhead measurement is claimed by this change.
 
 ## Checks run during implementation
 
-- Standalone settings suite: 13 CTest cases passed, including the Android
+- Standalone settings suite: 15 CTest cases passed, including the Android
   settings input fixture and the bounded native recorder.
-- JVM export/thread-parser tests: two JUnit cases and the standalone trace
-  export test passed.
-- All runtime Java sources compiled against Android API 35, the pinned SDL
-  Java sources and AndroidX Core 1.15.0. Only the generated resource-ID class
-  was substituted; this is not an APK packaging or lint result.
-- NDK 28.2, ARM64/API 26: JNI object compilation and syntax checks of
-  `video.cpp`, `renderer.cpp`, `audio.cpp`, `xma.cpp` and `movie_replace.cpp`
-  passed. These used a minimal generated-PPC header boundary, the pinned
-  FFmpeg headers and the project's Plume patches. No guest code or complete
-  runtime was linked. The video check used FSR feature flags set to zero.
-
-The complete APK still requires the project's authorized private build inputs.
+- Production Android unit suite: 82 JVM tests passed, including trace export;
+  lint completed. The standalone Java/JNI integration check passed.
+- NDK 28.2, ARM64/API 26: the full generated-PPC runtime linked. The signed
+  version 1.5 APK passed ZIP, ARM64 library, manifest, signature and alignment
+  checks. These are build checks, not gameplay validation.
