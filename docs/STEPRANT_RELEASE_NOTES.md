@@ -1,6 +1,6 @@
 # Steprant Android v1.1.0 — test build
 
-> Prepared release notes. The APK has not yet been published as a GitHub release asset.
+> This test build is available in [GitHub Releases](https://github.com/Steprant/LostOdysseyRecomp/releases/tag/v1.1.0-steprant.20261104).
 
 An experimental Android-focused build based on Lost Odyssey Recomp v1.1.0. The fork aims to improve sustained performance and investigate heat and battery use. Device benchmarks are still needed.
 

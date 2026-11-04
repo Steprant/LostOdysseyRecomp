@@ -39,7 +39,7 @@ Based on the official v1.1.0 release, this branch brings together experimental A
 - **Audio:** experimental queue-reserve recovery and XMA scheduling corrections; listening and A/V sync still need device validation.
 - **More:** experimental MediaCodec for supported replacement movies, HDR work, and additional debug-menu skills. See the [full Android update](docs/STEPRANT_ANDROID.md).
 
-> **GitHub release pending:** the November 4 Android test APK has not yet been uploaded to this repository's releases.
+> **Android test release:** [Download the APK](https://github.com/Steprant/LostOdysseyRecomp/releases/download/v1.1.0-steprant.20261104/LostOdyssey-Steprant-v1.1.0-SGSR1-AudioFix.apk) or read the [release notes](https://github.com/Steprant/LostOdysseyRecomp/releases/tag/v1.1.0-steprant.20261104).
 
 The fork's package and icon are separate from the official app, and game data is supplied by the player. This branch is `integration/v1.1.0-steprant-all`. General improvements are proposed to the upstream project for review.
 
