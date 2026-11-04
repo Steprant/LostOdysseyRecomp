@@ -27,7 +27,10 @@ in the two ZIPs are not independent occurrences. They include a single audio
 device reopen after no drain for 57,790 ms following resume, several
 `WAIT_REG_MEM stalled 5s` and GPU progress warnings. A guest wait-duration
 diagnostic printed unsigned-wrap values near 2^64 ms; this value cannot be
-used as an elapsed duration. The audio queue-empty counter is a software queue
+used as an elapsed duration. The watchdog captured its timestamp before a
+concurrent wait began; the duration is now clamped to zero in this case. This
+corrects the log only, with no change to guest wait behavior. The audio
+queue-empty counter is a software queue
 observation, not proof of Android hardware underrun. The log does not identify
 the cause of occasional crackle. Existing audio fixes were retained; no
 untested buffer or priority change was introduced.
