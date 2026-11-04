@@ -1,8 +1,13 @@
-# Optional SGSR1 presentation experiment
+# Optional SGSR1 presentation filter
 
-`LO_SGSR1=1`, with the High-quality scaling filter, selects Qualcomm SGSR1
-for Vulkan SDR upscaling. Unset it or use `LO_SGSR1=0` to restore the existing
-filter. This is an experiment, not a new default or a measured speedup.
+Settings → Graphics → SGSR1 → On, Save, and restart selects Qualcomm SGSR1
+for Vulkan SDR upscaling. Use the High scaling filter and a render resolution
+below the output resolution, for example 720p rendering to a 1080p surface.
+Off, Save, and restart restores the existing filter. The persisted key is
+`sgsr1=0/1`; the legacy `LO_SGSR1=1` developer override remains supported.
+Only requested Vulkan pipelines include the algorithm, retaining ordinary
+shader bytecode and startup work with the option off. It remains opt-in and
+does not establish a measured speedup.
 
 The unchanged Qualcomm algorithm is embedded in `gpu/shader/sgsr1_source.h`,
 from SnapdragonStudios/snapdragon-gsr commit
