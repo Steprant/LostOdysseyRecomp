@@ -23,7 +23,7 @@ The November 4 Android test APK is named `LostOdyssey-Steprant-v1.1.0-SGSR1-Audi
 5072c0f05457c5fa4247971a1685cd6bd41eaedeccdd92ea490b83b8fe88a99e
 ```
 
-The native runtime reports `ffadae541193-dirty`. That identifies the revision used in the build but also indicates local changes at build time; an exact match to the committed source tree has not been established. The ZIP integrity and checksum were independently rechecked. Check the fork's [releases page](https://github.com/Steprant/LostOdysseyRecomp/releases) for published builds.
+The native runtime reports `ffadae541193-dirty`. That identifies the revision used in the build but also indicates local changes at build time; an exact match to the committed source tree has not been established. The ZIP integrity and checksum were independently rechecked. The APK has not yet been uploaded to the fork's GitHub releases. Prepared [release notes](STEPRANT_RELEASE_NOTES.md) are available for publication.
 
 ## Testing and contributions
 
