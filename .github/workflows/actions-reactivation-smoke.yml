@@ -1,0 +1,21 @@
+# Harmless CI-only check: no game sources or build settings are changed.
+name: Actions reactivation smoke test
+
+on:
+  push:
+    branches:
+      - integration/v1.1.0-steprant-all
+    paths:
+      - .github/workflows/actions-reactivation-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-actions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify workflow runner starts
+        run: echo "GitHub Actions active for Steprant integration branch"
