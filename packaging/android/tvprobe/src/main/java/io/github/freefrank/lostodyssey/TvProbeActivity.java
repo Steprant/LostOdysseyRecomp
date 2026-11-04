@@ -37,7 +37,7 @@ public final class TvProbeActivity extends Activity {
         Button settings = new Button(this);
         settings.setText(R.string.tv_mode);
         settings.setOnClickListener(v -> {
-            output.wakePhone();
+            output.phoneInteraction();
             TvSettingsDialog.show(this, output, diagnostics);
         });
         buttons.addView(settings);
@@ -77,7 +77,7 @@ public final class TvProbeActivity extends Activity {
         if (KeyEvent.isGamepadButton(event.getKeyCode())) {
             pattern.lastInput = "Button " + event.getKeyCode();
             if (event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_BUTTON_START) {
-                output.wakePhone();
+                output.phoneInteraction();
                 TvSettingsDialog.show(this, output, diagnostics);
             }
             return true;
