@@ -16,3 +16,22 @@ For a private input repository, store the XEX at `default.xex`. Optional `androi
 Keep game inputs, private URLs, keys and keystores out of public commits, build logs and artifacts. The workflow uploads the APK and test reports, not the input checkout or generated source tree. After a successful build, signature, ABI, integrity and actual-device acceptance remain separate checks.
 
 GitHub may separately suspend Actions on a fork because of usage volume. A repository maintainer must re-enable Actions before a push or manual dispatch can run. Provisioning an XEX does not remove that platform block.
+
+## Steprant Android 1.5 packaging
+
+The integration branch `integration/v1.1.0-steprant-all` keeps its historical name, but `android-apk.yml` now passes **`v1.5`** to the Android build script. The resulting manifest uses **versionName `1.5` / versionCode `1050000`** and the Steprant package/icon. After the existing signature, 16 KB alignment and ARM64 checks, the CI artifact is named `LostOdyssey-Steprant-v1.5.apk`. A new CI build has its own checksum; it must not reuse the checksum of the already published, dated `LostOdyssey-Steprant-v1.5-20261104.apk`.
+
+The [published 1.5 APK and checksum](../STEPRANT_RELEASE_NOTES.md#apk-and-verification) were checked separately from hosted compilation. Missing private build inputs still fail the APK workflow. No game input or generated code is substituted and no build is reported as successful when it has not run.
+
+`release.yml` is the inherited **complete multi-platform** release pipeline. Its `GH_REPO` now resolves to `github.repository`, so a fork cannot accidentally target Frank's releases. Automatic `v*-steprant.*` tags are excluded from this pipeline: Steprant Android releases contain a separately verified Android APK, rather than the pipeline's mandatory Windows/Linux/macOS/Android package set. Ordinary upstream version tags and explicit manual multi-platform rehearsals keep their existing builds and publication checks. This routing does not provide the fork with access to upstream private inputs.
+
+Do not rerun the old tag's failed workflow expecting changed branch files: its checkout still uses the original tag. No existing release tag is moved. Use the corrected branch for future builds, with authorized inputs configured.
+
+## Workflow failures reviewed on 5 November 2026
+
+| Workflow and evidence | Cause and current state |
+|---|---|
+| [Android APK run 41909714370](https://github.com/Steprant/LostOdysseyRecomp-Android/actions/runs/41909714370) | Stops at **Select authorized private build input** because neither input secret is available. This is still unresolved; toolchain installation, generated game code and APK compilation did not run. |
+| [Release run 41910592756](https://github.com/Steprant/LostOdysseyRecomp-Android/actions/runs/41910592756) | Inherited `GH_REPO` pointed at upstream; release-note extraction also lacked an exact `v1.5-steprant.20261104` changelog heading. The repository target and heading are corrected. Android-only Steprant tags now use their separate release flow. No failed historical run is relabeled successful. |
+| [Integration run 41905980122](https://github.com/Steprant/LostOdysseyRecomp-Android/actions/runs/41905980122) | Host tests lacked Pillow and NumPy. The existing dependency fix installs `python3-pil` and `python3-numpy`; the later [integration run 41909714384](https://github.com/Steprant/LostOdysseyRecomp-Android/actions/runs/41909714384) succeeds. No further test removal or bypass is needed. |
+| [TV diagnostic run 41905461394](https://github.com/Steprant/LostOdysseyRecomp-Android/actions/runs/41905461394) | Java compilation called private `wakePhone()`. The current probe uses the package-visible `phoneInteraction()` entry point instead; the later [TV run 41910592603](https://github.com/Steprant/LostOdysseyRecomp-Android/actions/runs/41910592603) succeeds. This task does not modify that runtime implementation. |

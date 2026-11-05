@@ -18,7 +18,7 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - 修复音频流等待时可能阻塞其他声音并错误结束未写入输出缓冲区的问题。
 - 调整内部或阴影分辨率时，保留暂停场景仍在读取的纹理，直到游戏重新绘制。
 
-## [Steprant Android 1.5](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/tag/v1.5-steprant.20261104) — 2026-11-04
+## [v1.5-steprant.20261104](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/tag/v1.5-steprant.20261104) — Steprant Android 1.5 — 2026-11-04
 
 ### English
 

@@ -10,11 +10,13 @@ on:
         required: false
 
   push:
-    tags: ['v*']
+    # Steprant Android releases use android-apk.yml and their own reviewed APK.
+    # They do not request this workflow's complete desktop/mobile package set.
+    tags: ['v*', '!v*-steprant.*']
 
 env:
   RELEASE_TAG: ${{ inputs.release_tag || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || '' }}
-  GH_REPO: freefrank/LostOdysseyRecomp
+  GH_REPO: ${{ github.repository }}
 
 permissions:
   contents: read

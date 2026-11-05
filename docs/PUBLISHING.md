@@ -1,5 +1,13 @@
 # Repository publication
 
+## Steprant Android fork
+
+This fork publishes to **`Steprant/LostOdysseyRecomp-Android`**, on `integration/v1.1.0-steprant-all`; its app version is **1.5**. The branch name identifies the upstream base, not the APK version. The current [release notes](STEPRANT_RELEASE_NOTES.md) own the download and checksum. Use [the Android packaging guide](notes/android-fork-build-inputs.md#steprant-android-15-packaging) for future builds. Its private-input requirement remains in force.
+
+The inherited multi-platform release workflow targets the current repository and excludes automatic `v*-steprant.*` Android tags. It must not be used to overwrite an Android-only release with desktop packages. The `.forge.json` manifest remains an upstream desktop installer reference, not a Steprant Android download manifest.
+
+## Upstream multi-platform procedure
+
 Develop in an isolated worktree and verify remote names with `git remote -v` before a push. `origin` is the public GitHub repository, `freefrank/LostOdysseyRecomp`. Publish reviewed changes on a feature branch and open a pull request; follow the maintainer's review gate before merging. Reuse relevant passing checks; a push alone does not require another build or game run.
 
 ```powershell

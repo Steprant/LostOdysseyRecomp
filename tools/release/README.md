@@ -1,5 +1,7 @@
 # Release packaging
 
+For this fork's **Steprant Android 1.5** package, follow the [Android packaging guide](../../docs/notes/android-fork-build-inputs.md#steprant-android-15-packaging) and [current release notes](../../docs/STEPRANT_RELEASE_NOTES.md). The multi-platform pipeline below is separate: it targets `github.repository` and does not run automatically for Android-only `v*-steprant.*` tags. Its existing full-package and private-input checks remain required when explicitly requested.
+
 Release packaging assembles the Windows ZIP, Linux AppImage and Flatpak bundle.
 Shader packs are not part of them; see the end of this page.
 The macOS disk image is not built here: it is made on a Mac and uploaded to the

@@ -2,6 +2,12 @@
 
 All active CI/CD workflows live in [`.github/workflows/`](../../.github/workflows/) and run on GitHub-hosted runners. The Gitea and T640 runners are retired. The [Gitea history](../archive/notes/ci-gitea.md) preserves earlier setup details, release records and timings; those commands are historical.
 
+## Steprant Android fork
+
+For **Steprant 1.5**, use [the Android build-input guide](android-fork-build-inputs.md#steprant-android-15-packaging), including the [reviewed failures and remaining private-input blocker](android-fork-build-inputs.md#workflow-failures-reviewed-on-5-november-2026). `android-apk.yml` builds the Steprant 1.5 package on the integration branch; `steprant-integration.yml` runs host/Android/Vulkan checks without private game data. These are separate from a full game APK build.
+
+The multi-platform `release.yml` targets `${{ github.repository }}`. Automatic `v*-steprant.*` tags do not invoke that five-package pipeline. All other version-tag triggers and manual multi-platform workflows retain their existing gates. The release instructions below describe that inherited multi-platform flow, not the already published Steprant APK.
+
 ## Pull request checks
 
 | Workflow | Jobs | Hosted runner |
@@ -9,7 +15,7 @@ All active CI/CD workflows live in [`.github/workflows/`](../../.github/workflow
 | `fg-cpu-contracts.yml` | GPU-free FG contracts and reusable FG core | `ubuntu-24.04`, `windows-2022` |
 | `fg-game-integration.yml` | Production renderer/video compile, FG bridge link and input contract | `windows-2022` |
 | `review-regressions.yml` | Sanitizer regressions, updater AppImage restart and packaging script fixtures | `ubuntu-24.04` |
-| `android-apk.yml` | Android arm64 debug APK, lint and runtime JVM tests through `tools/android/ci_build.sh` | `ubuntu-22.04` |
+| `android-apk.yml` | Android arm64 APK, lint and runtime JVM tests through `tools/android/ci_build.sh`; signed Steprant 1.5 release build on the integration branch, debug build on other branches | `ubuntu-22.04` |
 
 The FG and regression checks run on branch pushes, pull requests and manual dispatch, subject to each workflow's path filters. Pull requests targeting `LostOdysseyNX` remain eligible. Android keeps its push/manual triggers: it needs private inputs, so a fork pull request does not receive the deploy key. Results appear as native GitHub checks; there are no `gitea/<workflow>` commit statuses.
 
@@ -26,7 +32,7 @@ The existing macOS arm64 workflow continues to build libraries and tests without
 
 ## Releases
 
-[`.github/workflows/release.yml`](../../.github/workflows/release.yml) starts on a `v*` tag pushed to `origin`, or through `workflow_dispatch` with an optional `release_tag`. Push only reviewed public commits and the intended tag; do not use automatic tag pushing, `--all` or `--mirror`.
+[`.github/workflows/release.yml`](../../.github/workflows/release.yml) starts on a `v*` tag pushed to `origin` except the Android-only `v*-steprant.*` namespace, or through `workflow_dispatch` with an optional `release_tag`. Push only reviewed public commits and the intended tag; do not use automatic tag pushing, `--all` or `--mirror`.
 
 ```powershell
 git push origin refs/tags/vX.Y.Z

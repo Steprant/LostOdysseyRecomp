@@ -1,6 +1,6 @@
 # Recovery checkpoint 2026-11-04: re-run existing host, Android, and Vulkan tests
 # against the current integrated revision; this does not backdate missed CI.
-name: Steprant v1.1.0 integration
+name: Steprant Android integration
 
 on:
   workflow_dispatch:
