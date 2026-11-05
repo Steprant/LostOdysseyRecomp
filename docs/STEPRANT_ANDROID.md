@@ -1,34 +1,43 @@
-# Steprant Android fork — November 2026 update
+# Steprant Android 1.5
 
-This fork builds on [Lost Odyssey Recomp](https://github.com/freefrank/LostOdysseyRecomp) by freefrank and its contributors. The integration branch combines the official v1.1.0 base with Android-focused changes and retains shared fixes proposed upstream. Its aims are smoother play, efficient rendering, and sustained performance with lower heat and battery use where measurements support it. Results depend on the device and settings.
+**[Download APK 1.5](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/download/v1.5-steprant.20261104/LostOdyssey-Steprant-v1.5-20261104.apk) · [Release](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/tag/v1.5-steprant.20261104) · [Checksum and validation](STEPRANT_RELEASE_NOTES.md#apk-and-verification)**
+
+This Android-focused edition builds on [Lost Odyssey Recomp](https://github.com/freefrank/LostOdysseyRecomp) by **Frank / freefrank and the original community**. The integration branch retains the official **v1.1.0 base** and Android work; **1.5** is Steprant's app version. Its goals are smoother sustained play, lower redundant CPU/GPU load, less heat and longer battery life. No measured device-wide FPS, thermal or battery improvement is claimed for this release.
 
 ## What's included
 
-- **Optional Qualcomm SGSR1:** spatial reconstruction in the existing Vulkan presentation path. In **Settings → Graphics**, turn **SGSR1 On**, choose the **High** scaling filter, set an input resolution below the output (for example, 720p rendering to 1080p), save and restart. It applies to eligible SDR upscaling; native-size output, HDR, Standard filtering and temporal-upscaler output keep their normal paths. See [SGSR1 details](notes/sgsr1-presentation.md).
-- **TV and HDMI mode:** independent external display output, 16:9 fitting, 720p/1080p mode requests, controller forwarding and optional screen dimming. Android and the display decide the actual mode. The phone screen is dimmed, not physically powered off. Open **Settings → System → TV mode (Android)** or **CTRL → TV mode**. See the [TV guide](ANDROID_TV_HDMI.md).
-- **Renderer and CPU work:** changes target redundant resolve barriers, read-only depth draws, covered clears, texture descriptor work, pipeline lookups and shadow bookkeeping. Their effect depends on scene and device. [GPU investigation](notes/rapporto-gpu-android-20261026.md).
-- **Android diagnostics:** opt-in in-game recordings for frame intervals, CPU, audio queues and available thermal/battery data, with additional profiles and ZIP export. Open **Settings → System → Android diagnostics**. Availability depends on the device and Android. Battery temperature is not a GPU temperature. [Tester guide](ANDROID_TESTER.md).
-- **Audio:** bounded recovery of the output queue after stalls, a guard against unnecessary AAudio reopenings, and a no-progress XMA scheduling fix. Some audio disturbances remain, and A/V synchronization requires further checking. [Technical report](reports/steprant-20261104-audio-sgsr1.md).
-- **Other work:** MediaCodec support for supported replacement videos (not a fix for original WMV playback), HDR transfer work and expanded debug-menu skill data. Each remains subject to its own platform and game-data conditions. [Movie notes](notes/android-movie-decoder.md).
+- **Optional Qualcomm SGSR1:** spatial reconstruction in the existing Vulkan presentation path. In **Settings → Graphics**, turn **SGSR1 On**, choose the **High** scaling filter, set input resolution below output (for example, 720p rendering to 1080p), save and restart. It applies to eligible SDR upscaling. Native-size output, downscaling, HDR, Standard filtering and temporal-upscaler output keep their normal paths. It is not frame generation. [SGSR1 details](notes/sgsr1-presentation.md).
+- **TV and HDMI mode:** independent external display output, 16:9 fitting, 720p/1080p mode requests, controller forwarding and optional phone blackout. Android and the display decide the actual mode. Touch wakes the phone; **10 seconds after the last touch, blackout returns automatically**, without covering TV output. The panel is dimmed and remains powered. Open **Settings → System → TV mode (Android)** or **CTRL → TV mode**. [TV guide](ANDROID_TV_HDMI.md).
+- **Renderer and CPU work:** changes target redundant resolve barriers, read-only depth draws, covered clears, texture descriptors, pipeline lookups and shadow bookkeeping. These implemented paths do not by themselves prove whole-game speed or energy gains. [GPU investigation](notes/rapporto-gpu-android-20261026.md).
+- **Extreme Tester:** the **Intensive** diagnostic profile is no longer limited to two minutes. Manual recording continues until stopped or an I/O/storage error, with selectable 250–2000 ms process sampling, bounded trace files, CPU, audio queues, frame intervals, process-memory samples and available thermal/battery data. ZIP export includes an estimated 1% low accepted-present rate, not physical display FPS. Open **Settings → System → Android diagnostics**. Battery temperature is not a GPU temperature; diagnostics can affect performance. [Tester guide](ANDROID_TESTER.md).
+- **EXP ×2 and SP ×2:** open **LB+RB → Cheats → Quick tools**. The independent switches are saved. EXP applies after level-based calculation and keeps the game's per-battle cap. SP doubles victory skill points before skill learning consumes them; existing progress and gold are unchanged.
+- **Audio:** bounded queue recovery after stalls, protection against unnecessary AAudio reopening and XMA scheduling fixes. **Some crackling/disturbances remain** and A/V synchronization needs further device testing. The new guest-wait duration clamp corrects diagnostics; the supplied logs do not establish a new audio root cause. [Earlier technical report](reports/steprant-20261104-audio-sgsr1.md).
+- **Other work:** MediaCodec for supported replacement videos, HDR work and expanded debug-menu skill data. MediaCodec does not fix original WMV playback. Each feature keeps its platform and game-data conditions. [Movie notes](notes/android-movie-decoder.md).
 
 ## Installation
 
-Steprant's package ID is `io.github.freefrank.lostodyssey.steprant`, with the launcher name **Lost Odyssey Steprant** and its own icon. It can coexist with the official app. Private settings and saves are separate: export saves from the original app and import them into the fork if needed. Later updates of the Steprant package need the same signing key. Android 8.0 or later, an ARM64 device and Vulkan are required.
+Install **`LostOdyssey-Steprant-v1.5-20261104.apk`** from the download above. It requires Android 8.0+, ARM64 and Vulkan. The launcher name is **Lost Odyssey Steprant**, with the Steprant icon and package `io.github.freefrank.lostodyssey.steprant`. The manifest reports **versionName 1.5 / versionCode 1050000**.
 
-Supply your own supported game data and import it as described in the [installation guide](INSTALLING.md#android). Do not send game files or private saves in bug reports.
+The app can coexist with the official package. Private settings and saves are separate: export saves from the original app and import them into the fork if needed. Future Steprant updates must retain the same package and signing key. Game data uses `Android/data/io.github.freefrank.lostodyssey.steprant/files/game/` or the folder you select; exported logs are under the same package's `files/logs/` directory.
 
-The November 4 Android APK is named `LostOdyssey-Steprant-v1.1.0-SGSR1-AudioFix.apk`. Its SHA-256 is:
+Supply your own supported game data and import it as described in the [installation guide](INSTALLING.md#android). Do not include game files or private saves in bug reports.
+
+The published APK is **47,694,826 bytes**. SHA-256:
 
 ```text
-5072c0f05457c5fa4247971a1685cd6bd41eaedeccdd92ea490b83b8fe88a99e
+4b809aea520746a3b2cba56eb0ab49461914a645ab9967d8f37fe4e8f6f0871f
 ```
 
-The native runtime reports `ffadae541193-dirty`. That identifies the revision used in the build but also indicates local changes at build time; an exact match to the committed source tree has not been established. The ZIP integrity and checksum were independently rechecked. The APK is available as a [GitHub release](https://github.com/Steprant/LostOdysseyRecomp/releases/tag/v1.1.0-steprant.20261104). [Download the APK](https://github.com/Steprant/LostOdysseyRecomp/releases/download/v1.1.0-steprant.20261104/LostOdyssey-Steprant-v1.1.0-SGSR1-AudioFix.apk) or read the [release notes](STEPRANT_RELEASE_NOTES.md).
+On 5 November 2026 the public APK was downloaded again, its checksum matched GitHub's digest, and its signature, manifest, ZIP/ARM64 structure and 16 KB alignment passed. The embedded native revision is `faf4842d87a6-dirty`; local build changes are indicated, so a bit-for-bit reproduction from the release tag is not established. [Full release verification](STEPRANT_RELEASE_NOTES.md#apk-and-verification).
 
 ## Testing and contributions
 
-The codebase includes synthetic audio and Vulkan readback tests and prior Android build and JVM checks, described in the [November 4 report](reports/steprant-20261104-audio-sgsr1.md). For FPS, thermals and battery use, compare identical scenes and settings over sustained runs on actual hardware.
+Prior build validation reports 82 JVM tests, 15 host tests, eight SGSR1 shader variants, TV probe checks, lint and a full signed ARM64 build. Synthetic/build checks and the public APK checks above are separate from gameplay validation. No physical Xiaomi 14 run was performed for this publication check. Stable 60 FPS, image quality, A/V synchronization, HDMI compatibility, diagnostics overhead and power/temperature improvements still need actual-device testing.
 
-General changes are shared for upstream review, including [SGSR1 #717](https://github.com/freefrank/LostOdysseyRecomp/pull/717), [AAudio #767](https://github.com/freefrank/LostOdysseyRecomp/pull/767), and [audio queue/XMA #769](https://github.com/freefrank/LostOdysseyRecomp/pull/769). These proposals are drafts and are not equivalent to upstream releases. Check their current status before relying on them.
+For performance comparisons, use identical scenes, settings, driver, diagnostic mode and starting temperature over sustained runs. The November 4 1080-internal-to-720-output traces do not exercise SGSR1 upscaling. [Source/build report](reports/steprant-20261104-audio-sgsr1.md) · [Authorized build inputs and Actions](notes/android-fork-build-inputs.md).
 
-For a fork-specific issue, include the Steprant build, Android version, device and driver, settings, scene and reproduction steps. Export diagnostic logs only after reviewing them for private information; do not report a fork-only regression upstream without confirming it in an upstream build.
+General changes are proposed upstream, including [SGSR1 #717](https://github.com/freefrank/LostOdysseyRecomp/pull/717), [AAudio #767](https://github.com/freefrank/LostOdysseyRecomp/pull/767) and [audio queue/XMA #769](https://github.com/freefrank/LostOdysseyRecomp/pull/769). A proposal is not an official upstream release; consult each pull request for its current review status.
+
+For a fork-specific problem, record the Steprant version, Android version, device/driver, settings, scene and reproduction steps. Review exported diagnostics for private information before sharing. The fork's issue tracker is currently disabled; do not report a fork-only regression upstream without reproducing it in an official build.
+
+The runtime retains its [GPL-3.0 license](../LICENSE), dependency notices and original community credits. The official v1.1.0 base, the required integration branch name and historical reports retain their original version references; they are not obsolete APK download instructions.

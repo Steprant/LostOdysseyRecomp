@@ -2,6 +2,10 @@
 
 [English README](../README.md) · [简体中文](../README.zh-CN.md) · [Research notes / 专项笔记](notes/README.md)
 
+## Steprant Android edition
+
+The current fork download is **[Steprant Android 1.5](STEPRANT_ANDROID.md)**. See its [release notes and checksum](STEPRANT_RELEASE_NOTES.md), [TV/HDMI guide](ANDROID_TV_HDMI.md), [Tester guide](ANDROID_TESTER.md) and [build-input requirements](notes/android-fork-build-inputs.md). Upstream platform references below retain their own version history.
+
 ## Start here
 
 | Need | Maintained entry point |

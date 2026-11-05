@@ -2,6 +2,14 @@
 
 [Documentation](README.md) · [Roadmap](ROADMAP.md) / [路线图](ROADMAP.zh-CN.md) · [Changelog](../CHANGELOG.md)
 
+## Steprant Android 1.5 — 2026-11-05
+
+The current Android fork package is **[Steprant 1.5](STEPRANT_ANDROID.md)**, based on upstream v1.1.0. The published APK was downloaded again and its SHA-256, signed package identity/version, ZIP/ARM64 structure and 16 KB alignment were verified. See the [release verification and remaining device/audio limits](STEPRANT_RELEASE_NOTES.md#apk-and-verification). Android Actions remains blocked without authorized private build input; the [CI record](notes/android-fork-build-inputs.md#workflow-failures-reviewed-on-5-november-2026) distinguishes that from APK validation.
+
+## Upstream historical publication records
+
+The entries below are dated upstream checkpoints, not the current Steprant download.
+
 ## v1.0.6 published — 2026-10-19
 
 [v1.0.6](https://github.com/freefrank/LostOdysseyRecomp/releases/tag/v1.0.6) was published at 2026-10-19T04:32:05Z by the workflow's own publish step. A GitHub API read on 2026-10-19 at about 04:35 UTC shows that it is not a draft or pre-release and is the GitHub Latest release. It was cut from tag `v1.0.6` at squash commit `b11c884e`, the release PR [#657](https://github.com/freefrank/LostOdysseyRecomp/pull/657). The previous release is v1.0.5, published 2026-10-18T17:56:24Z at `ca5cb373`.

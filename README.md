@@ -2,48 +2,46 @@
 
 <img src="assets/steprant-android-logo.webp" alt="Lost Odyssey Recomp Android — Steprant logo" width="360">
 
-# Lost Odyssey Recomp — Steprant Android fork
+# Lost Odyssey Recomp — Steprant Android 1.5
 
-**An Android-focused fork of [Lost Odyssey Recomp](https://github.com/freefrank/LostOdysseyRecomp), aiming for better performance, sustained thermals and battery efficiency.**
+**Android-focused performance work, Vulkan graphics and TV/HDMI play.**
 
-[![Upstream release](https://img.shields.io/github/v/release/freefrank/LostOdysseyRecomp?label=upstream%20release)](https://github.com/freefrank/LostOdysseyRecomp/releases/latest)
-[![Upstream downloads](https://img.shields.io/github/downloads/freefrank/LostOdysseyRecomp/total?label=upstream%20downloads)](https://github.com/freefrank/LostOdysseyRecomp/releases)
-[![Upstream stars](https://img.shields.io/github/stars/freefrank/LostOdysseyRecomp?label=upstream%20stars)](https://github.com/freefrank/LostOdysseyRecomp/stargazers)
+[![Download Android 1.5 APK](https://img.shields.io/badge/Download-Android_1.5_APK-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/download/v1.5-steprant.20261104/LostOdyssey-Steprant-v1.5-20261104.apk)
+
+**[Download APK 1.5](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/download/v1.5-steprant.20261104/LostOdyssey-Steprant-v1.5-20261104.apk) · [Release notes](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/tag/v1.5-steprant.20261104) · [Android guide](docs/STEPRANT_ANDROID.md)**
+
+![Android ARM64](https://img.shields.io/badge/Android-8.0%2B_ARM64-3DDC84?logo=android&logoColor=white)
+![Vulkan](https://img.shields.io/badge/Graphics-Vulkan-AC162C)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
-[![Upstream issues](https://img.shields.io/github/issues/freefrank/LostOdysseyRecomp?label=upstream%20issues)](https://github.com/freefrank/LostOdysseyRecomp/issues)
-[![Support on Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/dotslash)
-[![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/z2yPct6z2w)
 
-![Windows x64](https://img.shields.io/badge/Windows-x64-0078D6)
-![Linux x64](https://img.shields.io/badge/Linux-x64-FCC624?logo=linux&logoColor=black)
-![macOS arm64](https://img.shields.io/badge/macOS-arm64-000000?logo=apple&logoColor=white)
-![Android arm64](https://img.shields.io/badge/Android-arm64-3DDC84?logo=android&logoColor=white)
-
-![Direct3D 12](https://img.shields.io/badge/Direct3D-12-5E5E5E)
-![Vulkan](https://img.shields.io/badge/Vulkan-AC162C?logo=vulkan&logoColor=white)
-![Metal](https://img.shields.io/badge/Metal-147EFB)
-
-### [Steprant Android builds](https://github.com/Steprant/LostOdysseyRecomp/releases) · [Android fork update](docs/STEPRANT_ANDROID.md) · [Upstream downloads](https://github.com/freefrank/LostOdysseyRecomp/releases/latest) · [Installation guide](docs/INSTALLING.md)
-
-[Steprant history: 26 Oct–4 Nov 2026](docs/audit/STORICO_20261026_20261104.md) · [Changelog](CHANGELOG.md) · [Report an issue](https://github.com/freefrank/LostOdysseyRecomp/issues) · [Discord](https://discord.gg/z2yPct6z2w) · [Project board](https://github.com/users/freefrank/projects/3) · [Build from source](docs/BUILDING.md)
+An independent Android edition maintained by **Steprant**, based on the official **v1.1.0** release of [Lost Odyssey Recomp](https://github.com/freefrank/LostOdysseyRecomp) by **Frank / freefrank and the original community**. Steprant 1.5 is this fork's version, separate from upstream's release numbering.
 
 </div>
 
-## Steprant Android fork
+## Steprant Android 1.5
 
-Based on the official v1.1.0 release, this branch brings together Android work focused on stable frame pacing, efficient graphics and measuring heat and battery use. Results vary by device and settings.
+The work targets steadier frame pacing, lower redundant CPU/GPU work and sustained Android performance, with lower heat and battery use as optimization goals. **No measured FPS uplift, temperature reduction or battery-life gain is claimed for 1.5.** Results depend on the device, driver, scene and settings.
 
-- **SGSR1:** optional Qualcomm spatial upscaling for Vulkan SDR. Choose **Settings → Graphics → SGSR1 → On**, use the **High** scaling filter and a lower render resolution, then save and restart.
-- **TV / HDMI:** independent 16:9 external output, resolution requests, controller support and optional phone dimming. See the [TV guide](docs/ANDROID_TV_HDMI.md).
-- **Performance and diagnostics:** renderer work to reduce redundant operations, plus an in-game [Android tester](docs/ANDROID_TESTER.md) for frame timing, audio, thermal and battery data where Android exposes it.
-- **Audio:** queue-reserve recovery and XMA scheduling corrections. Some audio disturbances remain; A/V sync requires further checking.
-- **More:** MediaCodec for supported replacement movies, HDR work, and additional debug-menu skills. See the [full Android update](docs/STEPRANT_ANDROID.md).
+| Feature | Included behavior |
+| :--- | :--- |
+| **Qualcomm SGSR1** | Optional spatial reconstruction in the Vulkan SDR presentation path. Select **Settings → Graphics → SGSR1 → On**, **High** scaling filter and a render resolution below output, such as 720p → 1080p; save and restart. Native-size output, downscaling, HDR and temporal-upscaler output retain their normal paths. [Details](docs/notes/sgsr1-presentation.md). |
+| **TV / HDMI** | Independent external output, 16:9 fitting, 720p/1080p requests and controller forwarding. With phone blackout enabled, touching wakes the phone and **blackout returns 10 seconds after the last touch**, without covering TV output. The phone panel remains powered. [TV guide](docs/ANDROID_TV_HDMI.md). |
+| **Extreme Tester** | The **Intensive** diagnostic profile records until manually stopped or an I/O/storage error, with **no two-minute time limit**. Selectable 250–2000 ms process sampling, CPU/audio/frame intervals, available thermal/battery data, memory samples and ZIP export; storage and memory remain bounded. [Tester guide](docs/ANDROID_TESTER.md). |
+| **EXP ×2 and SP ×2** | Independent, saved switches in **LB+RB → Cheats → Quick tools**. EXP retains the game's per-battle cap; SP doubles the victory award before skill learning. Gold is unchanged. |
+| **Audio fixes** | Queue-reserve recovery, protection against unnecessary AAudio reopening and XMA scheduling corrections. **Some crackling/disturbances remain; A/V synchronization still needs device testing.** The 1.5 diagnostic correction does not establish a new audio root-cause fix. |
+| **Renderer and CPU work** | Changes address redundant resolve barriers, covered clears, read-only depth work, descriptor/pipeline lookups and shadow bookkeeping. Their presence is verified in source; sustained performance, thermals and energy savings need comparable device runs. |
 
-> **Steprant Android 1.5 (experimental):** [Download the APK](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/download/v1.5-steprant.20261104/LostOdyssey-Steprant-v1.5-20261104.apk) or read the [release notes](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/tag/v1.5-steprant.20261104). Device gameplay validation is pending.
+**Install:** Android 8.0+, ARM64 and Vulkan. The APK is `LostOdyssey-Steprant-v1.5-20261104.apk` (47,694,826 bytes). Its launcher name is **Lost Odyssey Steprant**, with the Steprant icon and package `io.github.freefrank.lostodyssey.steprant`. It can coexist with the official app; saves/settings are separate. Keep the same signing key for future Steprant updates.
 
-The fork's package and icon are separate from the official app, and game data is supplied by the player. This branch is `integration/v1.1.0-steprant-all`. General improvements are proposed to the upstream project for review.
+**Verification:** the published APK was downloaded again on 5 November 2026 and passed SHA-256, signature, ZIP/ARM64 and 16 KB alignment checks. Its manifest reports version **1.5**, code **1050000**. See [checksum and validation limits](docs/STEPRANT_RELEASE_NOTES.md#apk-and-verification). Build and synthetic tests do not establish complete gameplay, stable 60 FPS, HDMI compatibility or power savings on every device.
 
-> The reference section below is retained from the original project. Its platform downloads refer to the **upstream** release, not this fork.
+[Installation](docs/STEPRANT_ANDROID.md#installation) · [All Steprant releases](https://github.com/Steprant/LostOdysseyRecomp-Android/releases) · [Fork history](docs/audit/STORICO_20261026_20261104.md) · [Changelog](CHANGELOG.md) · [Build inputs and CI](docs/notes/android-fork-build-inputs.md)
+
+Supply supported game data from your own discs. Game assets, executables, private inputs and generated game sources are not distributed in this repository. The runtime remains [GPL-3.0](LICENSE); dependencies retain their licenses, including [Qualcomm SGSR1](thirdparty/licenses/SnapdragonGSR.txt).
+
+Thanks to **Frank / freefrank**, the upstream contributors and the original community for Lost Odyssey Recomp and its platform support. [Official project](https://github.com/freefrank/LostOdysseyRecomp) · [Official downloads](https://github.com/freefrank/LostOdysseyRecomp/releases/latest) · [Upstream Discord](https://discord.gg/z2yPct6z2w) · [Support Frank](https://ko-fi.com/dotslash).
+
+> The reference below is retained from the original project. Desktop/platform features and download links in that section describe **upstream**. Use the prominent **Steprant APK 1.5** download above for this Android edition.
 
 ## Contents
 
@@ -61,7 +59,7 @@ The fork's package and icon are separate from the official app, and game data is
 
 ## Start playing
 
-Download the package for your platform from the [latest release](https://github.com/freefrank/LostOdysseyRecomp/releases/latest).
+For the official upstream packages, download your platform from the [latest upstream release](https://github.com/freefrank/LostOdysseyRecomp/releases/latest).
 
 | Platform | Package | First launch |
 | :--- | :--- | :--- |
@@ -206,7 +204,7 @@ The Windows ZIP is **portable**: everything stays in the folder you extracted it
 | Linux AppImage | `~/.config/lost-odyssey-recomp/` | `~/.local/share/lost-odyssey-recomp/` | `~/.local/state/lost-odyssey-recomp/` |
 | Linux Flatpak | `~/.var/app/io.github.freefrank.LostOdysseyRecomp/config/lost-odyssey-recomp/` | `~/.var/app/io.github.freefrank.LostOdysseyRecomp/data/` | `~/.var/app/io.github.freefrank.LostOdysseyRecomp/.local/state/lost-odyssey-recomp/` |
 | macOS app | `~/Library/Application Support/LostOdysseyRecomp/` | same | `~/Library/Logs/LostOdysseyRecomp/` |
-| Android | inside the app | saves inside the app by default, optionally `<game folder>/save/`; game data in `Android/data/io.github.freefrank.lostodyssey/files/game/` or the chosen folder | `Android/data/io.github.freefrank.lostodyssey/files/logs/` |
+| Steprant Android | inside the app | saves inside the app by default, optionally `<game folder>/save/`; game data in `Android/data/io.github.freefrank.lostodyssey.steprant/files/game/` or the chosen folder | `Android/data/io.github.freefrank.lostodyssey.steprant/files/logs/` |
 
 | What | Where | Notes |
 | :--- | :--- | :--- |
@@ -251,7 +249,7 @@ flatpak run io.github.freefrank.LostOdysseyRecomp --game ~/Games/LostOdyssey
 
 ## Reporting a problem
 
-[Open an issue](https://github.com/freefrank/LostOdysseyRecomp/issues) with the version, operating system, graphics backend, GPU and driver, game edition and disc, and the steps or scene that show the problem. Attach the newest `logs/runtime-<timestamp>.log`. **Settings → System → Debug log** is on by default. If you turned it off, turn it back on, save and restart before showing the problem again.
+For a fork-specific problem, include the Steprant version and follow the [Android reporting guidance](docs/STEPRANT_ANDROID.md#testing-and-contributions). Confirm a problem also occurs in an official build before [opening an upstream issue](https://github.com/freefrank/LostOdysseyRecomp/issues) with the version, operating system, graphics backend, GPU and driver, game edition and disc, and the steps or scene that show the problem. Attach the newest `logs/runtime-<timestamp>.log`. **Settings → System → Debug log** is on by default. If you turned it off, turn it back on, save and restart before showing the problem again.
 
 For a visual problem, make a [render capture](#overview-captures-and-game-actions) while it is on screen. Do not attach game files, saves or personal data.
 

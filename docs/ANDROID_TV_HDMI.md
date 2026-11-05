@@ -1,8 +1,9 @@
 # Android TV output: implementation and device validation
 
-This experimental branch adds independent external output using public Android
-APIs. It is **not yet verified on a Xiaomi 14 or a physical HDMI TV**. No device
-was attached to the development host. The standalone diagnostic APK is a canvas
+Steprant Android 1.5 includes independent external output using public Android
+APIs and automatic phone blackout after ten seconds without touch. The 1.5
+build checks did not include a physical Xiaomi 14 or HDMI TV; no device was
+attached to the development host. The standalone diagnostic APK is a canvas
 calibration app, not a rebuilt game and not a Vulkan performance benchmark.
 
 ## Output ownership and black bars

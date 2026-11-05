@@ -1,4 +1,4 @@
-# Android tester diagnostics (experimental)
+# Android tester diagnostics — Steprant 1.5
 
 On Android, open **Settings → System → Android diagnostics** with the ordinary
 settings controls (LB/RB change category). The separate LB+RB debug-overlay
