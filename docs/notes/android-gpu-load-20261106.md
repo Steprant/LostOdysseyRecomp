@@ -89,3 +89,65 @@ Compare per run: `gpu passes:` pass_ms/outside_ms/load+store MB, slow frames
 and 1% low from the Tester, `performance hints:` work, battery temperature.
 Restart after changing compact targets. Display refresh matching is on in
 all runs; turn it off once to compare panel power if wanted.
+
+## Device sessions of 2026-11-06 evening (1.6 test build `a81a116a`)
+
+Three Tester recordings (22:16, 22:25, 22:35; the last two are one run),
+Turnip (Mesa 26.0.0-devel) on the Xiaomi 14, 30 FPS, FXAA, SGSR1, shadows 2x.
+
+- Steady scenes hold 30.0 FPS (p95 34 ms). GPU busy 21–25 ms per frame
+  (65–75% at 30 FPS). Slow intervals sit in scene changes with 4,000+ draw
+  frames; inline pipeline compiles are near zero and the thermal status
+  stays 0 (battery up to 44.8 °C).
+- Main scene per frame: about 110 render passes and 1,800–1,900 draws;
+  ~25 colour+depth passes and ~25 depth-only passes on the same target, in
+  alternation; 73–80 barriers, 10–13 copies. Colour formats by draws:
+  7e3 ≈ 450 + 7e3_as_16 ≈ 285 against 8888 ≈ 95, so compact targets change
+  little here.
+- Resolution sensitivity is low. A depth-only draw costs ≈ 3.7 µs at
+  2003×920 and at 2403×1104, a scene draw ≈ 8.0 µs and ≈ 8.9 µs: GPU time
+  follows draws (vertex and per-draw shader work), not pixels.
+- Presentation: SGSR1 runs as a compute dispatch at 1080 → 2670×1200 and as
+  a graphics pass at 900p, about 2–2.5 ms either way; FXAA at 2403×1080
+  about 1.3 ms.
+- Audio: no queue starvation during play in either XMA lock mode, no clock
+  resets, the audio thread never waits for the XMA decoder.
+
+### Consequences in the build
+
+1. **Uniform-buffer shader constants** (Tester *Shader constants in UBO*,
+   restart). Pointer-form SPIR-V reads every `XeConst(n)`, the sampler
+   indices and the vertex-fetch offsets with `vk::RawBufferLoad` from device
+   addresses — on Adreno, a global memory load each, which fits the
+   per-draw, resolution-independent cost above. The UBO form (the Switch
+   pack's) reads the same `cbuffer`s from set 5; Turnip can upload
+   statically indexed ranges into the constant registers and serves the
+   rest from the constant cache. No published pack has this form: the first
+   start runs the full shader preparation on the phone (translation + DXC,
+   progress screen, several minutes) and later starts load the local
+   startup bundle. Turnip keeps its dynamic-offset descriptor set on Adreno
+   7xx+ (`gpu::adreno::Generation`); otherwise the renderer keeps the
+   pointer form.
+2. **One pass for depth-only draws** (live): keeps the scene colour target
+   bound for depth-only draws, removing ~45 pass changes per frame. An
+   older note measured Turnip sysmem ~9% slower; to be measured again with
+   the pass profile (`depth_only_keeps_color=` in the format line).
+3. **Turnip render mode** (restart): Automatic / Sysmem / GMEM.
+4. The title screen's full-screen mesh layer is no longer drawn
+   (`LO_SCREEN_PATTERN=1` restores it).
+
+### Next device protocol
+
+Same save and spot, 30 FPS, Tester *Intensive*, 3 minutes standing still +
+2 minutes moving, for each of:
+
+| Run | Shader constants | Depth-only pass | Turnip mode |
+|---|---|---|---|
+| A | pointer | off | Automatic |
+| B | pointer | **on** | Automatic |
+| C | **UBO** (after its first preparation) | off | Automatic |
+| D | UBO | best of A/B | Automatic |
+| E | best | best | **Sysmem**, then **GMEM** |
+
+Compare `gpu passes:` pass_ms + outside_ms and per-target ms, the Tester
+GPU busy and 1% low.
