@@ -196,6 +196,7 @@ static int RunGuest(uint32_t entry)
     XexLoader::StartTimeStampThread();
     apu::SetMatrixRearAngle(settings::GetConfig().audioMatrixRear);
     apu::SetVoiceVolume(settings::GetConfig().voiceVolume);
+    os::scheduling::SetPerformanceHints(settings::GetConfig().performanceHints);
     apu::Init(apu::Output(settings::GetConfig().audioOutput));
     apu::xma::Init();
     if (getenv("LO_HEADLESS"))

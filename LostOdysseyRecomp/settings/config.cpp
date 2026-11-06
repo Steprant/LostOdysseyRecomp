@@ -345,6 +345,8 @@ Config Read()
             value.voiceVolume = number;
         else if (key == "compact_render_targets" && number <= 1)
             value.compactRenderTargets = number != 0;
+        else if (key == "performance_hints" && number <= 1)
+            value.performanceHints = number != 0;
         else if (key == "automatic_updates")
         {
             // Unknown values keep the safe package default (enabled).
@@ -521,6 +523,7 @@ static bool WriteConfig(const Config &value)
            << "\naudio_matrix_rear=" << value.audioMatrixRear
            << "\nvoice_volume=" << value.voiceVolume
            << "\ncompact_render_targets=" << (value.compactRenderTargets ? 1 : 0)
+           << "\nperformance_hints=" << (value.performanceHints ? 1 : 0)
            << "\nskip_shader_prebuild=" << (value.skipShaderPrebuild ? 1 : 0)
            << "\nachievement_notifications=" << (value.achievementNotifications ? 1 : 0)
            << "\nachievement_sound=" << (value.achievementSound ? 1 : 0)

@@ -143,6 +143,7 @@ bool SetConsent(bool){++consents;return true;}
 namespace apu { bool surround=false; uint32_t matrixRear=110; void SetOutput(Output o){surround=o==Output::Surround;}
 void SetMatrixRearAngle(uint32_t d){matrixRear=d;} void SetVoiceVolume(uint32_t){} void SetTestSignal(bool){} float TestSignalPosition(){return -1.0f;} uint32_t OutputChannels(){return surround?6:2;} }
 namespace settings { bool SaveAudioOutput(uint32_t o){savedConfig.audioOutput=o;return true;} }
+namespace os::scheduling { bool performanceHints=false; void SetPerformanceHints(bool enabled){performanceHints=enabled;} }
 // No title data: the Achievements page lists nothing.
 namespace achievements {
 std::vector<Info> List(){return {};}
@@ -214,6 +215,9 @@ int main(int argc, char** argv) {
     settings::testerFocus=settings::TesterCompactTargets;
     tick(0x1000);Check(settings::savedConfig.compactRenderTargets && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"compact render targets saved for the next start");
     tick(8);Check(!settings::savedConfig.compactRenderTargets,"compact render targets toggle off");
+    settings::testerFocus=settings::TesterPerformanceHints;
+    tick(0x1000);Check(settings::savedConfig.performanceHints && os::scheduling::performanceHints,"power hints apply live and save");
+    tick(8);Check(!settings::savedConfig.performanceHints && !os::scheduling::performanceHints,"power hints turn off live");
     settings::testerFocus=settings::TesterRecording;tick(0x1000);
     Check(d.recording && androidMessage==0x8002,"record starts the Android collector");
     settings::testerFocus=settings::TesterProfile;tick(8);Check(d.profile==1,"profile remains fixed during recording");

@@ -23,6 +23,7 @@
 #include <stdafx.h>
 #include "language_trace.h"
 #include <apu/audio.h>
+#include <os/host_scheduling.h>
 #include <updater/shader_pack_download.h>
 #include <hid/hid.h>
 #include <hid/glyph_atlases.h>
@@ -152,7 +153,7 @@ std::atomic<bool> achievementsOpen{false};
 #if LO_PLATFORM_ANDROID
 std::atomic<bool> testerOpen{false};
 int testerFocus = 0;
-enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterCompactTargets, TesterRecording, TesterExport, TesterRowCount };
+enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterCompactTargets, TesterPerformanceHints, TesterRecording, TesterExport, TesterRowCount };
 constexpr uint32_t TesterPeriodsMs[]{250, 500, 1000, 2000};
 #endif
 std::vector<achievements_page::Item> achievementItems;
@@ -1345,6 +1346,7 @@ void Publish(uint8_t *base, uint32_t config)
         addChoices(L"Thermal monitoring", L"溫度監測", onOff(), d.thermal.load() ? 0 : 1, !recording);
         // Saved for the next start (render targets are allocated by format).
         addChoices(L"Compact render targets", L"精簡渲染目標", onOff(), GetConfig().compactRenderTargets ? 0 : 1);
+        addChoices(L"Power hints (ADPF)", L"省電提示 (ADPF)", onOff(), GetConfig().performanceHints ? 0 : 1);
         const auto seconds = d.Duration(::diagnostics::android_tester::NowNs()) / 1000000000ull;
         const std::wstring duration = std::to_wstring(seconds / 60) + L":" + (seconds % 60 < 10 ? L"0" : L"") + std::to_wstring(seconds % 60);
         next.rows.push_back({Tr(L"Recording", L"記錄"), (recording ? Tr(L"Stop", L"停止") : Tr(L"Start", L"開始")) + std::wstring(L"  ") + duration, d.enabled.load(), {}, 0});
@@ -1760,6 +1762,9 @@ void Publish(uint8_t *base, uint32_t config)
 #if LO_PLATFORM_ANDROID
     if (testerOpen)
         next.help = !status.empty() ? status
+            : testerFocus == TesterPerformanceHints
+            ? Tr(L"Lets Android lower CPU clocks while frames keep their margin: less heat and battery use. Applies immediately.",
+                 L"讓 Android 在影格仍有餘裕時降低 CPU 時脈：減少發熱與耗電。立即套用。")
             : testerFocus == TesterCompactTargets
             ? Tr(L"8-bit game render targets in 8-bit memory: less GPU bandwidth, SDR only. Applies after restarting.",
                  L"8 位元遊戲渲染目標使用 8 位元記憶體：減少 GPU 頻寬，僅限 SDR。重新啟動後生效。")
@@ -2550,7 +2555,7 @@ void PointerClick(float x, float y, bool reverse)
     mouseRow = int(hit);
     if (listPage) {
 #if LO_PLATFORM_ANDROID
-        if (testerOpen.load() && hit <= size_t(TesterCompactTargets)) {
+        if (testerOpen.load() && hit <= size_t(TesterPerformanceHints)) {
             if (x >= 386) mouseAction = reverse ? 4 : 8;
         }
         else
@@ -3407,6 +3412,12 @@ PPC_FUNC(sub_822F19B0)
                 saved.compactRenderTargets = !saved.compactRenderTargets;
                 status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
                                            : Tr(L"Could not save settings.", L"無法儲存設定。");
+            }
+            else if (testerFocus == TesterPerformanceHints) {
+                Config saved = GetConfig();
+                saved.performanceHints = !saved.performanceHints;
+                os::scheduling::SetPerformanceHints(saved.performanceHints);
+                if (!SaveConfig(saved)) status = Tr(L"Could not save settings.", L"無法儲存設定。");
             }
             else if (testerFocus == TesterRecording && (input & 0x1000) && d.enabled.load()) {
                 if (recording) {

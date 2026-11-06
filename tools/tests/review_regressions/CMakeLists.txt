@@ -51,6 +51,7 @@ lo_review_test(LoDebugMenuInteractionTest debug_menu_interaction_test.cpp "${LO_
 lo_review_test(LoSoftResetTest soft_reset_test.cpp)
 lo_review_test(LoAudioCallbackTest audio_callback_test.cpp)
 lo_review_test(LoAudioQueueRefillTest audio_queue_refill_test.cpp)
+lo_review_test(LoPerformanceHintPolicyTest performance_hint_policy_test.cpp)
 if(EXISTS "${LO_ROOT}/thirdparty/plume/plume_render_interface.h")
     lo_review_test(LoPassProfileTest pass_profile_test.cpp)
     target_include_directories(LoPassProfileTest PRIVATE "${LO_ROOT}/thirdparty/plume")

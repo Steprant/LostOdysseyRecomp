@@ -186,6 +186,9 @@ struct Config
     // the HDR scene is off: half the attachment bandwidth and tile memory, the
     // console's own 8-bit precision. Applied at the next start.
     bool compactRenderTargets = false;
+    // Android Performance Hint session for the game threads (lower CPU clocks
+    // when frames have margin). Applied live.
+    bool performanceHints = false;
     bool skipShaderPrebuild = false;
     // Achievement-unlocked toast and its chime (ui/achievement_overlay.cpp). Applied live.
     bool achievementNotifications = true;

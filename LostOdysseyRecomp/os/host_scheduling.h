@@ -28,6 +28,10 @@ void PreferPerformanceCores(bool guestMain = false);
 // Render thread, once per guest swap: LO_FRAME_STATS=<seconds> logs frame
 // interval percentiles and per-frame thread CPU time (Android only).
 void OnRenderFrame();
+// Android Performance Hint (ADPF) session for the guest main and render
+// threads: lets the system lower CPU clocks while frames keep their margin
+// (performance_hint_policy.h). Off by default; applied from the next frame.
+void SetPerformanceHints(bool enabled);
 // Audio producer thread, once at its start: Android's audio thread priority,
 // so a busy, thermally capped CPU still runs it on time. No-op elsewhere.
 void RaiseAudioThreadPriority();

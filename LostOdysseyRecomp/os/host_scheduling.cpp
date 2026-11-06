@@ -20,6 +20,7 @@
 #include <cmath>
 #include <dlfcn.h>
 #include <android/thermal.h>
+#include "performance_hint_policy.h"
 #include <sched.h>
 #include <sys/resource.h>
 #include <unistd.h>
@@ -162,6 +163,103 @@ struct ThermalStats
     }
 };
 
+std::atomic<bool> g_performanceHints{false};
+
+// APerformanceHint (API 33; prefer-power-efficiency API 35), resolved at
+// runtime so the minimum Android API stays unchanged. Runs on the render
+// thread from OnRenderFrame; the guest main thread is read through schedstat.
+struct PerformanceHints
+{
+    struct APerformanceHintManager;
+    struct APerformanceHintSession;
+    using GetManager = APerformanceHintManager* (*)();
+    using Create = APerformanceHintSession* (*)(APerformanceHintManager*, const int32_t*, size_t, int64_t);
+    using Report = int (*)(APerformanceHintSession*, int64_t);
+    using Update = int (*)(APerformanceHintSession*, int64_t);
+    using Close = void (*)(APerformanceHintSession*);
+    using PreferEfficiency = int (*)(APerformanceHintSession*, bool);
+    void* library = nullptr;
+    GetManager getManager = nullptr;
+    Create create = nullptr;
+    Report report = nullptr;
+    Update update = nullptr;
+    Close close = nullptr;
+    PreferEfficiency preferEfficiency = nullptr;
+    APerformanceHintManager* manager = nullptr;
+    APerformanceHintSession* session = nullptr;
+    bool unavailable = false;
+    os::performance_hint::Policy policy{[] {
+        const char* env = getenv("LO_ADPF_TARGET_PERCENT");
+        return env ? uint32_t(atoi(env)) : 50u;
+    }()};
+    int64_t target = 0, lastMain = 0, lastRender = 0;
+    std::chrono::steady_clock::time_point lastFrame{}, nextLog{};
+    double workMs = 0;
+    uint32_t reports = 0;
+
+    bool Load()
+    {
+        if (manager) return true;
+        if (unavailable) return false;
+        library = dlopen("libandroid.so", RTLD_NOW | RTLD_LOCAL);
+        if (library) {
+            getManager = reinterpret_cast<GetManager>(dlsym(library, "APerformanceHint_getManager"));
+            create = reinterpret_cast<Create>(dlsym(library, "APerformanceHint_createSession"));
+            report = reinterpret_cast<Report>(dlsym(library, "APerformanceHint_reportActualWorkDuration"));
+            update = reinterpret_cast<Update>(dlsym(library, "APerformanceHint_updateTargetWorkDuration"));
+            close = reinterpret_cast<Close>(dlsym(library, "APerformanceHint_closeSession"));
+            preferEfficiency = reinterpret_cast<PreferEfficiency>(dlsym(library, "APerformanceHint_setPreferPowerEfficiency"));
+        }
+        if (getManager && create && report && update && close) manager = getManager();
+        if (!manager) {
+            unavailable = true;
+            LOG_WARNING("performance hints: APerformanceHint unavailable on this device");
+        }
+        return manager != nullptr;
+    }
+    void Stop()
+    {
+        if (!session) return;
+        close(session);
+        session = nullptr;
+        LOG_INFO("performance hints: session closed");
+    }
+    void Frame()
+    {
+        if (!g_performanceHints.load(std::memory_order_relaxed)) { Stop(); return; }
+        const pid_t mainTid = g_guestMainTid.load(std::memory_order_relaxed);
+        if (!mainTid || !Load()) return;
+        const auto now = std::chrono::steady_clock::now();
+        timespec ts{};
+        clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
+        const int64_t renderCpu = int64_t(ts.tv_sec) * 1000000000 + ts.tv_nsec;
+        const int64_t mainCpu = ThreadCpuNs(mainTid);
+        if (!session) {
+            const int32_t tids[2] = {int32_t(mainTid), int32_t(gettid())};
+            target = policy.TargetNs();
+            session = create(manager, tids, 2, target);
+            if (!session) { unavailable = true; LOG_WARNING("performance hints: session creation failed"); return; }
+            const bool efficient = preferEfficiency && preferEfficiency(session, true) == 0;
+            LOG_INFO("performance hints: session for guest main {} and render {} target_ms={:.2f} ({}% of the frame) prefer_efficiency={}",
+                mainTid, gettid(), target / 1e6, policy.Percent(), efficient);
+            lastFrame = now; lastMain = mainCpu; lastRender = renderCpu;
+            nextLog = now + std::chrono::seconds(10);
+            return;
+        }
+        policy.ObserveInterval(std::chrono::duration<double, std::milli>(now - lastFrame).count());
+        if (const int64_t wanted = policy.TargetNs(); wanted != target && update(session, wanted) == 0) target = wanted;
+        const int64_t work = policy.WorkNs(lastMain && mainCpu ? mainCpu - lastMain : 0, renderCpu - lastRender);
+        if (work > 0 && report(session, work) == 0) { workMs += work / 1e6; ++reports; }
+        lastFrame = now; lastMain = mainCpu; lastRender = renderCpu;
+        if (now >= nextLog) {
+            LOG_INFO("performance hints: target_ms={:.2f} reported={} mean_work_ms={:.2f}", target / 1e6, reports,
+                reports ? workMs / reports : 0.0);
+            workMs = 0; reports = 0;
+            nextLog = now + std::chrono::seconds(10);
+        }
+    }
+};
+
 // LO_FRAME_STATS=<seconds> (1 means 10): frame interval percentiles and the
 // render and guest main threads' CPU time per frame, without LO_RENDER_TIMING.
 struct FrameStats
@@ -231,6 +329,15 @@ void OnRenderFrame()
     static ThermalStats thermal;
     if (thermal.manager)
         thermal.Frame();
+    static PerformanceHints hints;
+    hints.Frame();
+}
+
+void SetPerformanceHints(bool enabled)
+{
+    // LO_ADPF=0/1 overrides the setting for A/B runs.
+    if (const char* env = getenv("LO_ADPF")) enabled = std::strcmp(env, "0") != 0;
+    g_performanceHints.store(enabled, std::memory_order_relaxed);
 }
 
 void RaiseAudioThreadPriority()
@@ -245,6 +352,10 @@ void PreferPerformanceCores(bool)
 }
 
 void OnRenderFrame()
+{
+}
+
+void SetPerformanceHints(bool)
 {
 }
 
