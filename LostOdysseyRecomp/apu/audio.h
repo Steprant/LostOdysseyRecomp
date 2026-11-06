@@ -53,4 +53,10 @@ namespace apu
     void UnregisterClient();
     void SubmitFrame(const void* samples);
     void SetPaused(bool paused);
+    // Frames kept queued ahead of the device: 0 is the platform default
+    // (8 on Android, 4 elsewhere), or 12/16 for a larger reserve with more
+    // latency. Applied from the next driver period. LO_AUDIO_RESERVE_FRAMES
+    // overrides the setting for diagnostics.
+    void SetQueueReserveFrames(uint32_t frames);
+    uint32_t QueueReserveFrames();
 }

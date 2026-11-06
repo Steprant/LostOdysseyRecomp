@@ -193,6 +193,10 @@ struct Config
     // Android: declare the game frame rate on the phone surface so the panel
     // can match it (Surface.setFrameRate). Applied live.
     bool displayRateHint = true;
+    // Audio device-queue reserve in 256-sample frames: 0 is the platform
+    // default (8 on Android, about 43 ms), 12 or 16 trade latency for
+    // tolerance of late driver wakeups. Applied live (apu::SetQueueReserveFrames).
+    uint32_t audioReserveFrames = 0;
     bool skipShaderPrebuild = false;
     // Achievement-unlocked toast and its chime (ui/achievement_overlay.cpp). Applied live.
     bool achievementNotifications = true;

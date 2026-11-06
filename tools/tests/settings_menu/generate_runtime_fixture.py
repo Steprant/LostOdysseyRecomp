@@ -140,8 +140,8 @@ const wchar_t* Message(uint32_t){return L"Message";}
 int Consent(){return 0;} bool Enabled(){return false;}
 bool SetConsent(bool){++consents;return true;}
 }
-namespace apu { bool surround=false; uint32_t matrixRear=110; void SetOutput(Output o){surround=o==Output::Surround;}
-void SetMatrixRearAngle(uint32_t d){matrixRear=d;} void SetVoiceVolume(uint32_t){} void SetTestSignal(bool){} float TestSignalPosition(){return -1.0f;} uint32_t OutputChannels(){return surround?6:2;} }
+namespace apu { bool surround=false; uint32_t matrixRear=110; uint32_t queueReserve=0; void SetOutput(Output o){surround=o==Output::Surround;}
+void SetMatrixRearAngle(uint32_t d){matrixRear=d;} void SetVoiceVolume(uint32_t){} void SetQueueReserveFrames(uint32_t f){queueReserve=f;} void SetTestSignal(bool){} float TestSignalPosition(){return -1.0f;} uint32_t OutputChannels(){return surround?6:2;} }
 namespace settings { bool SaveAudioOutput(uint32_t o){savedConfig.audioOutput=o;return true;} }
 namespace os::scheduling { bool performanceHints=false; void SetPerformanceHints(bool enabled){performanceHints=enabled;} }
 // No title data: the Achievements page lists nothing.
@@ -212,6 +212,12 @@ int main(int argc, char** argv) {
     tick(0x1000);Check(d.enabled,"confirm enables tester");
     tick(2);tick(8);Check(d.profile==1,"right selects advanced profile");
     tick(0x200);Check(settings::testerOpen && settings::tab==3,"RB does not change tabs inside the page");
+    settings::testerFocus=settings::TesterAudioReserve;
+    tick(8);Check(apu::queueReserve==12 && settings::savedConfig.audioReserveFrames==12,"audio buffer steps to 64 ms, live and saved");
+    tick(8);Check(apu::queueReserve==16 && settings::savedConfig.audioReserveFrames==16,"audio buffer steps to 85 ms");
+    tick(8);Check(apu::queueReserve==0 && settings::savedConfig.audioReserveFrames==0,"audio buffer wraps to the default");
+    tick(4);Check(apu::queueReserve==16 && settings::savedConfig.audioReserveFrames==16,"left steps the audio buffer back");
+    tick(4);tick(4);Check(apu::queueReserve==0,"audio buffer returns to the default");
     settings::testerFocus=settings::TesterCompactTargets;
     tick(0x1000);Check(settings::savedConfig.compactRenderTargets && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"compact render targets saved for the next start");
     tick(8);Check(!settings::savedConfig.compactRenderTargets,"compact render targets toggle off");

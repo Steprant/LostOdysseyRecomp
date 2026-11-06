@@ -142,9 +142,53 @@ void WaitingForRefill() {
     Check(!d.outputValid(),"an exhausted voice failed to retire its output");
     ctx.Reset(); ctx.allocated=false;
 }
+// A packet budget splits one kick into several mutex holds. The decoded
+// frames, output ring and published context must match the single hold.
+struct WorkResult { std::vector<std::vector<uint8_t>> frames; ContextData context; std::vector<uint8_t> ring; unsigned holds; };
+WorkResult DecodeKick(const Stream& s,int budget) {
+    g_arrayGuest=0x1000;
+    g_workBudget=budget;
+    std::fill(g_memory.bytes.begin(),g_memory.bytes.end(),uint8_t(0));
+    std::vector<uint8_t> input;
+    for(auto& packet:s.packets) input.insert(input.end(),packet.begin(),packet.end());
+    std::copy(input.begin(),input.end(),g_memory.bytes.begin()+0x10000);
+    ContextData d{};
+    ContextData::SetBits(d.d[0],0,12,unsigned(s.packets.size())); d.setInput0Valid(true);
+    ContextData::SetBits(d.d[0],22,5,31);
+    ContextData::SetBits(d.d[1],27,2,3); ContextData::SetBits(d.d[1],29,1,1);
+    d.setOutputValid(true);
+    d.d[5]=0x10000; d.d[7]=0x40000; d.setInputReadOffset(32);
+    d.Store(ContextHost(1));
+    auto& ctx=g_contexts[1];
+    ctx.Reset(); ctx.allocated=true; ctx.enabled=true;
+    sentFrames.clear();
+    unsigned holds=0;
+    while(ctx.enabled && holds<1000) { Work(1); ++holds; }
+    WorkResult result{sentFrames,{},{},holds};
+    result.context.Load(ContextHost(1));
+    result.ring.assign(g_memory.bytes.begin()+0x40000,g_memory.bytes.begin()+0x40000+31*256);
+    ctx.Reset(); ctx.allocated=false; ctx.enabled=false;
+    return result;
+}
+void BudgetedWorkMatchesSingleHold() {
+    const Stream s({6000,6100,5900,6200,6000,5800,6300,6000});
+    const auto whole=DecodeKick(s,0);
+    Check(whole.holds==1,"unbounded work finishes a kick in one hold");
+    for(int budget:{1,2,3,16}) {
+        const auto split=DecodeKick(s,budget);
+        Check(split.frames==whole.frames,"budgeted work changed the decoded frame sequence");
+        Check(std::equal(std::begin(split.context.d),std::end(split.context.d),std::begin(whole.context.d)),
+              "budgeted work published a different context");
+        Check(split.ring==whole.ring,"budgeted work changed the output ring");
+        if(budget==1) Check(split.holds>1,"a budget of one did not split the kick");
+        std::printf("budget %d: %u holds, %zu frames (single hold %zu)\n",budget,split.holds,split.frames.size(),whole.frames.size());
+    }
+    g_workBudget=16;
+}
 }
 int main() {
     WaitingForRefill();
+    BudgetedWorkMatchesSingleHold();
     // A length header may straddle a packet (including just one bit before it).
     for(unsigned tail=1;tail<24;++tail)
         for(unsigned split=1;split<5;++split)

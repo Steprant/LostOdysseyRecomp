@@ -38,6 +38,7 @@ static inline const wchar_t *Translate(uint32_t language, const wchar_t *en, con
         {L"Match display refresh", L"画面のリフレッシュレートを合わせる", L"화면 주사율 맞추기", L"匹配屏幕刷新率"},
         {L"Power hints (ADPF)", L"省電力ヒント (ADPF)", L"전력 힌트 (ADPF)", L"省电提示 (ADPF)"},
         {L"Compact render targets", L"コンパクトなレンダーターゲット", L"압축 렌더 타깃", L"精简渲染目标"},
+        {L"Audio buffer", L"オーディオバッファ", L"오디오 버퍼", L"音频缓冲"},
         {L"Recording", L"記録", L"기록", L"记录"},
         {L"Start", L"開始", L"시작", L"开始"},
         {L"Stop", L"停止", L"중지", L"停止"},

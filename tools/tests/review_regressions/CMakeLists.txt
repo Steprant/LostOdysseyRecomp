@@ -58,6 +58,7 @@ if(EXISTS "${LO_ROOT}/thirdparty/plume/plume_render_interface.h" AND (X11_FOUND 
     lo_review_test(LoPassProfileTest pass_profile_test.cpp)
     target_include_directories(LoPassProfileTest PRIVATE "${LO_ROOT}/thirdparty/plume" ${X11_INCLUDE_DIR})
 endif()
+lo_review_test(LoAudioTimingTest audio_timing_test.cpp)
 lo_review_test(LoMovieDataTest movie_data_test.cpp
     "${LO_RUNTIME}/movie/byte_source.cpp" "${LO_RUNTIME}/movie/mp4_demux.cpp" "${LO_RUNTIME}/modding/mod_api.cpp")
 set_tests_properties(LoMovieDataTest PROPERTIES WORKING_DIRECTORY "${LO_TESTS}")

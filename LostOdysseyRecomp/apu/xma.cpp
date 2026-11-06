@@ -2,7 +2,9 @@
 #include "xma.h"
 #include "xma_loop.h"
 #include "xma_decode_reporting.h"
+#include "audio_timing.h"
 #include <kernel/memory.h>
+#include <os/host_scheduling.h>
 #include <os/logger.h>
 #include <os/thread_name.h>
 #include <cmath>
@@ -185,11 +187,44 @@ namespace apu::xma
         uint32_t g_arrayGuest = 0;                  // virtual address of the context array
         Context g_contexts[kContextCount];
         std::mutex g_mutex;
+        // Commands waiting for g_mutex. The worker lets them in between
+        // contexts instead of immediately taking the mutex again: a waiting
+        // command may hold up the audio driver's next frame.
+        std::atomic<uint32_t> g_commandWaiters{ 0 };
+        thread_local bool t_latencySensitive = false;
+        apu::detail::PeakMicros g_waitPeak, g_waitLatencySensitivePeak, g_holdPeak;
+        std::atomic<uint32_t> g_contendedLatencySensitive{ 0 };
+        // Decode iterations per mutex hold; a context with more to do
+        // continues on the next worker pass. 0 keeps the previous single
+        // hold of up to 4096 iterations (LO_XMA_WORK_BUDGET, diagnostics).
+        constexpr int kUnboundedWork = 4096;
+        int g_workBudget = 16;
         std::thread g_worker;
         std::atomic<bool> g_running{ false };
         std::atomic<uint32_t> g_allocatedCount{ 0 };
         bool g_trace = false;
         bool g_traceContextWrites = false;
+
+        // g_mutex for a guest command or context (de)allocation. Uncontended
+        // acquisitions cost one try_lock; only waits are timed.
+        std::unique_lock<std::mutex> LockForCommand()
+        {
+            std::unique_lock lock(g_mutex, std::try_to_lock);
+            if (lock.owns_lock())
+                return lock;
+            const auto start = std::chrono::steady_clock::now();
+            g_commandWaiters.fetch_add(1, std::memory_order_relaxed);
+            lock.lock();
+            g_commandWaiters.fetch_sub(1, std::memory_order_relaxed);
+            const auto waited = std::chrono::steady_clock::now() - start;
+            g_waitPeak.Record(waited);
+            if (t_latencySensitive)
+            {
+                g_waitLatencySensitivePeak.Record(waited);
+                g_contendedLatencySensitive.fetch_add(1, std::memory_order_relaxed);
+            }
+            return lock;
+        }
 
         uint32_t* Register(uint32_t index)
         {
@@ -545,8 +580,18 @@ namespace apu::xma
             {
                 return;
             }
-            for (int guard = 0; ctx.freeBlocks >= minimumBlocks && guard < 4096; guard++)
+            const int budget = g_workBudget > 0 ? std::min(g_workBudget, kUnboundedWork) : kUnboundedWork;
+            const int32_t freeBlocksBefore = ctx.freeBlocks;
+            const uint32_t inputOffsetBefore = data.inputReadOffset();
+            const bool bufferBefore = data.currentBuffer();
+            bool budgetExhausted = false;
+            for (int guard = 0; ctx.freeBlocks >= minimumBlocks; guard++)
             {
+                if (guard >= budget)
+                {
+                    budgetExhausted = budget < kUnboundedWork;
+                    break;
+                }
                 ProcessPacket(ctx, data);
                 Consume(ctx, data, ring);
                 // An input refill can target the inactive packet buffer. In
@@ -556,6 +601,13 @@ namespace apu::xma
                 if ((!data.inputValid(data.currentBuffer()) && !ctx.remainingSubframes) || data.errorStatus() == 4)
                     break;
             }
+            // Out of budget with work still possible: publish this chunk and
+            // continue on the next pass, as if kicked again. A lock or clear
+            // command taking the mutex meanwhile overrides this, as it would
+            // a kick. A chunk without progress stops, like the old guard.
+            if (apu::detail::ContinueXmaChunk(budgetExhausted && ctx.freeBlocks >= minimumBlocks, freeBlocksBefore,
+                    ctx.freeBlocks, inputOffsetBefore, data.inputReadOffset(), bufferBefore, data.currentBuffer()))
+                ctx.enabled = true;
             data.setOutputWriteOffset(ring.write / kOutputBytesPerBlock);
             if (ring.read == ring.write)
                 data.setOutputValid(false);
@@ -587,14 +639,28 @@ namespace apu::xma
         void WorkerMain()
         {
             os::SetCurrentThreadName("XMA Decoder");
+            // The audio driver waits for this thread whenever a command meets
+            // a decode in progress, so it runs with the same priority and on
+            // the same cores. LO_XMA_DECODER_BOOST=0 keeps the old placement.
+            if (const char* boost = getenv("LO_XMA_DECODER_BOOST"); !boost || std::strcmp(boost, "0") != 0)
+            {
+                os::scheduling::PreferPerformanceCores();
+                os::scheduling::RaiseAudioThreadPriority();
+            }
             while (g_running)
             {
                 bool didWork = false;
                 for (uint32_t id = 0; id < kContextCount; ++id)
                 {
                     if (!g_contexts[id].enabled.load()) continue;
+                    // Let a waiting command in first (bounded: never starve
+                    // decoding behind a stream of commands).
+                    for (int spin = 0; spin < 64 && g_commandWaiters.load(std::memory_order_relaxed); ++spin)
+                        std::this_thread::yield();
                     std::lock_guard lock(g_mutex);
+                    const auto start = std::chrono::steady_clock::now();
                     Work(id);
+                    g_holdPeak.Record(std::chrono::steady_clock::now() - start);
                     didWork = true;
                 }
                 std::this_thread::sleep_for(std::chrono::microseconds(didWork ? 250 : 1000));
@@ -615,7 +681,7 @@ namespace apu::xma
         // These are commands, not mailboxes containing only the last write.
         // Serialize with decoding so lock/clear completes before the guest
         // updates or reuses the context, matching Xenia's context mutex.
-        std::lock_guard lock(g_mutex);
+        auto lock = LockForCommand();
         if (!g_arrayGuest) return false;
         *Register(reg) = value;
         for (uint32_t bits = value; bits; bits &= bits - 1)
@@ -636,6 +702,8 @@ namespace apu::xma
         g_trace = getenv("LO_TRACE_XMA") != nullptr;
         g_audioDiagnostics = getenv("LO_AUDIO_DIAGNOSTICS") != nullptr;
         g_traceContextWrites = getenv("LO_TRACE_XMA_CONTEXT_WRITES") != nullptr;
+        if (const char* budget = getenv("LO_XMA_WORK_BUDGET"))
+            g_workBudget = std::max(0, atoi(budget));
         av_log_set_callback(CaptureDecoderLog);
         g_arrayGuest = g_pageAllocator.Alloc(g_pageAllocator.physicalRegion, kContextCount * kContextSize, 0x1000);
         if (!g_arrayGuest)
@@ -659,7 +727,8 @@ namespace apu::xma
         g_running = true;
         g_worker = std::thread(WorkerMain);
         g_worker.detach();
-        LOG_INFO("xma: {} contexts at {:#x} (physical {:#x}), FFmpeg XMA frame decoder", kContextCount, g_arrayGuest, g_arrayGuest & 0x1FFFFFFF);
+        LOG_INFO("xma: {} contexts at {:#x} (physical {:#x}), FFmpeg XMA frame decoder, work budget {}", kContextCount, g_arrayGuest, g_arrayGuest & 0x1FFFFFFF,
+            g_workBudget > 0 ? std::min(g_workBudget, kUnboundedWork) : kUnboundedWork);
     }
 
     void Shutdown()
@@ -671,7 +740,7 @@ namespace apu::xma
     {
         if (!g_arrayGuest)
             return 0;
-        std::lock_guard lock(g_mutex);
+        auto lock = LockForCommand();
         for (uint32_t id = 0; id < kContextCount; id++)
         {
             if (!g_contexts[id].allocated.exchange(true))
@@ -694,7 +763,7 @@ namespace apu::xma
         if (!g_arrayGuest || guestAddress < g_arrayGuest || guestAddress >= g_arrayGuest + kContextCount * kContextSize)
             return;
         const uint32_t id = (guestAddress - g_arrayGuest) / kContextSize;
-        std::lock_guard lock(g_mutex);
+        auto lock = LockForCommand();
         if (g_contexts[id].allocated.exchange(false))
         {
             g_contexts[id].ReportSamples("release", id);
@@ -704,5 +773,20 @@ namespace apu::xma
             --g_allocatedCount;
             if (g_trace) LOG_INFO("xma: released context {}", id);
         }
+    }
+
+    void MarkLatencySensitiveThread()
+    {
+        t_latencySensitive = true;
+    }
+
+    LockStats TakeLockStats()
+    {
+        LockStats stats;
+        stats.waitMaxUs = g_waitPeak.Take();
+        stats.waitLatencySensitiveMaxUs = g_waitLatencySensitivePeak.Take();
+        stats.holdMaxUs = g_holdPeak.Take();
+        stats.contendedLatencySensitive = g_contendedLatencySensitive.exchange(0, std::memory_order_relaxed);
+        return stats;
     }
 }
