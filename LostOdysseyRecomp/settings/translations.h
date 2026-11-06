@@ -564,6 +564,7 @@ static inline const wchar_t *Translate(uint32_t language, const wchar_t *en, con
         {L"Graphics preset", L"画質プリセット", L"그래픽 프리셋", L"画质预设"},
         {L"Original", L"オリジナル", L"원본", L"原版"},
         {L"Low-end", L"低スペック", L"저사양", L"低配"},
+        {L"Mobile 30 FPS", L"モバイル 30 FPS", L"모바일 30 FPS", L"移动设备 30 FPS"},
         {L"Custom", L"カスタム", L"사용자 지정", L"自定义"},
         {L"Both use 720p at 30 FPS. Low-end turns off dynamic shadows, motion blur, depth of field and bloom and uses the standard scaling filter.",
          L"どちらも 720p・30 FPS。低スペックはダイナミックシャドウ、モーションブラー、被写界深度、ブルームをオフ、拡大は標準。",

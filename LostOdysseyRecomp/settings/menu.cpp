@@ -1554,7 +1554,7 @@ void Publish(uint8_t *base, uint32_t config)
         }
         placeGraphics(GraphicsRow::OutputResolution, makeChoices(L"Output resolution", L"輸出解析度", std::move(outputChoices), outputChoice));
         placeGraphics(GraphicsRow::Preset, makeChoices(L"Graphics preset", L"畫質預設",
-                   {Tr(L"Original", L"原版"), Tr(L"Low-end", L"低配置"), Tr(L"Custom", L"自訂")},
+                   {Tr(L"Original", L"原版"), Tr(L"Low-end", L"低配置"), Tr(L"Mobile 30 FPS", L"行動裝置 30 FPS"), Tr(L"Custom", L"自訂")},
                    uint32_t(graphics_menu::PresetOf(edit))));
         std::vector<std::wstring> renderChoices;
         for (const int height : graphics_menu::RenderResolutions)
@@ -1879,8 +1879,8 @@ void Publish(uint8_t *base, uint32_t config)
                            L"設定輸出尺寸；全螢幕使用桌面尺寸。");
             break;
         case GraphicsRow::Preset:
-            next.help = Tr(L"Both use 720p at 30 FPS. Low-end turns off dynamic shadows, motion blur, depth of field and bloom and uses the standard scaling filter.",
-                           L"兩者皆為 720p、30 FPS。低配置會關閉動態陰影、動態模糊、景深與光暈，並使用標準縮放濾鏡。");
+            next.help = Tr(L"Original and Low-end use 720p at 30 FPS; Low-end turns off dynamic shadows, motion blur, depth of field and bloom and uses the standard scaling filter. Mobile 30 FPS keeps the effects at 1080p with SGSR1, console-sized shadows, compact render targets and power hints.",
+                           L"原版與低配置為 720p、30 FPS；低配置會關閉動態陰影、動態模糊、景深與光暈，並使用標準縮放濾鏡。行動裝置 30 FPS 以 1080p 保留特效，使用 SGSR1、主機尺寸陰影、精簡渲染目標與省電提示。");
             break;
         case GraphicsRow::RenderResolution:
 #if LO_PLATFORM_MACOS

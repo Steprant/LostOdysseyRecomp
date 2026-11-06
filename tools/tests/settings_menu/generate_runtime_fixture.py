@@ -218,6 +218,15 @@ int main(int argc, char** argv) {
     tick(8);Check(apu::queueReserve==0 && settings::savedConfig.audioReserveFrames==0,"audio buffer wraps to the default");
     tick(4);Check(apu::queueReserve==16 && settings::savedConfig.audioReserveFrames==16,"left steps the audio buffer back");
     tick(4);tick(4);Check(apu::queueReserve==0,"audio buffer returns to the default");
+    {
+        settings::Config mobile=settings::GetConfig();
+        settings::graphics_menu::ApplyPreset(mobile,settings::graphics_menu::Preset::Mobile30);
+        Check(settings::graphics_menu::PresetOf(mobile)==settings::graphics_menu::Preset::Mobile30 &&
+              mobile.internalResolution==1080 && mobile.sgsr1 && mobile.scalingQuality==1 && mobile.shadowResolution==1 &&
+              mobile.compactRenderTargets && mobile.performanceHints && mobile.frameRate==30,"Mobile 30 FPS preset");
+        mobile.shadowResolution=2;
+        Check(settings::graphics_menu::PresetOf(mobile)==settings::graphics_menu::Preset::Custom,"a changed row leaves the mobile preset");
+    }
     settings::testerFocus=settings::TesterCompactTargets;
     tick(0x1000);Check(settings::savedConfig.compactRenderTargets && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"compact render targets saved for the next start");
     tick(8);Check(!settings::savedConfig.compactRenderTargets,"compact render targets toggle off");

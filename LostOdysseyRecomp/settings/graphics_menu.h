@@ -85,11 +85,30 @@ inline uint32_t RenderResolutionChoice(const Config& config)
 // Graphics preset: a shortcut for the rows it sets, shown as the preset those
 // rows match (Custom otherwise). Nothing of its own is saved. Both render the
 // original 720p at 30 FPS; Low-end also turns off the game's costliest effects
-// for weak hardware, Original keeps their retail state.
-enum class Preset : uint32_t { Original, LowEnd, Custom };
-inline constexpr uint32_t PresetChoiceCount = 2; // Custom is shown, never chosen
+// for weak hardware, Original keeps their retail state. Mobile 30 FPS keeps the
+// retail effects at 1080p for current phones (Snapdragon 8 Gen 3 class): SGSR1
+// on High scaling (it upscales to a larger output, such as the native panel),
+// console-sized shadow maps, compact render targets and Android power hints.
+enum class Preset : uint32_t { Original, LowEnd, Mobile30, Custom };
+inline constexpr uint32_t PresetChoiceCount = 3; // Custom is shown, never chosen
 inline void ApplyPreset(Config& config, Preset preset)
 {
+    if (preset == Preset::Mobile30)
+    {
+        config.internalResolution = 1080;
+        config.frameRate = 30;
+        config.dynamicShadows = 1;
+        config.motionBlur = true;
+        config.depthOfFieldPercent = 100;
+        config.bloom = true;
+        config.scalingQuality = 1;
+        config.sgsr1 = true;
+        config.shadowResolution = 1;
+        config.compactRenderTargets = true;
+        config.performanceHints = true;
+        config.displayRateHint = true;
+        return;
+    }
     const bool low = preset == Preset::LowEnd;
     config.internalResolution = 720;
     config.frameRate = 30;
@@ -101,7 +120,7 @@ inline void ApplyPreset(Config& config, Preset preset)
 }
 inline Preset PresetOf(const Config& config)
 {
-    for (const Preset preset : {Preset::Original, Preset::LowEnd})
+    for (const Preset preset : {Preset::Original, Preset::LowEnd, Preset::Mobile30})
     {
         Config applied = config;
         ApplyPreset(applied, preset);
