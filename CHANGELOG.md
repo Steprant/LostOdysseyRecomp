@@ -17,7 +17,8 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - Android diagnostics: per-render-pass GPU profile in Tester recordings.
 - Android: optional compact 8-bit/10-bit render targets (half the bandwidth), optional ADPF power hints, display refresh matched to the game frame rate, and a 900p render resolution.
 - SGSR1 stays enabled after a swapchain format change.
-- Title screen and other full-screen tiled 2D layers cover the whole width on displays wider than 16:9.
+- Full-screen tiled 2D layers cover the whole width on displays wider than 16:9; the title screen's mesh pattern is no longer drawn.
+- Android diagnostics: shader constants in uniform buffers (experimental, compiles the shaders on the first start), one render pass for depth-only draws, Turnip render mode.
 - Graphics preset "Mobile 30 FPS": 1080 internal, 30 FPS, SGSR1, Low shadows, compact render targets, power and refresh hints.
 - Compact render targets prefetch their 8-bit pipelines at startup instead of compiling them on first use.
 - Optional per-voice XMA decoder locks (Android diagnostics page, applied after restart).
@@ -34,7 +35,8 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - Android 诊断：测试录制包含每个渲染通道的 GPU 分析。
 - Android：可选精简 8/10 位渲染目标（带宽减半）、可选 ADPF 节能提示、屏幕刷新率匹配游戏帧率，并新增 900p 渲染分辨率。
 - 交换链格式变化后 SGSR1 保持启用。
-- 标题画面等全屏平铺 2D 图层在宽于 16:9 的屏幕上覆盖整个宽度。
+- 全屏平铺 2D 图层在宽于 16:9 的屏幕上覆盖整个宽度；不再绘制标题画面的网格图案。
+- Android 诊断：着色器常量使用 UBO（实验性，首次启动时编译着色器）、仅深度绘制共用一个渲染通道、Turnip 渲染模式。
 - 图形预设“Mobile 30 FPS”：1080 内部分辨率、30 FPS、SGSR1、低阴影、精简渲染目标、节能与刷新率提示。
 - 精简渲染目标在启动时预先编译 8 位管线，而不是首次使用时编译。
 - 可选按声音划分的 XMA 解码锁（Android 诊断页面，重启后生效）。
