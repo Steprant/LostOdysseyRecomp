@@ -19,11 +19,13 @@ inline VkResult BeginCommands(plume::VulkanCommandList& list) {
     info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     const auto result = vkBeginCommandBuffer(list.vk, &info);
     list.recording = result == VK_SUCCESS;
+    if (list.recording) list.startPassProfile();
     return result;
 }
 inline VkResult EndCommands(plume::VulkanCommandList& list) {
     if (!list.vk || !list.recording || list.externalCommandsOpen) return VK_ERROR_UNKNOWN;
     list.endActiveRenderPass();
+    list.finishPassProfile();
     const auto result = vkEndCommandBuffer(list.vk);
     if (result == VK_SUCCESS) {
         ClearBindings(list);

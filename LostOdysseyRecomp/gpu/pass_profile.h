@@ -1,0 +1,163 @@
+#pragma once
+#include <plume_render_interface.h>
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <map>
+#include <mutex>
+#include <string>
+#include <tuple>
+#include <vector>
+#if defined(__ANDROID__)
+#include <diagnostics/android_tester.h>
+#endif
+
+// Per-render-pass GPU cost (plume RenderPassProfile), summarised every ten
+// seconds in the runtime log while the Android Tester records with the
+// Advanced or Intensive profile, or with LO_PASS_PROFILE=1. Each command list
+// is read when it is next begun: by then its fence has completed, so no GPU
+// wait is added. Timestamps bracket passes outside them: on a tile-based GPU a
+// pass's time includes loading and storing its attachments. Load/store bytes
+// follow the chosen Vulkan load/store ops; they are not measured bandwidth.
+namespace gpu::pass_profile
+{
+inline bool Enabled()
+{
+    static const bool forced = [] {
+        const char* value = std::getenv("LO_PASS_PROFILE");
+        return value && std::strcmp(value, "1") == 0;
+    }();
+#if defined(__ANDROID__)
+    if (::diagnostics::android_tester::g_recorder.CollectGpu()) return true;
+#endif
+    return forced;
+}
+
+struct TargetKey
+{
+    uint32_t width = 0, height = 0;
+    uint8_t colors = 0;
+    bool depth = false;
+    bool operator<(const TargetKey& other) const
+    {
+        return std::tie(width, height, colors, depth) < std::tie(other.width, other.height, other.colors, other.depth);
+    }
+};
+
+struct TargetStats
+{
+    uint64_t passes = 0, emptyPasses = 0, clearStarts = 0, draws = 0, gpuNs = 0, loadBytes = 0, storeBytes = 0;
+};
+
+class Summary
+{
+public:
+    std::map<TargetKey, TargetStats> targets;
+    TargetStats present;
+    uint64_t frames = 0, lists = 0, untimedLists = 0;
+    uint64_t listNs = 0, passNs = 0;
+    uint64_t barriers = 0, copies = 0, dispatches = 0, drawsOutside = 0;
+
+    void Add(const plume::RenderPassProfile& profile, bool presentation)
+    {
+        ++lists;
+        if (presentation) ++frames;
+        if (!profile.timed) ++untimedLists;
+        barriers += profile.barrierCalls;
+        copies += profile.copyCalls;
+        dispatches += profile.dispatches;
+        drawsOutside += profile.drawsOutsidePasses;
+        uint64_t inPasses = 0;
+        for (const auto& pass : profile.passes)
+        {
+            TargetStats& stats = presentation ? present
+                : targets[TargetKey{pass.width, pass.height, pass.colors, pass.depth}];
+            ++stats.passes;
+            stats.emptyPasses += pass.draws == 0;
+            stats.clearStarts += pass.clearMask != 0;
+            stats.draws += pass.draws;
+            stats.gpuNs += pass.gpuNs;
+            stats.loadBytes += pass.loadBytes;
+            stats.storeBytes += pass.storeBytes;
+            inPasses += pass.gpuNs;
+        }
+        if (profile.timed)
+        {
+            listNs += profile.listNs;
+            passNs += std::min(inPasses, profile.listNs);
+        }
+    }
+
+    // One log line: per-frame averages, then the most expensive targets.
+    std::string Format(size_t topTargets = 8) const
+    {
+        const double f = double(std::max<uint64_t>(frames, 1));
+        auto ms = [&](uint64_t ns) { return double(ns) / 1e6 / f; };
+        auto mb = [&](uint64_t bytes) { return double(bytes) / (1024.0 * 1024.0) / f; };
+        TargetStats all;
+        for (const auto& [key, stats] : targets)
+        {
+            all.passes += stats.passes; all.emptyPasses += stats.emptyPasses; all.clearStarts += stats.clearStarts;
+            all.draws += stats.draws; all.gpuNs += stats.gpuNs; all.loadBytes += stats.loadBytes; all.storeBytes += stats.storeBytes;
+        }
+        std::string line = "gpu passes: frames=" + std::to_string(frames) + " lists=" + std::to_string(lists) +
+            " untimed_lists=" + std::to_string(untimedLists);
+        char buffer[512];
+        std::snprintf(buffer, sizeof(buffer),
+            " per_frame: passes=%.1f empty=%.1f clear_start=%.1f draws=%.1f pass_ms=%.2f outside_ms=%.2f "
+            "load_mb=%.1f store_mb=%.1f barriers=%.1f copies=%.1f dispatches=%.1f draws_outside=%.1f "
+            "present: passes=%.1f ms=%.2f load_mb=%.1f store_mb=%.1f",
+            all.passes / f, all.emptyPasses / f, all.clearStarts / f, all.draws / f, ms(all.gpuNs),
+            ms(listNs > passNs ? listNs - passNs : 0), mb(all.loadBytes), mb(all.storeBytes),
+            barriers / f, copies / f, dispatches / f, drawsOutside / f,
+            present.passes / f, ms(present.gpuNs), mb(present.loadBytes), mb(present.storeBytes));
+        line += buffer;
+        std::vector<std::pair<TargetKey, TargetStats>> sorted(targets.begin(), targets.end());
+        std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) {
+            return a.second.gpuNs != b.second.gpuNs ? a.second.gpuNs > b.second.gpuNs
+                : a.second.loadBytes + a.second.storeBytes > b.second.loadBytes + b.second.storeBytes;
+        });
+        line += " top:";
+        for (size_t i = 0; i < sorted.size() && i < topTargets; ++i)
+        {
+            const auto& [key, stats] = sorted[i];
+            std::snprintf(buffer, sizeof(buffer), " %ux%u%s%s passes=%.1f empty=%.1f draws=%.1f ms=%.2f load_mb=%.1f store_mb=%.1f;",
+                key.width, key.height, key.colors ? (key.colors > 1 ? " mrt" : " c") : " -", key.depth ? "d" : "",
+                stats.passes / f, stats.emptyPasses / f, stats.draws / f, ms(stats.gpuNs), mb(stats.loadBytes), mb(stats.storeBytes));
+            line += buffer;
+        }
+        return line;
+    }
+};
+
+// Thread-safe accumulator with a ten-second reporting window.
+class Reporter
+{
+    std::mutex mutex;
+    Summary summary;
+    std::chrono::steady_clock::time_point windowStart{};
+
+public:
+    // Returns the finished window's line, or empty while it is still open.
+    std::string Add(const plume::RenderPassProfile& profile, bool presentation,
+        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now())
+    {
+        std::lock_guard lock(mutex);
+        if (windowStart == std::chrono::steady_clock::time_point{}) windowStart = now;
+        summary.Add(profile, presentation);
+        if (now - windowStart < std::chrono::seconds(10) || summary.frames == 0) return {};
+        std::string line = summary.Format();
+        summary = Summary();
+        windowStart = now;
+        return line;
+    }
+};
+
+inline Reporter& GlobalReporter()
+{
+    static Reporter reporter;
+    return reporter;
+}
+}

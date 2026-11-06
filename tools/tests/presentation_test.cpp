@@ -397,6 +397,27 @@ int main(int argc, char** argv)
         for (unsigned x = 0; x < 32; x++)
             pass &= identity[y * 32 + x] == (x > y + 8 ? 0xffffffffu : 0xff000000u);
     printf("Native-resolution identity: %s\n", pass ? "PASS" : "FAIL");
+    // Pass profiling (plume RenderPassProfile): one 64x32 upscale records
+    // its presentation pass with a timestamp pair and attachment byte counts.
+    {
+        plume::RenderPassProfile profile;
+        commands->setPassProfiling(true);
+        (void)render(64, 32, gpu::Antialiasing::Off);
+        bool profiled = commands->takePassProfile(profile);
+        commands->setPassProfiling(false);
+        uint64_t passes = profile.passes.size(), timedNs = 0, stored = 0;
+        bool sized = false;
+        for (const auto& p : profile.passes) {
+            timedNs += p.gpuNs; stored += p.storeBytes;
+            sized |= p.width == 64 && p.height == 32 && p.colors == 1 && p.draws >= 1;
+        }
+        const bool ok = profiled && passes >= 1 && profile.timed && profile.listNs >= timedNs && sized &&
+            stored >= 64ull * 32 * 4 && !commands->takePassProfile(profile);
+        pass &= ok;
+        printf("Pass profile: lists=%d passes=%llu timed=%d list_ns=%llu pass_ns=%llu store_bytes=%llu barriers=%u copies=%u: %s\n",
+               profiled, (unsigned long long)passes, profile.timed, (unsigned long long)profile.listNs,
+               (unsigned long long)timedNs, (unsigned long long)stored, profile.barrierCalls, profile.copyCalls, ok ? "PASS" : "FAIL");
+    }
     const auto scaled = render(64, 64, gpu::Antialiasing::Off);
     bool bars = true;
     for (unsigned y = 0; y < 64; y++)

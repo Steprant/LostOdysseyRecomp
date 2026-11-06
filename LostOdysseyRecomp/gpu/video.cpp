@@ -74,6 +74,7 @@
 #include <debug/battle_menu.h>
 #include <debug/menu_overlay.h>
 #include "gpu_busy.h"
+#include "pass_profile.h"
 #if defined(__ANDROID__)
 #include <time.h>
 #endif
@@ -1732,6 +1733,16 @@ namespace gpu::video
 #else
             StopGpuWork(submission::VulkanState::InvalidState); return false;
 #endif
+        }
+        // The previous recording has completed (a list is begun again only
+        // after its fence): read its pass profile, then choose for this one.
+        {
+            plume::RenderPassProfile profile;
+            if (list->takePassProfile(profile)) {
+                const std::string line = pass_profile::GlobalReporter().Add(profile, list == g_commandList.get());
+                if (!line.empty()) LOG_INFO("{}", line);
+            }
+            list->setPassProfiling(pass_profile::Enabled());
         }
         const auto result = submission::BeginCommands(*static_cast<plume::VulkanCommandList*>(list));
         if (result != VK_SUCCESS) StopGpuWork(int32_t(result));
