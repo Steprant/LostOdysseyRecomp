@@ -186,5 +186,21 @@ int main()
                 Require(column[0] < column[2] && column[1] < column[3], "a one-pixel column clip stays a clip");
             }
     }
+    // Full-screen tiled layers: the widened range keeps the texel size and the
+    // centre; the 2403x1080 phone output widens a 1280-unit pattern by 1.25x.
+    {
+        Require(CoversGuestScreen(0, 0, 1280, 720) && CoversGuestScreen(-2, -2, 1284, 724), "full-screen tile");
+        Require(!CoversGuestScreen(0, 0, 1280, 700) && !CoversGuestScreen(10, 0, 1270, 720), "partial tile keeps the fit");
+        Require(TiledUv(40, 22.5) && TiledUv(1, 2) && !TiledUv(1, 1) && !TiledUv(0.5, 0.5), "single image is not tiled");
+        const auto phone = ForAspect(2403.0f / 1080.0f);
+        const auto wide = WidenTileUv({0, 0, 40, 22.5}, phone);
+        Require(std::abs(wide.ul - 40.0 / double(phone.x)) < 1e-9 && std::abs(wide.vl - 22.5) < 1e-12, "horizontal widening only");
+        Require(std::abs((wide.u + wide.ul * 0.5) - 20) < 1e-9 && wide.v == 0, "pattern stays centred");
+        Require(std::abs(wide.ul / 40 - 2403.0 / 1080.0 / (16.0 / 9.0)) < 1e-6, "texel width matches the output aspect");
+        const auto tall = WidenTileUv({1, 2, 10, 10}, ForAspect(4.0f / 3.0f));
+        Require(tall.ul == 10 && tall.vl > 10 && std::abs((tall.v + tall.vl * 0.5) - 7) < 1e-9, "tall outputs widen vertically");
+        const auto same = WidenTileUv({3, 4, 5, 6}, Scale{});
+        Require(same.u == 3 && same.v == 4 && same.ul == 5 && same.vl == 6, "16:9 output is unchanged");
+    }
     std::printf("aspect layout: %d checks passed\n", checks);
 }
