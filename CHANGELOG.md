@@ -14,6 +14,9 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - Android audio: no longer reopens a working audio stream on every return from a long background pause.
 - Audio: the XMA decoder no longer holds its lock for a whole voice while the audio driver waits; it runs on performance cores at audio priority.
 - Android diagnostics: selectable audio buffer (43/64/85 ms) and audio/XMA timing peaks in the runtime log.
+- Android diagnostics: per-render-pass GPU profile in Tester recordings.
+- Android: optional compact 8-bit/10-bit render targets (half the bandwidth), optional ADPF power hints, display refresh matched to the game frame rate, and a 900p render resolution.
+- SGSR1 stays enabled after a swapchain format change.
 
 ### 简体中文
 
@@ -23,6 +26,9 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - Android 音频：长时间切到后台再返回时，不再重新打开正常工作的音频流。
 - 音频：XMA 解码器不再在音频驱动等待时长时间持有锁，并以音频优先级运行在性能核心上。
 - Android 诊断：可选择音频缓冲（43/64/85 毫秒），运行日志记录音频与 XMA 时序峰值。
+- Android 诊断：测试录制包含每个渲染通道的 GPU 分析。
+- Android：可选精简 8/10 位渲染目标（带宽减半）、可选 ADPF 节能提示、屏幕刷新率匹配游戏帧率，并新增 900p 渲染分辨率。
+- 交换链格式变化后 SGSR1 保持启用。
 
 ## [v1.5-steprant.20261104](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/tag/v1.5-steprant.20261104) — Steprant Android 1.5 — 2026-11-04
 
