@@ -1,0 +1,55 @@
+name: Steprant draft release
+
+# Copies a finished Android APK workflow artifact into a DRAFT release, which
+# only repository collaborators can see. Publishing stays a manual decision.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Android APK workflow run whose artifact to attach
+        required: true
+        type: string
+  push:
+    branches: ['integration/v1.6-candidate-*']
+    paths: ['.github/workflows/steprant-draft-release.yml']
+permissions:
+  contents: write
+  actions: read
+env:
+  RUN_ID: ${{ inputs.run_id || '42282848465' }}
+  TAG: v1.6-steprant.20261106
+  TITLE: Lost Odyssey Steprant Android 1.6 (test build)
+jobs:
+  draft:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: LostOdysseyRecomp-android-arm64
+          run-id: ${{ env.RUN_ID }}
+          github-token: ${{ github.token }}
+          path: out/apk
+      - name: Create or update the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          src=out/apk/LostOdyssey-Steprant-v1.6.apk
+          apk=out/apk/LostOdyssey-Steprant-v1.6-20261106.apk
+          mv "$src" "$apk"
+          sha256sum "$apk"
+          commit=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" -q .head_sha)
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/releases" -q ".[] | select(.tag_name == \"$TAG\") | .draft" | head -n 1)
+          if [[ "$existing" == "false" ]]; then
+            echo "::error::$TAG is already published; not touching it"
+            exit 1
+          elif [[ "$existing" == "true" ]]; then
+            gh release upload "$TAG" "$apk" --clobber -R "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$apk" --draft --target "$commit" --title "$TITLE" \
+              --notes-file docs/notes/steprant-1.6-draft-release.md -R "$GITHUB_REPOSITORY"
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/releases" -q ".[] | select(.tag_name == \"$TAG\") | {draft, html_url}"
