@@ -182,6 +182,10 @@ struct Config
     uint32_t audioOutput = AudioOutputStereo; // Applied live; saved by SaveAudioOutput.
     uint32_t audioMatrixRear = 110; // Matrix surround rear angle, 90-150 degrees in 10 degree steps. Applied live.
     uint32_t voiceVolume = 100; // Cutscene dialogue, 0-100, in place of the Sound effects volume. Applied live.
+    // Audio device-queue reserve in 256-sample frames: 0 is the platform
+    // default (8 on Android, about 43 ms), 12 or 16 trade latency for
+    // tolerance of late driver wakeups. Applied live (apu::SetQueueReserveFrames).
+    uint32_t audioReserveFrames = 0;
     bool skipShaderPrebuild = false;
     // Achievement-unlocked toast and its chime (ui/achievement_overlay.cpp). Applied live.
     bool achievementNotifications = true;

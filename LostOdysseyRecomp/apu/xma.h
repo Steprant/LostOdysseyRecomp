@@ -29,4 +29,19 @@ namespace apu::xma
     uint32_t AllocateContext();
     // XMAReleaseContext.
     void ReleaseContext(uint32_t guestAddress);
+
+    // The calling thread's waits for the decoder mutex are reported
+    // separately (the audio driver: a wait there delays the next frame).
+    void MarkLatencySensitiveThread();
+    // Decoder mutex peaks since the previous call, in microseconds: the
+    // longest wait by any command, by a latency-sensitive thread, the longest
+    // hold by the worker, and contended latency-sensitive acquisitions.
+    struct LockStats
+    {
+        uint64_t waitMaxUs = 0;
+        uint64_t waitLatencySensitiveMaxUs = 0;
+        uint64_t holdMaxUs = 0;
+        uint32_t contendedLatencySensitive = 0;
+    };
+    LockStats TakeLockStats();
 }

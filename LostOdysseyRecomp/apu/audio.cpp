@@ -2,9 +2,11 @@
 #include "audio.h"
 #include "audio_callback.h"
 #include "audio_queue_refill.h"
+#include "audio_timing.h"
 #include "fast_forward_audio.h"
 #include "matrix_surround.h"
 #include "test_signal.h"
+#include "xma.h"
 #include <cpu/guest_thread.h>
 #include <debug/fast_forward.h>
 #include <kernel/memory.h>
@@ -54,6 +56,14 @@ namespace apu
 #else
         constexpr uint32_t kQueuedFrames = 4;
 #endif
+        // The reserve in use: kQueuedFrames, or a larger one from the setting
+        // (or LO_AUDIO_RESERVE_FRAMES). Read once per driver period.
+        std::atomic<uint32_t> g_reserveFrames{ kQueuedFrames };
+        std::atomic<bool> g_reserveFromEnvironment{ false };
+        // Driver timing peaks per report period, for the next device logs:
+        // how late PreciseSleepUntil woke and the longest guest callback.
+        detail::PeakMicros g_wakeLate;
+        detail::PeakMicros g_callbackPeak;
         // Times a frame found the queue empty (the device ran dry) and times
         // the driver gave up catching up after a stall; logged with the frames.
         std::atomic<uint32_t> g_starved{ 0 };
@@ -185,7 +195,12 @@ namespace apu
             const auto now = std::chrono::steady_clock::now();
             // A resume timestamp is not evidence of a stalled device: the queue
             // may have drained normally for seconds before it briefly filled.
-            const auto stalled = now - waitStarted;
+            // The wait may also have begun before the app went to the
+            // background: count only the time since it returned, otherwise
+            // every resume after a long pause reopens a healthy stream.
+            const auto resumedPoint = std::chrono::steady_clock::time_point(
+                std::chrono::steady_clock::duration(resumed));
+            const auto stalled = detail::StalledSinceResume(now, waitStarted, resumedPoint);
             if (stalled < kResumeDrainTimeout) return;
             std::lock_guard lock(g_deviceMutex);
             if (!g_stream) return;
@@ -194,7 +209,7 @@ namespace apu
             const uint32_t queued = std::max(0, SDL_GetAudioStreamQueued(g_stream)) / FrameBytes();
             // The device may drain during our last sleep. Never close a working
             // AAudio stream because an older resume exceeded the timeout.
-            if (queued < kQueuedFrames) return;
+            if (queued < g_reserveFrames.load(std::memory_order_relaxed)) return;
             // Lost to a pause that began meanwhile, or to a newer resume.
             if (!g_resumedAt.compare_exchange_strong(resumed, 0)) return;
             LOG_WARNING("audio: device not draining {} ms after resume (queued {}), reopened",
@@ -253,16 +268,19 @@ namespace apu
         {
             os::SetCurrentThreadName("Audio Driver");
             os::scheduling::RaiseAudioThreadPriority();
+            xma::MarkLatencySensitiveThread();
             GuestThreadContext ctx(3);
             constexpr auto framePeriod = std::chrono::microseconds(1000000ull * XAUDIO_NUM_SAMPLES / XAUDIO_SAMPLES_HZ);
             auto next = std::chrono::steady_clock::now();
             while (g_running)
             {
+                const uint32_t reserve = g_reserveFrames.load(std::memory_order_relaxed);
                 next += framePeriod;
                 // Precise wakeups: a late one drains the few frames SDL has queued.
                 os::scheduling::PreciseSleepUntil(next);
+                g_wakeLate.Record(std::chrono::steady_clock::now() - next);
                 // Avoid a burst of catch-up callbacks after a host stall.
-                if (std::chrono::steady_clock::now() - next > framePeriod * kQueuedFrames)
+                if (std::chrono::steady_clock::now() - next > framePeriod * reserve)
                 {
                     next = std::chrono::steady_clock::now();
                     g_clockResets.fetch_add(1, std::memory_order_relaxed);
@@ -280,7 +298,7 @@ namespace apu
                 bool waited = false;
                 const auto waitStarted = std::chrono::steady_clock::now();
 #endif
-                while (QueuedFrames() >= kQueuedFrames)
+                while (QueuedFrames() >= reserve)
                 {
                     os::scheduling::PreciseSleepFor(std::chrono::milliseconds(1));
 #if LO_PLATFORM_ANDROID
@@ -298,6 +316,12 @@ namespace apu
                     g_guestFramesPerOutput.store(frames, std::memory_order_relaxed);
                     for (uint32_t i = 0; i < frames; ++i)
                     {
+                        const auto callbackStart = std::chrono::steady_clock::now();
+                        struct RecordCallback
+                        {
+                            std::chrono::steady_clock::time_point start;
+                            ~RecordCallback() { g_callbackPeak.Record(std::chrono::steady_clock::now() - start); }
+                        } recordCallback{ callbackStart };
                         g_client.Dispatch([&](uint32_t callback, uint32_t param)
                         {
                             // Unregister can run on another guest thread or
@@ -334,7 +358,7 @@ namespace apu
                     // Keep the intended eight-frame reserve even when a host
                     // stall reset `next`. One timed callback per period cannot
                     // rebuild that reserve: production only matches playback.
-                    const uint32_t refills = detail::RefillAudioQueue(kQueuedFrames,
+                    const uint32_t refills = detail::RefillAudioQueue(reserve,
                         QueuedFrames, CanRefillQueue, [&] { dispatch(1); });
                     if (refills)
                     {
@@ -355,7 +379,18 @@ namespace apu
         g_matrix = output == Output::Matrix;
         g_surroundRequested = g_surroundOpen = surround;
         // SDL3 picks 1024-frame device buffers at 48 kHz; keep SDL2's 512.
-        SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, "512");
+        // LO_AUDIO_DEVICE_FRAMES (256-2048, a power of two) is for A/B tests.
+        const char* deviceFrames = getenv("LO_AUDIO_DEVICE_FRAMES");
+        const uint32_t sampleFrames = detail::DeviceSampleFrames(deviceFrames ? uint32_t(atoi(deviceFrames)) : 0, 512);
+        SDL_SetHint(SDL_HINT_AUDIO_DEVICE_SAMPLE_FRAMES, std::to_string(sampleFrames).c_str());
+        if (const char* reserve = getenv("LO_AUDIO_RESERVE_FRAMES"))
+        {
+            g_reserveFrames = detail::ReserveFrames(uint32_t(atoi(reserve)), kQueuedFrames);
+            g_reserveFromEnvironment = true;
+        }
+        LOG_INFO("audio buffering: reserve {} frames ({:.1f} ms), device {} sample frames{}",
+            g_reserveFrames.load(), g_reserveFrames.load() * 1000.0 * XAUDIO_NUM_SAMPLES / XAUDIO_SAMPLES_HZ,
+            sampleFrames, g_reserveFromEnvironment ? " (LO_AUDIO_RESERVE_FRAMES)" : "");
         g_audioReady = SDL_InitSubSystem(SDL_INIT_AUDIO);
         {
             std::lock_guard lock(g_deviceMutex);
@@ -387,6 +422,20 @@ namespace apu
     void SetMatrixRearAngle(uint32_t degrees)
     {
         g_matrixRear = std::clamp(degrees, 90u, 150u);
+    }
+
+    void SetQueueReserveFrames(uint32_t frames)
+    {
+        if (g_reserveFromEnvironment) return;
+        const uint32_t reserve = detail::ReserveFrames(frames, kQueuedFrames);
+        if (g_reserveFrames.exchange(reserve) != reserve)
+            LOG_INFO("audio buffering: reserve {} frames ({:.1f} ms)", reserve,
+                reserve * 1000.0 * XAUDIO_NUM_SAMPLES / XAUDIO_SAMPLES_HZ);
+    }
+
+    uint32_t QueueReserveFrames()
+    {
+        return g_reserveFrames.load(std::memory_order_relaxed);
     }
 
     void SetVoiceVolume(uint32_t percent)
@@ -558,7 +607,9 @@ namespace apu
                 const float* data = g_channels == 6 ? surround.data() : stereo.data();
                 const int before = SDL_GetAudioStreamQueued(g_stream);
                 if (before == 0 && n > 1) g_starved.fetch_add(1, std::memory_order_relaxed);
-                if (before < int(FrameBytes() * 16))
+                // Safety cap above the reserve; never reached while the driver
+                // paces production against the reserve.
+                if (before < int(FrameBytes() * (g_reserveFrames.load(std::memory_order_relaxed) + 8)))
                 {
                     if (!SDL_PutAudioStreamData(g_stream, data, int(FrameBytes()))) ++queueErrors;
                 }
@@ -567,9 +618,17 @@ namespace apu
             }
         }
         if (report)
-            LOG_INFO("audio frames submitted: {} peak={} queued={} mute={} queue_drops={} queue_errors={} starved={} clock_resets={} refill_frames={}",
+        {
+            // Timing fields are peaks since the previous report (~10 s);
+            // the counters before them stay cumulative as in earlier logs.
+            const auto lock = xma::TakeLockStats();
+            LOG_INFO("audio frames submitted: {} peak={} queued={} mute={} queue_drops={} queue_errors={} starved={} clock_resets={} refill_frames={}"
+                " reserve={} wake_late_max_us={} callback_max_us={} xma_wait_max_us={} xma_wait_audio_max_us={} xma_hold_max_us={} xma_contended_audio={}",
                 n, peak, queued, mute, queueDrops, queueErrors, g_starved.load(std::memory_order_relaxed),
-                g_clockResets.load(std::memory_order_relaxed), g_refillFrames.load(std::memory_order_relaxed));
+                g_clockResets.load(std::memory_order_relaxed), g_refillFrames.load(std::memory_order_relaxed),
+                g_reserveFrames.load(std::memory_order_relaxed), g_wakeLate.Take(), g_callbackPeak.Take(),
+                lock.waitMaxUs, lock.waitLatencySensitiveMaxUs, lock.holdMaxUs, lock.contendedLatencySensitive);
+        }
 #if defined(__ANDROID__)
         if (::diagnostics::android_tester::g_recorder.recording.load(std::memory_order_relaxed))
             ::diagnostics::android_tester::g_recorder.SetAudio(g_starved.load(std::memory_order_relaxed),

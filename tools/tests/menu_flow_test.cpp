@@ -231,6 +231,7 @@ bool menuFlowTestSignal = false;
 void SetOutput(Output output) { menuFlowOutput = output; }
 void SetMatrixRearAngle(uint32_t degrees) { menuFlowMatrixRear = degrees; }
 void SetVoiceVolume(uint32_t percent) { menuFlowVoiceVolume = percent; }
+void SetQueueReserveFrames(uint32_t) {}
 void SetTestSignal(bool on) { menuFlowTestSignal = on; }
 float TestSignalPosition() { return menuFlowTestSignal ? 0.0f : -1.0f; }
 uint32_t OutputChannels() { return menuFlowOutput == Output::Surround ? 6 : 2; }
