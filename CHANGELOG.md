@@ -24,7 +24,17 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - 音频：XMA 解码器不再在音频驱动等待时长时间持有锁，并以音频优先级运行在性能核心上。
 - Android 诊断：可选择音频缓冲（43/64/85 毫秒），运行日志记录音频与 XMA 时序峰值。
 
-## [v1.5-steprant.20261104](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/tag/v1.5-steprant.20261104) — Steprant Android 1.5 — 2026-11-04
+## Steprant Android 1.6 (in preparation, not released)
+
+### English
+
+- Android audio: returning to the foreground no longer forces an AAudio reopen; the wait is measured from the later of the wait start and the resume.
+- XMA decoding runs on performance cores with audio priority, holds the decoder mutex for at most 16 iterations and yields to waiting commands. A/B switches: `LO_XMA_WORK_BUDGET=0`, `LO_XMA_DECODER_BOOST=0`.
+- New 10-second audio timing log with peak values; Android Diagnostics adds an audio buffer setting of 43/64/85 ms.
+- SGSR1 now has a reference readback test against the pinned Qualcomm algorithm (host/lavapipe only; no Adreno measurement).
+- Not yet built as an APK or tested by ear on a device.
+
+(https://github.com/Steprant/LostOdysseyRecomp-Android/releases/tag/v1.5-steprant.20261104) — Steprant Android 1.5 — 2026-11-04
 
 ### English
 

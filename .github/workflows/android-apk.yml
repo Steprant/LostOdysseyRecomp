@@ -120,7 +120,7 @@ jobs:
           python tools/ppc_codegen.py generate --executable out/build/tools/XenonRecomp/XenonRecomp/XenonRecomp
       - name: Build the APK
         env:
-          RELEASE_TAG: ${{ github.ref_name == 'integration/v1.1.0-steprant-all' && 'v1.5' || '' }}
+          RELEASE_TAG: ${{ github.ref_name == 'integration/v1.1.0-steprant-all' && 'v1.6' || '' }}
           ORG_GRADLE_PROJECT_loApplicationId: ${{ github.ref_name == 'integration/v1.1.0-steprant-all' && 'io.github.freefrank.lostodyssey.steprant' || 'io.github.freefrank.lostodyssey' }}
           ORG_GRADLE_PROJECT_loAppLabel: ${{ github.ref_name == 'integration/v1.1.0-steprant-all' && 'Lost Odyssey Steprant' || 'Lost Odyssey Recomp' }}
           ORG_GRADLE_PROJECT_loAppIcon: ${{ github.ref_name == 'integration/v1.1.0-steprant-all' && '@mipmap/ic_launcher_steprant' || '@mipmap/ic_launcher' }}
@@ -129,11 +129,11 @@ jobs:
         if: github.ref_name == 'integration/v1.1.0-steprant-all'
         run: |
           set -euo pipefail
-          apk=out/apk/LostOdysseyRecomp-android-arm64-v1.5.apk
+          apk=out/apk/LostOdysseyRecomp-android-arm64-v1.6.apk
           "$LO_ANDROID_CI_CACHE/android-sdk/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk"
           "$LO_ANDROID_CI_CACHE/android-sdk/build-tools/35.0.0/zipalign" -c -P 16 4 "$apk"
           python tools/android/verify-apk.py "$apk"
-          mv "$apk" out/apk/LostOdyssey-Steprant-v1.5.apk
+          mv "$apk" out/apk/LostOdyssey-Steprant-v1.6.apk
           sha256sum out/apk/*.apk
       - uses: actions/upload-artifact@v4
         with:
