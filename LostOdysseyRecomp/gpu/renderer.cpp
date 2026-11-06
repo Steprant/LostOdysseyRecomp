@@ -5646,7 +5646,8 @@ void main()
                 const auto depth = static_cast<RenderFormat>(key.depthFormat);
                 const bool colorValid = color == RenderFormat::UNKNOWN || color == RenderFormat::R8G8B8A8_UNORM ||
                     color == RenderFormat::R16G16_FLOAT || color == RenderFormat::R16G16B16A16_FLOAT ||
-                    color == RenderFormat::R32_FLOAT || color == RenderFormat::R32G32_FLOAT;
+                    color == RenderFormat::R32_FLOAT || color == RenderFormat::R32G32_FLOAT ||
+                    color == RenderFormat::R10G10B10A2_UNORM;
                 return key.vs != 0 && key.prim <= 32 && colorValid &&
                     (depth == RenderFormat::UNKNOWN || depth == RenderFormat::D32_FLOAT_S8_UINT);
             }
@@ -7651,9 +7652,11 @@ void main()
                 }
             }
 
-            // Compact 8_8_8_8 targets (settings compactRenderTargets, or
-            // LO_COMPACT_RT=1/0): RGBA8 holds exactly the 8 bits the console
-            // stores; the shader epilogue already clamps this class to [0, 1].
+            // Compact targets (settings compactRenderTargets, or LO_COMPACT_RT=1/0):
+            // 8_8_8_8(_GAMMA) as RGBA8 and fixed 2_10_10_10 as A2B10G10R10,
+            // which hold exactly the bits the console stores; the shader
+            // epilogue already clamps both classes to [0, 1]. Transfers
+            // between classes read the host value, so they are unaffected.
             // An HDR scene keeps FP16, whose extended-gamma copies need it.
             static bool CompactRenderTargetsRequested()
             {
@@ -7666,9 +7669,10 @@ void main()
 
             RenderFormat HostFormatForClass(uint32_t colorClass) const
             {
-                if (colorClass == kClass8888 && CompactRenderTargetsRequested() &&
-                    !hdrSceneEnabled.load(std::memory_order_relaxed))
-                    return RenderFormat::R8G8B8A8_UNORM;
+                if (CompactRenderTargetsRequested() && !hdrSceneEnabled.load(std::memory_order_relaxed)) {
+                    if (colorClass == kClass8888) return RenderFormat::R8G8B8A8_UNORM;
+                    if (colorClass == kClass2101010) return RenderFormat::R10G10B10A2_UNORM;
+                }
                 return ClassHostFormat(colorClass);
             }
 
