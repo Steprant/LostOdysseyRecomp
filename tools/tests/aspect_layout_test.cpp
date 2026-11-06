@@ -192,6 +192,8 @@ int main()
         Require(CoversGuestScreen(0, 0, 1280, 720) && CoversGuestScreen(-2, -2, 1284, 724), "full-screen tile");
         Require(!CoversGuestScreen(0, 0, 1280, 700) && !CoversGuestScreen(10, 0, 1270, 720), "partial tile keeps the fit");
         Require(TiledUv(40, 22.5) && TiledUv(1, 2) && !TiledUv(1, 1) && !TiledUv(0.5, 0.5), "single image is not tiled");
+        Require(FineScreenPattern(40, 22.5) && FineScreenPattern(-40, 22.5) && !FineScreenPattern(40, 8) &&
+            !FineScreenPattern(4, 4) && !FineScreenPattern(1, 1), "only a fine full-screen pattern is hidden");
         const auto phone = ForAspect(2403.0f / 1080.0f);
         const auto wide = WidenTileUv({0, 0, 40, 22.5}, phone);
         Require(std::abs(wide.ul - 40.0 / double(phone.x)) < 1e-9 && std::abs(wide.vl - 22.5) < 1e-12, "horizontal widening only");

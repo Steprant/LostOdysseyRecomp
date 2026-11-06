@@ -9,6 +9,7 @@
 #include "cpu/ppc_context.h"
 #include "kernel/memory.h"
 #include <os/logger.h>
+#include <cstdlib>
 
 extern "C" PPC_FUNC(__imp__sub_82300E50);
 extern "C" PPC_FUNC(__imp__sub_823BC220);
@@ -342,19 +343,32 @@ void DrawMenuBars(const PPCContext& ctx, uint8_t* base, uint32_t canvas)
 }
 }
 
+// The title screen's fine mesh over its clouds is hidden unless
+// LO_SCREEN_PATTERN=1: at phone and TV resolutions it reads as a filter over
+// the picture.
+static bool ShowScreenPattern()
+{
+    static const bool show = [] {
+        const char* value = std::getenv("LO_SCREEN_PATTERN");
+        return value && value[0] == '1';
+    }();
+    return show;
+}
+
 // UCanvas::DrawTile (r3 canvas, f1-f4 x/y/width/height, f5-f8 u/v/ul/vl). A
 // tiled layer covering the whole guest screen without a canvas transform -
 // the title screen's pattern over its clouds - would otherwise receive the
 // HUD's centred 16:9 fit and stop at the widened sides, which then look
 // unfiltered. Draw it over the full output with its texture range widened
-// (aspect_layout::WidenTileUv). Single-image layers (UV range within one
-// repeat) keep the fit, so artwork is never stretched or smeared.
+// (aspect_layout::WidenTileUv), or skip it when it is a fine screen pattern
+// (see ShowScreenPattern). Single-image layers (UV range within one repeat)
+// keep the fit, so artwork is never stretched or smeared.
 PPC_FUNC(sub_8230B308)
 {
     const uint32_t canvas = ctx.r3.u32;
     const auto scale = OutputScale();
     uint32_t matrix = 0;
-    if (scale.IsIdentity() || canvas == fullOutputCanvas || canvas == fullMenuCanvas ||
+    if (canvas == fullOutputCanvas || canvas == fullMenuCanvas ||
         !gpu::aspect_layout::CoversGuestScreen(ctx.f1.f64, ctx.f2.f64, ctx.f3.f64, ctx.f4.f64) ||
         !gpu::aspect_layout::TiledUv(ctx.f7.f64, ctx.f8.f64) || !IsPrimaryCanvas(canvas, matrix))
     {
@@ -369,6 +383,19 @@ PPC_FUNC(sub_8230B308)
             __imp__sub_8230B308(ctx, base);
             return;
         }
+    if (!ShowScreenPattern() && gpu::aspect_layout::FineScreenPattern(ctx.f7.f64, ctx.f8.f64))
+    {
+        static uint32_t hidden = 0;
+        if (hidden < 2 && ++hidden)
+            LOG_INFO("hor+: full-screen pattern layer hidden texture={:#x} repeats={:.1f}x{:.1f} (LO_SCREEN_PATTERN=1 shows it)",
+                LoadWord(ctx.r1.u32 + 100), ctx.f7.f64, ctx.f8.f64);
+        return;
+    }
+    if (scale.IsIdentity())
+    {
+        __imp__sub_8230B308(ctx, base);
+        return;
+    }
     const auto uv = gpu::aspect_layout::WidenTileUv({ctx.f5.f64, ctx.f6.f64, ctx.f7.f64, ctx.f8.f64}, scale);
     static uint32_t logged = 0;
     if (logged < 8 && ++logged)

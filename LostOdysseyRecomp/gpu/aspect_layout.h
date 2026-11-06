@@ -115,6 +115,13 @@ inline bool TiledUv(double ul, double vl)
 {
     return std::abs(ul) > 1.01 || std::abs(vl) > 1.01;
 }
+// A fine screen pattern: the texture repeats at least 16 times across both
+// axes of the screen (the title screen's mesh repeats 40 x 22.5 times, one
+// 32-pixel tile per 32 guest pixels). Artwork layers repeat a few times at most.
+inline bool FineScreenPattern(double ul, double vl)
+{
+    return std::abs(ul) >= 16.0 && std::abs(vl) >= 16.0;
+}
 inline TileUv WidenTileUv(TileUv uv, Scale scale)
 {
     if (scale.x > 0.0f && scale.x < 1.0f) {
