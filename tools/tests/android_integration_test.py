@@ -37,13 +37,15 @@ def main():
         r'private static final int (COMMAND_\w+) = (0x[0-9a-fA-F]+);', activity))
     expected = {'COMMAND_OPEN_GAME_FOLDER': 0x8000, 'COMMAND_OPEN_TV_SETTINGS': 0x8001,
                 'COMMAND_TESTER_START': 0x8002, 'COMMAND_TESTER_STOP': 0x8003,
-                'COMMAND_TESTER_EXPORT': 0x8004}
+                'COMMAND_TESTER_EXPORT': 0x8004, 'COMMAND_FRAME_RATE': 0x8005}
     assert commands == expected, f'Java command contract changed: {commands}'
     assert len(set(commands.values())) == len(commands), 'colliding Android command IDs'
     for name in commands:
         assert re.search(r'if\s*\(command == ' + name + r'\)', activity), name + ' has no handler'
     menu = (ROOT / 'LostOdysseyRecomp/settings/menu.cpp').read_text()
-    sent = [int(value, 16) for value in re.findall(r'SDL_SendAndroidMessage\((0x[0-9a-fA-F]+),', menu)]
+    # The frame-rate hint (0x8005) is sent by the presentation, not the menu.
+    senders = menu + (ROOT / 'LostOdysseyRecomp/gpu/video.cpp').read_text()
+    sent = [int(value, 16) for value in re.findall(r'SDL_SendAndroidMessage\((0x[0-9a-fA-F]+),', senders)]
     assert set(sent) == set(commands.values()), f'Unmatched native commands: {sent}'
     declarations = re.findall(r'static native ([\w\[\]]+) (nativeTester\w+)\(([^)]*)\);', activity)
     assert len(declarations) == 6, 'missing Tester JNI declarations'
@@ -71,7 +73,7 @@ def main():
         if args.ndk:
             run(compiler, '-std=c++20', '-c', '-I' + str(ROOT / 'LostOdysseyRecomp'),
                 ROOT / 'tools/tests/android_tv_tester_test.cpp', '-o', out / 'tv-tester-arm64.o')
-    print('PASS: five distinct Android commands, six javac-generated JNI signatures and JVM trace export')
+    print(f'PASS: {len(commands)} distinct Android commands, six javac-generated JNI signatures and JVM trace export')
 
 
 if __name__ == '__main__':
