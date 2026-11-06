@@ -1,6 +1,7 @@
 #pragma once
 #include <plume_render_interface.h>
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
@@ -33,6 +34,31 @@ inline bool Enabled()
     if (::diagnostics::android_tester::g_recorder.CollectGpu()) return true;
 #endif
     return forced;
+}
+
+// Guest draws by Xenos colour render-target format (RB_COLOR_INFO format,
+// 0-15) and depth-only draws, counted by the renderer while profiling: which
+// EDRAM formats the frame's bandwidth belongs to.
+inline std::atomic<uint64_t> g_colorFormatDraws[16];
+inline std::atomic<uint64_t> g_depthOnlyDraws{0};
+inline void CountDraw(uint32_t xenosColorFormat, bool depthOnly)
+{
+    if (depthOnly) g_depthOnlyDraws.fetch_add(1, std::memory_order_relaxed);
+    else g_colorFormatDraws[xenosColorFormat & 15].fetch_add(1, std::memory_order_relaxed);
+}
+inline std::string TakeFormatDraws(double frames)
+{
+    static constexpr const char* names[16] = {"8888", "8888_gamma", "2101010", "7e3", "16_16", "16_16_16_16",
+        "16_16f", "16_16_16_16f", "f8", "f9", "2101010_as_16", "f11", "7e3_as_16", "f13", "32f", "32_32f"};
+    std::string line = " format_draws_per_frame:";
+    char buffer[64];
+    for (uint32_t i = 0; i < 16; ++i)
+        if (const uint64_t n = g_colorFormatDraws[i].exchange(0, std::memory_order_relaxed)) {
+            std::snprintf(buffer, sizeof(buffer), " %s=%.1f", names[i], double(n) / frames);
+            line += buffer;
+        }
+    std::snprintf(buffer, sizeof(buffer), " depth_only=%.1f", double(g_depthOnlyDraws.exchange(0, std::memory_order_relaxed)) / frames);
+    return line + buffer;
 }
 
 struct TargetKey
@@ -148,7 +174,7 @@ public:
         if (windowStart == std::chrono::steady_clock::time_point{}) windowStart = now;
         summary.Add(profile, presentation);
         if (now - windowStart < std::chrono::seconds(10) || summary.frames == 0) return {};
-        std::string line = summary.Format();
+        std::string line = summary.Format() + TakeFormatDraws(double(summary.frames));
         summary = Summary();
         windowStart = now;
         return line;

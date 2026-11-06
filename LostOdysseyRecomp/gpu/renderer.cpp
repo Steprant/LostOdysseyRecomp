@@ -96,6 +96,7 @@
 #include "color_qualification.h"
 #include "render_timing.h"
 #include "gpu_busy.h"
+#include "pass_profile.h"
 #include "render_batch_policy.h"
 #include "render_arena_policy.h"
 #include "resolve_copy_policy.h"
@@ -11590,6 +11591,7 @@ void main()
                 }
 
                 // Record.
+                if (pass_profile::Enabled()) pass_profile::CountDraw((colorInfo >> 16) & 0xF, depthOnlyRaster);
                 ScopedTimer recordTimer{ tRecord, cpuTimingEnabled };
                 const bool recordProbeOn = record_timing::Enabled();
                 if (recordProbeOn) recordTiming.SetCounterReader(&ReadRecordCounters, this);
