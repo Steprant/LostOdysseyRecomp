@@ -5827,6 +5827,23 @@ void main()
                         mergeWords(entry, record);
                     }
                     corpusRecipes = corpus.records.size();
+                    // Compact render targets draw 8_8_8_8 targets into RGBA8, while
+                    // the caches hold the FP16 variants. Give each FP16 recipe an
+                    // RGBA8 twin with the same scenes, so startup and scene prefetch
+                    // build them before they are drawn. Twins are not "learned": only
+                    // the ones actually drawn are saved.
+                    if (CompactRenderTargetsRequested() && !hdrSceneEnabled.load(std::memory_order_relaxed)) {
+                        std::vector<std::pair<PipelineKey, RecipeEntry>> twins;
+                        for (const auto& [key, entry] : knownRecipes) {
+                            if (key.rtFormat != uint32_t(RenderFormat::R16G16B16A16_FLOAT)) continue;
+                            PipelineKey twin = key;
+                            twin.rtFormat = uint32_t(RenderFormat::R8G8B8A8_UNORM);
+                            if (!knownRecipes.contains(twin) && ValidPipelineRecipe(twin))
+                                twins.emplace_back(twin, RecipeEntry{entry.scenes, false, entry.texinfo});
+                        }
+                        for (auto& [key, entry] : twins) knownRecipes.emplace(key, std::move(entry));
+                        LOG_INFO("renderer: compact render targets: {} RGBA8 pipeline recipes added for prefetch", twins.size());
+                    }
                 }
                 // An older file version is rewritten at the next save.
                 pipelineRecipesDirty = learned.migrated && !learned.records.empty();
