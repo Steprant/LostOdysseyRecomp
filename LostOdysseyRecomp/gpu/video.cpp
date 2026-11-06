@@ -4246,6 +4246,19 @@ namespace gpu::video
 #endif
         }
         const auto nativeTarget = gpu::GetFrameRateTarget();
+#if LO_PLATFORM_ANDROID
+        // Declare the game frame rate on the phone surface (RuntimeActivity
+        // 0x8005): a 120 Hz panel can then run at a matching rate for 30/60
+        // FPS content instead of compositing four identical refreshes.
+        {
+            static uint32_t hinted = ~0u;
+            const uint32_t wanted = settings::GetConfig().displayRateHint ? nativeTarget : 0u;
+            if (wanted != hinted && SDL_SendAndroidMessage(0x8005, int(wanted))) {
+                hinted = wanted;
+                LOG_INFO("video output: display frame rate hint {} FPS", wanted);
+            }
+        }
+#endif
         auto& nativePolicy = g_presentationDisplay;
         if (!nativePolicy.nativeVsyncInitialized) {
             nativePolicy.nativeVsyncBaseline = g_swapChain->isVsyncEnabled();
@@ -4378,7 +4391,10 @@ namespace gpu::video
             g_snapshotWidth = g_snapshotHeight = 0;
             if (g_presentationFormat != g_swapChain->getFormat()) {
                 auto replacement = std::make_unique<Presentation>();
-                if (!replacement->Init(g_device.get(), g_swapChain->getFormat(), g_swapChain->hasStorageTextures())) {
+                // Keep the saved SGSR1 choice: a format change (HDR on/off) must
+                // not silently fall back to the ordinary filter until restart.
+                if (!replacement->Init(g_device.get(), g_swapChain->getFormat(), g_swapChain->hasStorageTextures(),
+                        settings::GetConfig().sgsr1)) {
                     LOG_ERROR("HDR: presentation pipeline rebuild failed after swapchain format change");
                     g_displayFailed = true;
                     return false;

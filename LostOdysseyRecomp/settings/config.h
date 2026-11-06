@@ -190,6 +190,9 @@ struct Config
     // Android Performance Hint session for the game threads (lower CPU clocks
     // when frames have margin). Applied live.
     bool performanceHints = false;
+    // Android: declare the game frame rate on the phone surface so the panel
+    // can match it (Surface.setFrameRate). Applied live.
+    bool displayRateHint = true;
     bool skipShaderPrebuild = false;
     // Achievement-unlocked toast and its chime (ui/achievement_overlay.cpp). Applied live.
     bool achievementNotifications = true;

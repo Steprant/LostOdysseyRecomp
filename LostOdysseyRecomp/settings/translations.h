@@ -35,6 +35,7 @@ static inline const wchar_t *Translate(uint32_t language, const wchar_t *en, con
         {L"Intensive", L"集中", L"집중", L"密集"},
         {L"Detect slow frames", L"遅いフレームを検出", L"느린 프레임 감지", L"检测慢帧"},
         {L"Thermal monitoring", L"温度監視", L"온도 모니터링", L"温度监测"},
+        {L"Match display refresh", L"画面のリフレッシュレートを合わせる", L"화면 주사율 맞추기", L"匹配屏幕刷新率"},
         {L"Power hints (ADPF)", L"省電力ヒント (ADPF)", L"전력 힌트 (ADPF)", L"省电提示 (ADPF)"},
         {L"Compact render targets", L"コンパクトなレンダーターゲット", L"압축 렌더 타깃", L"精简渲染目标"},
         {L"Recording", L"記録", L"기록", L"记录"},

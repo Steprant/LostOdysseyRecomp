@@ -218,6 +218,10 @@ int main(int argc, char** argv) {
     settings::testerFocus=settings::TesterPerformanceHints;
     tick(0x1000);Check(settings::savedConfig.performanceHints && os::scheduling::performanceHints,"power hints apply live and save");
     tick(8);Check(!settings::savedConfig.performanceHints && !os::scheduling::performanceHints,"power hints turn off live");
+    settings::testerFocus=settings::TesterDisplayRate;
+    Check(settings::savedConfig.displayRateHint,"display refresh matching defaults on");
+    tick(0x1000);Check(!settings::savedConfig.displayRateHint,"display refresh matching turns off");
+    tick(8);Check(settings::savedConfig.displayRateHint,"display refresh matching turns back on");
     settings::testerFocus=settings::TesterRecording;tick(0x1000);
     Check(d.recording && androidMessage==0x8002,"record starts the Android collector");
     settings::testerFocus=settings::TesterProfile;tick(8);Check(d.profile==1,"profile remains fixed during recording");

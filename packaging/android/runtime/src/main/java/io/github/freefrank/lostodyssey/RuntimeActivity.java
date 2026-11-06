@@ -35,6 +35,8 @@ public final class RuntimeActivity extends SDLActivity {
     private static final int COMMAND_TESTER_START = 0x8002;
     private static final int COMMAND_TESTER_STOP = 0x8003;
     private static final int COMMAND_TESTER_EXPORT = 0x8004;
+    /** Game frame rate (param: FPS, 0 for no preference) for the phone panel. */
+    private static final int COMMAND_FRAME_RATE = 0x8005;
     /** Starts the native importer (into {@link GameStorage#importRoot}) instead of the game. */
     static final String EXTRA_IMPORT = "import";
     /** Files and folders picked in the system file picker, which the importer scans at once. */
@@ -76,6 +78,7 @@ public final class RuntimeActivity extends SDLActivity {
             super.surfaceChanged(holder, format, width, height);
             if (tvDiagnostics != null) tvDiagnostics.surface("changed", holder, width, height, getDisplay());
             if (tvOutput != null) tvOutput.surfaceReady();
+            applyContentFrameRate();
         }
         @Override public void surfaceDestroyed(SurfaceHolder holder) {
             if (tvDiagnostics != null) tvDiagnostics.surface("destroyed", holder, 0, 0, getDisplay());
@@ -192,6 +195,11 @@ public final class RuntimeActivity extends SDLActivity {
             openGameFolderPage();
             return true;
         }
+        if (command == COMMAND_FRAME_RATE) {
+            contentFrameRate = param instanceof Integer ? Math.max(0, (Integer) param) : 0;
+            applyContentFrameRate();
+            return true;
+        }
         if (command == COMMAND_TESTER_START) { AndroidTester.get(this).start(); return true; }
         if (command == COMMAND_TESTER_STOP) { AndroidTester.get(this).stop(); return true; }
         if (command == COMMAND_TESTER_EXPORT) {
@@ -202,6 +210,27 @@ public final class RuntimeActivity extends SDLActivity {
             return true;
         }
         return super.onUnhandledMessage(command, param);
+    }
+
+    /** Last game frame rate the runtime reported (0: no preference). */
+    private int contentFrameRate = 0;
+
+    /**
+     * Declares the game's frame rate on the phone surface, so a 120 Hz panel
+     * can run at a matching rate (60 or 30 Hz on LTPO panels) for 30/60 FPS
+     * content: less display and compositor work and evenly spaced frames.
+     * TV output keeps its own 60 Hz request.
+     */
+    private void applyContentFrameRate() {
+        if (Build.VERSION.SDK_INT < 30 || mSurface == null) return;
+        if (tvOutput != null && tvOutput.active()) return;
+        android.view.Surface surface = mSurface.getHolder().getSurface();
+        if (surface == null || !surface.isValid()) return;
+        try {
+            surface.setFrameRate(contentFrameRate, android.view.Surface.FRAME_RATE_COMPATIBILITY_FIXED_SOURCE);
+        } catch (IllegalArgumentException | IllegalStateException ignored) {
+            // A surface released between the check and the call keeps the system default.
+        }
     }
 
     /** Opens the game folder page over the game (CTRL dialog or native settings). */
