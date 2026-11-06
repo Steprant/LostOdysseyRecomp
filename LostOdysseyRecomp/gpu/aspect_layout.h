@@ -99,6 +99,37 @@ inline std::array<Rect, 4> MenuBars(Scale scale)
 // The renderer retains the guest half-pixel offset (+1/1280, -1/720).
 // Compose after the existing canvas transform, including its homogeneous
 // column, so translated/rotated HUD stacks receive the same screen-space fit.
+// A tiled 2D layer that covers the whole 1280x720 guest screen (a pattern
+// over the title screen's clouds) is drawn across the full output instead of
+// the centred 16:9 fit. Its texture range widens by the inverse canvas scale
+// around the same centre, so the pattern keeps its texel size and aspect.
+struct TileUv
+{
+    double u, v, ul, vl;
+};
+inline bool CoversGuestScreen(double x, double y, double width, double height)
+{
+    return x <= 0.5 && y <= 0.5 && x + width >= 1279.5 && y + height >= 719.5;
+}
+inline bool TiledUv(double ul, double vl)
+{
+    return std::abs(ul) > 1.01 || std::abs(vl) > 1.01;
+}
+inline TileUv WidenTileUv(TileUv uv, Scale scale)
+{
+    if (scale.x > 0.0f && scale.x < 1.0f) {
+        const double wide = uv.ul / scale.x;
+        uv.u -= (wide - uv.ul) * 0.5;
+        uv.ul = wide;
+    }
+    if (scale.y > 0.0f && scale.y < 1.0f) {
+        const double tall = uv.vl / scale.y;
+        uv.v -= (tall - uv.vl) * 0.5;
+        uv.vl = tall;
+    }
+    return uv;
+}
+
 inline float CanvasComponent(float value, float homogeneous, float scale, float halfPixel, float ndcOffset = 0.0f)
 {
     return scale * value + homogeneous * (ndcOffset - (1.0f - scale) * halfPixel);

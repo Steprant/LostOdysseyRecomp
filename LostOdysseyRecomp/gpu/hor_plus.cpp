@@ -341,6 +341,48 @@ void DrawMenuBars(const PPCContext& ctx, uint8_t* base, uint32_t canvas)
 }
 }
 
+// UCanvas::DrawTile (r3 canvas, f1-f4 x/y/width/height, f5-f8 u/v/ul/vl). A
+// tiled layer covering the whole guest screen without a canvas transform -
+// the title screen's pattern over its clouds - would otherwise receive the
+// HUD's centred 16:9 fit and stop at the widened sides, which then look
+// unfiltered. Draw it over the full output with its texture range widened
+// (aspect_layout::WidenTileUv). Single-image layers (UV range within one
+// repeat) keep the fit, so artwork is never stretched or smeared.
+PPC_FUNC(sub_8230B308)
+{
+    const uint32_t canvas = ctx.r3.u32;
+    const auto scale = OutputScale();
+    uint32_t matrix = 0;
+    if (scale.IsIdentity() || canvas == fullOutputCanvas || canvas == fullMenuCanvas ||
+        !gpu::aspect_layout::CoversGuestScreen(ctx.f1.f64, ctx.f2.f64, ctx.f3.f64, ctx.f4.f64) ||
+        !gpu::aspect_layout::TiledUv(ctx.f7.f64, ctx.f8.f64) || !IsPrimaryCanvas(canvas, matrix))
+    {
+        __imp__sub_8230B308(ctx, base);
+        return;
+    }
+    // Only an untransformed canvas: an animated or scaled layer keeps its fit.
+    const uint32_t basis = LoadWord(canvas + 0x0C);
+    for (uint32_t i = 0; i < 16; ++i)
+        if (LoadWord(matrix + i * 4) != LoadWord(basis + i * 4))
+        {
+            __imp__sub_8230B308(ctx, base);
+            return;
+        }
+    const auto uv = gpu::aspect_layout::WidenTileUv({ctx.f5.f64, ctx.f6.f64, ctx.f7.f64, ctx.f8.f64}, scale);
+    static uint32_t logged = 0;
+    if (logged < 8 && ++logged)
+        LOG_INFO("hor+: full-screen tiled canvas layer widened texture={:#x} uv=({:.3f},{:.3f},{:.3f},{:.3f}) -> ({:.3f},{:.3f},{:.3f},{:.3f})",
+            LoadWord(ctx.r1.u32 + 100), ctx.f5.f64, ctx.f6.f64, ctx.f7.f64, ctx.f8.f64, uv.u, uv.v, uv.ul, uv.vl);
+    FlushCanvas(ctx, base, canvas);
+    const PPCContext saved = ctx;
+    const uint32_t previous = fullOutputCanvas;
+    fullOutputCanvas = canvas;
+    ctx.f5.f64 = uv.u; ctx.f6.f64 = uv.v; ctx.f7.f64 = uv.ul; ctx.f8.f64 = uv.vl;
+    __imp__sub_8230B308(ctx, base);
+    FlushCanvas(saved, base, canvas);
+    fullOutputCanvas = previous;
+}
+
 // Native screen-effect type 3 draws the view's colour/alpha fade. It must cover
 // the whole scene rather than receive the HUD's centred 16:9 fit. Flush both
 // boundaries so a deferred Canvas batch cannot mix the fade with fitted UI.
