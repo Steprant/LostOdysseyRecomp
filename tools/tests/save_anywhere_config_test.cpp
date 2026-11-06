@@ -172,6 +172,8 @@ int wmain(int argc, wchar_t** argv)
     Write("internal_resolution=540\n");
     Check(settings::Read().internalResolution == 720, "the removed 540 render resolution loads as 720");
     Write("internal_resolution=900\n");
+    Check(settings::Read().internalResolution == 900, "900p is a render resolution");
+    Write("internal_resolution=960\n");
     Check(settings::Read().internalResolution == 0, "an unknown render resolution follows the output");
     Check(settings::Read().vibrationPercent == 100, "missing vibration key keeps retail strength");
     Write("vibration=40\n");

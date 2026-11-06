@@ -41,7 +41,7 @@ Config Validate(Config value)
     // 540 was a render resolution in development builds; it now means the original 720.
     if (value.internalResolution == 540) value.internalResolution = 720;
     if (value.internalResolution != 0 && value.internalResolution != InternalResolutionNative &&
-        value.internalResolution != 720 && value.internalResolution != 1080 &&
+        value.internalResolution != 720 && value.internalResolution != 900 && value.internalResolution != 1080 &&
         value.internalResolution != 1440 && value.internalResolution != 2160)
         value.internalResolution = 0;
 #if LO_PLATFORM_MACOS

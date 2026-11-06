@@ -33,8 +33,8 @@ int main() {
         "unknown targets keep the plan height at 16:9 and wider");
     // Every exact 16:9 output keeps the sizes from before tall layouts.
     for (uint32_t units = 1; units <= 2000; ++units)
-        for (const uint32_t mode : {0u, 720u, 1080u, 1440u, 2160u, 900u}) {
-            const bool fixed = mode == 720 || mode == 1080 || mode == 1440 || mode == 2160;
+        for (const uint32_t mode : {0u, 720u, 1080u, 1440u, 2160u, 900u, 1000u}) {
+            const bool fixed = mode == 720 || mode == 900 || mode == 1080 || mode == 1440 || mode == 2160;
             const uint32_t legacyUnits = (std::min)(units, 240u);
             const Size legacy = fixed ? Size{mode * 16 / 9, mode} : Size{legacyUnits * 16, legacyUnits * 9};
             Require(ResolveInternalSize(mode, units * 16, units * 9) == legacy, "16:9 output keeps the previous size");
@@ -48,6 +48,8 @@ int main() {
     Require(ResolveInternalSize(0, 1080, 1920) == Size{1080, 1920}, "portrait follows output raster");
     Require(ResolveInternalSize(2160, 1280, 720) == Size{3840, 2160}, "manual internal size retains 16:9 output");
     Require(ResolveInternalSize(1080, 2560, 1080) == Size{2560, 1080}, "manual internal height follows output aspect");
+    Require(ResolveInternalSize(900, 2670, 1200) == Size{2003, 900}, "900p keeps the phone aspect below its 1200-row panel");
+    Require(ResolveInternalSize(900, 1920, 1080) == Size{1600, 900}, "900p on a 1080p output");
     Require(Scale(428, 1080) == 642 && Scale(448, 1080) == 672, "logical fetch view excludes scaled storage padding");
     Require(Scale(736, 2160) == 2208 && Scale(720, 2160) == 2160, "EDRAM allocation padding is separate from frontbuffer content");
     Require(TargetHeight(1024, 1024, 2160) == 720, "square shadow target retains original texel resolution");
