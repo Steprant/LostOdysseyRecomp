@@ -162,6 +162,15 @@ jobs:
           "$LO_ANDROID_CI_CACHE/android-sdk/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$apk"
           "$LO_ANDROID_CI_CACHE/android-sdk/build-tools/35.0.0/zipalign" -c -P 16 4 "$apk"
           python tools/android/verify-apk.py "$apk"
+          # Steprant 1.5 was signed with this certificate; an update signed
+          # with another key does not install over it.
+          expected=ecaadcdc715ff7e4aeaaf265ec11f1854d4039175dbc7e53fd4f86fd03af6f3f
+          actual=$("$LO_ANDROID_CI_CACHE/android-sdk/build-tools/35.0.0/apksigner" verify --print-certs "$apk" \
+            | sed -n 's/.*certificate SHA-256 digest: //p' | head -n 1)
+          echo "Signing certificate SHA-256: $actual"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::warning::Not signed with the Steprant 1.5 certificate ($expected); this APK will not install over 1.5. Add the fork's debug keystore to the build-input repository as android/debug.keystore."
+          fi
           mv "$apk" "out/apk/LostOdyssey-Steprant-v$VERSION.apk"
           sha256sum out/apk/*.apk
       - uses: actions/upload-artifact@v4

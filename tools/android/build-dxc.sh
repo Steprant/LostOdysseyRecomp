@@ -11,7 +11,7 @@ fi
 ndk="$sdk/ndk/28.2.13676358"
 cmake="$sdk/cmake/3.22.1/bin/cmake"
 llvm_bin="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin"
-for executable in "$cmake" "$llvm_bin/llvm-readelf" "$llvm_bin/llvm-nm" "$llvm_bin/llvm-strip"; do
+for executable in "$cmake" "$llvm_bin/llvm-readelf" "$llvm_bin/llvm-nm" "$llvm_bin/llvm-strip" "$llvm_bin/llvm-objcopy"; do
     if [[ ! -x "$executable" ]]; then
         echo "Required Android build tool is missing: $executable" >&2
         exit 1
@@ -29,13 +29,44 @@ output=${LO_DXC_OUTPUT:-$repo/out/android-dxc/libdxcompiler.so}
 commit=416fab6b5c4ba956a320d9131102304da995edfc
 release_base=737a12a663f1697d3755a522d8fbf30481ecd2f6
 
+# Android API level and NDK of the ELF's .note.android.ident, e.g.
+# "26 r28c 13676358". `file` decodes this note only with newer magic databases
+# (Ubuntu 22.04's file 5.41 does not), which sent CI runs into source builds
+# whose output then failed this check too.
+android_ident() {
+    local note copy
+    note=$(mktemp)
+    copy=$(mktemp)
+    if ! "$llvm_bin/llvm-objcopy" --dump-section=.note.android.ident="$note" "$1" "$copy" 2>/dev/null; then
+        rm -f "$note" "$copy"
+        return 1
+    fi
+    rm -f "$copy"
+    python3 - "$note" <<'PY'
+import struct, sys
+data = open(sys.argv[1], "rb").read()
+namesz, descsz, kind = struct.unpack_from("<III", data, 0)
+name = data[12:12 + namesz].rstrip(b"\0")
+desc = data[12 + ((namesz + 3) & ~3):][:descsz]
+if name != b"Android" or kind != 1 or len(desc) < 4:
+    sys.exit(1)
+api = struct.unpack_from("<i", desc, 0)[0]
+fields = [desc[4:68], desc[68:132]] if len(desc) >= 132 else [b"", b""]
+print(api, *(f.split(b"\0")[0].decode() or "-" for f in fields))
+PY
+    local status=$?
+    rm -f "$note"
+    return $status
+}
+
 verify_binary() {
-    local library=$1
-    [[ -s "$library" ]] || return 1
-    file "$library" | grep -F 'ARM aarch64' | grep -F 'for Android 26, built by NDK r28c (13676358)' >/dev/null || return 1
-    "$llvm_bin/llvm-readelf" --file-header "$library" | grep -F AArch64 >/dev/null || return 1
-    "$llvm_bin/llvm-nm" -D --defined-only "$library" | grep -E ' T DxcCreateInstance$' >/dev/null || return 1
-    strings "$library" | grep -F 'dxcoob 1.8.2407.7 (416fab6b)' >/dev/null || return 1
+    local library=$1 ident
+    [[ -s "$library" ]] || { echo "  missing or empty: $library" >&2; return 1; }
+    ident=$(android_ident "$library") || { echo "  no Android ELF note: $library" >&2; return 1; }
+    [[ "$ident" == "26 r28c 13676358" ]] || { echo "  Android note '$ident', expected API 26 / NDK r28c (13676358)" >&2; return 1; }
+    "$llvm_bin/llvm-readelf" --file-header "$library" | grep -F AArch64 >/dev/null || { echo "  not AArch64" >&2; return 1; }
+    "$llvm_bin/llvm-nm" -D --defined-only "$library" | grep -E ' T DxcCreateInstance$' >/dev/null || { echo "  DxcCreateInstance not exported" >&2; return 1; }
+    strings "$library" | grep -F 'dxcoob 1.8.2407.7 (416fab6b)' >/dev/null || { echo "  version string dxcoob 1.8.2407.7 (416fab6b) not found" >&2; return 1; }
 }
 
 if verify_binary "$output"; then
