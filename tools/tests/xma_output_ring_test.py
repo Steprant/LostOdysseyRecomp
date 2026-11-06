@@ -21,6 +21,7 @@ PRELUDE = r'''
 #include <cstring>
 #include <stdexcept>
 #include <vector>
+#include <apu/audio_timing.h>
 static void Check(bool value, const char* message) {
     if (!value) throw std::runtime_error(message);
 }
@@ -49,6 +50,9 @@ static std::array<uint32_t, 16> guest{};
 static std::vector<uint8_t> memory;
 static unsigned packets = 0;
 static bool g_trace = false, g_traceContextWrites = false;
+// Production Work budget (xma.cpp); a single hold, as before the budget, is 4096.
+constexpr int kUnboundedWork = 4096;
+static int g_workBudget = 16;
 static uint8_t* ContextHost(uint32_t id) {
     Check(id == 0, "unexpected context id");
     return reinterpret_cast<uint8_t*>(guest.data());
@@ -172,7 +176,7 @@ def main():
     cpp = out / 'xma_output_ring.cpp'
     cpp.write_text(PRELUDE + constants + context + 'static bool g_audioDiagnostics = false;\n' +
                    ring + SHELLS + consume_work + TAIL)
-    flags = ['-std=c++20', '-pthread']
+    flags = ['-std=c++20', '-pthread', '-I', str(ROOT / 'LostOdysseyRecomp')]
     if args.sanitize:
         flags += ['-O1', '-g', '-fno-omit-frame-pointer', '-fsanitize=address,undefined']
     else:
