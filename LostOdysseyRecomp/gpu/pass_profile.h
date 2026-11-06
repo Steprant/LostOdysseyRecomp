@@ -1,5 +1,6 @@
 #pragma once
 #include <plume_render_interface.h>
+#include "draw_attachment_policy.h"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -57,7 +58,9 @@ inline std::string TakeFormatDraws(double frames)
             std::snprintf(buffer, sizeof(buffer), " %s=%.1f", names[i], double(n) / frames);
             line += buffer;
         }
-    std::snprintf(buffer, sizeof(buffer), " depth_only=%.1f", double(g_depthOnlyDraws.exchange(0, std::memory_order_relaxed)) / frames);
+    std::snprintf(buffer, sizeof(buffer), " depth_only=%.1f depth_only_keeps_color=%d",
+        double(g_depthOnlyDraws.exchange(0, std::memory_order_relaxed)) / frames,
+        ::gpu::draw_attachment::KeepColorForDepthOnly() ? 1 : 0);
     return line + buffer;
 }
 

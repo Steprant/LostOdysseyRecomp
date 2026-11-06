@@ -49,6 +49,8 @@
 #include <modding/rebuild_progress.h>
 #include <modding/text_overlay.h>
 #include <settings/config.h>
+#include <gpu/adreno_generation.h>
+#include <gpu/shader/cache.h>
 #include "frame_generation_settings.h"
 #include <settings/menu.h>
 #include <settings/restart.h>
@@ -192,7 +194,23 @@ static void LoadCustomVulkanDriver()
     // Turnip keeps one of the five Adreno 6xx bindless sets for dynamic buffer
     // offsets and reports four; the renderer binds five sets and has no dynamic
     // offsets (#185). Mesa reads driconf options from the environment.
-    setenv("tu_dont_reserve_descriptor_set", "true", 0);
+    // Uniform-buffer shader constants need those dynamic offsets and a sixth
+    // set: Adreno 7xx and later have eight, so the reservation stays there.
+    // Elsewhere the renderer falls back to device-address constants.
+    const uint32_t adrenoGeneration = gpu::adreno::Generation();
+    if (xenos::cache::RuntimeUboConstantsFlag().load(std::memory_order_relaxed) && adrenoGeneration >= 7 &&
+        !getenv("tu_dont_reserve_descriptor_set")) {
+        LOG_INFO("vulkan: Adreno {}xx: Turnip keeps its dynamic-offset descriptor set for uniform-buffer shader constants",
+            adrenoGeneration);
+    } else {
+        setenv("tu_dont_reserve_descriptor_set", "true", 0);
+    }
+    // Optional Turnip render mode for A/B tests (Android diagnostics page):
+    // sysmem or GMEM for every render pass instead of Turnip's per-pass choice.
+    if (const uint32_t renderMode = settings::GetConfig().turnipRenderMode; renderMode && !getenv("TU_DEBUG")) {
+        const char* value = renderMode == 1 ? "sysmem" : "gmem";
+        if (setenv("TU_DEBUG", value, 0) == 0) LOG_INFO("vulkan: Turnip render mode TU_DEBUG={}", value);
+    }
     const char* hookDir = getenv("LO_NATIVE_LIB_DIR");
     const char* driverDir = getenv("LO_CUSTOM_DRIVER_DIR");
     const char* mode = getenv("LO_VK_CUSTOM_DRIVER_MODE");

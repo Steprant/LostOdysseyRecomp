@@ -1,4 +1,5 @@
 #pragma once
+#include <atomic>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -14,18 +15,24 @@ constexpr bool DepthOnly(uint32_t colorWriteMask, bool hasDepth) {
 }
 // A depth-only draw whose color target has the depth target's size may keep
 // that color attachment bound (zero write mask) instead of switching to a
-// depth-only framebuffer. Apple GPUs store and reload tiles at every encoder
-// break, so this is ~15% faster on Metal; on Turnip's sysmem passes it was ~9%
-// slower. LO_DEPTH_ONLY_KEEP_COLOR=0/1 overrides the platform default.
+// depth-only framebuffer, so the scene's alternating colour and depth-only
+// draws stay in one render pass. Apple GPUs store and reload tiles at every
+// encoder break, so this is ~15% faster on Metal; an earlier Turnip
+// measurement found ~9% slower sysmem passes. Elsewhere the setting decides
+// (settings::Config::depthOnlyKeepColor, applied live through
+// SetKeepColorForDepthOnly); LO_DEPTH_ONLY_KEEP_COLOR=0/1 overrides both.
+inline std::atomic<bool> g_keepColorForDepthOnly{false};
+inline void SetKeepColorForDepthOnly(bool keep) { g_keepColorForDepthOnly.store(keep, std::memory_order_relaxed); }
 inline bool KeepColorForDepthOnly() {
-    static const bool keep = [] {
+    static const int forced = [] {
         const char* value = std::getenv("LO_DEPTH_ONLY_KEEP_COLOR");
-#if defined(__APPLE__)
-        return !value || std::strcmp(value, "0") != 0;
-#else
-        return value && std::strcmp(value, "1") == 0;
-#endif
+        return value ? (std::strcmp(value, "0") != 0 ? 1 : 0) : -1;
     }();
-    return keep;
+    if (forced >= 0) return forced == 1;
+#if defined(__APPLE__)
+    return true;
+#else
+    return g_keepColorForDepthOnly.load(std::memory_order_relaxed);
+#endif
 }
 }

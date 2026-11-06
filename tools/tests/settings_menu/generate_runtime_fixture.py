@@ -22,6 +22,7 @@ PREAMBLE = r'''
 #include <mutex>
 #include <hid/glyph_atlases.h>
 #include <apu/audio.h>
+#include <gpu/draw_attachment_policy.h>
 #include <settings/graphics_menu.h>
 #include <settings/menu_render.h>
 #include <settings/menu_assets.h>
@@ -236,6 +237,19 @@ int main(int argc, char** argv) {
     settings::testerFocus=settings::TesterXmaLocks;
     tick(0x1000);Check(settings::savedConfig.xmaContextLocks && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"XMA per-voice locks saved for the next start");
     tick(8);Check(!settings::savedConfig.xmaContextLocks,"XMA per-voice locks toggle off");
+    settings::testerFocus=settings::TesterShaderUbo;
+    tick(0x1000);Check(settings::savedConfig.shaderConstantsUbo && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"shader constants in UBO saved for the next start");
+    tick(8);Check(!settings::savedConfig.shaderConstantsUbo,"shader constants in UBO toggle off");
+    settings::testerFocus=settings::TesterDepthKeepColor;
+    tick(0x1000);Check(settings::savedConfig.depthOnlyKeepColor && gpu::draw_attachment::KeepColorForDepthOnly(),"one pass for depth-only draws applies live and saves");
+    tick(8);Check(!settings::savedConfig.depthOnlyKeepColor && !gpu::draw_attachment::KeepColorForDepthOnly(),"one pass for depth-only draws turns off live");
+    settings::testerFocus=settings::TesterTurnipMode;
+    Check(settings::savedConfig.turnipRenderMode==0,"Turnip chooses its render mode by default");
+    tick(8);Check(settings::savedConfig.turnipRenderMode==1 && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"Turnip sysmem saved for the next start");
+    tick(8);Check(settings::savedConfig.turnipRenderMode==2,"Turnip GMEM");
+    tick(8);Check(settings::savedConfig.turnipRenderMode==0,"Turnip render mode wraps to automatic");
+    tick(4);Check(settings::savedConfig.turnipRenderMode==2,"Turnip render mode steps back");
+    tick(8);Check(settings::savedConfig.turnipRenderMode==0,"Turnip render mode back to automatic");
     settings::testerFocus=settings::TesterDisplayRate;
     Check(settings::savedConfig.displayRateHint,"display refresh matching defaults on");
     tick(0x1000);Check(!settings::savedConfig.displayRateHint,"display refresh matching turns off");

@@ -196,6 +196,18 @@ struct Config
     // XMA decoder locks per context instead of one global lock: a guest audio
     // command no longer waits for another voice's decode. Applied at start.
     bool xmaContextLocks = false;
+    // Translated guest shaders read their constants from uniform buffers
+    // instead of device-address loads (xenos::cache::SetRuntimeUboConstants).
+    // No published shader pack has this form, so the first start compiles the
+    // shaders on the device. Applied at start.
+    bool shaderConstantsUbo = false;
+    // Depth-only draws keep the colour target bound with a zero write mask, so
+    // the scene's colour and depth-only draws share one render pass
+    // (gpu::draw_attachment::KeepColorForDepthOnly). Applied live.
+    bool depthOnlyKeepColor = false;
+    // Turnip only (Android custom driver): 0 lets Turnip choose sysmem or GMEM
+    // per render pass, 1 forces sysmem, 2 GMEM (TU_DEBUG). Applied at start.
+    uint32_t turnipRenderMode = 0;
     // Audio device-queue reserve in 256-sample frames: 0 is the platform
     // default (8 on Android, about 43 ms), 12 or 16 trade latency for
     // tolerance of late driver wakeups. Applied live (apu::SetQueueReserveFrames).

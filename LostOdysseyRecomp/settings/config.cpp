@@ -352,6 +352,12 @@ Config Read()
             value.displayRateHint = number != 0;
         else if (key == "xma_context_locks" && number <= 1)
             value.xmaContextLocks = number != 0;
+        else if (key == "shader_constants_ubo" && number <= 1)
+            value.shaderConstantsUbo = number != 0;
+        else if (key == "depth_only_keep_color" && number <= 1)
+            value.depthOnlyKeepColor = number != 0;
+        else if (key == "turnip_render_mode" && number <= 2)
+            value.turnipRenderMode = number;
         else if (key == "audio_reserve_frames")
             value.audioReserveFrames = number;
         else if (key == "automatic_updates")
@@ -533,6 +539,9 @@ static bool WriteConfig(const Config &value)
            << "\nperformance_hints=" << (value.performanceHints ? 1 : 0)
            << "\ndisplay_rate_hint=" << (value.displayRateHint ? 1 : 0)
            << "\nxma_context_locks=" << (value.xmaContextLocks ? 1 : 0)
+           << "\nshader_constants_ubo=" << (value.shaderConstantsUbo ? 1 : 0)
+           << "\ndepth_only_keep_color=" << (value.depthOnlyKeepColor ? 1 : 0)
+           << "\nturnip_render_mode=" << value.turnipRenderMode
            << "\naudio_reserve_frames=" << value.audioReserveFrames
            << "\nskip_shader_prebuild=" << (value.skipShaderPrebuild ? 1 : 0)
            << "\nachievement_notifications=" << (value.achievementNotifications ? 1 : 0)

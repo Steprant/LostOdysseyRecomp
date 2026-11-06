@@ -39,8 +39,12 @@ inline std::string_view FileNameOf(Flavor flavor) {
     return {};
 }
 // The contract ignores the compiler identity, so none is needed here.
+// Distribution packs never have the uniform-buffer form that play may choose
+// at run time (cache::SetRuntimeUboConstants), so the installed pack is still
+// recognised and not offered for download again.
 inline cache::Identity IdentityOf(Flavor flavor) {
-    return cache::MakeIdentity(flavor == Flavor::D3D12 ? cache::Backend::D3D12 : cache::Backend::Vulkan, "");
+    const bool ubo = cache::UboConstants() && !cache::RuntimeUboConstantsFlag().load(std::memory_order_relaxed);
+    return cache::MakeIdentity(flavor == Flavor::D3D12 ? cache::Backend::D3D12 : cache::Backend::Vulkan, "", ubo);
 }
 inline Digest FlavorContract(std::span<const uint8_t> unboundXex, Flavor flavor) {
     return RuntimeContract(unboundXex, IdentityOf(flavor), FormatOf(flavor));

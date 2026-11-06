@@ -18,6 +18,7 @@
 #include <gpu/frame_plan.h>
 #include <gpu/frame_generation_settings.h>
 #include <gpu/shader_preparation_request.h>
+#include <gpu/draw_attachment_policy.h>
 #include <kernel/io/file_system.h>
 #include <os/logger.h>
 #include <stdafx.h>
@@ -153,7 +154,7 @@ std::atomic<bool> achievementsOpen{false};
 #if LO_PLATFORM_ANDROID
 std::atomic<bool> testerOpen{false};
 int testerFocus = 0;
-enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterAudioReserve, TesterCompactTargets, TesterPerformanceHints, TesterDisplayRate, TesterXmaLocks, TesterRecording, TesterExport, TesterRowCount };
+enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterAudioReserve, TesterCompactTargets, TesterPerformanceHints, TesterDisplayRate, TesterXmaLocks, TesterShaderUbo, TesterDepthKeepColor, TesterTurnipMode, TesterRecording, TesterExport, TesterRowCount };
 // Audio buffer choices on the Tester page: settings::Config::audioReserveFrames.
 constexpr uint32_t TesterAudioReserves[]{0, 12, 16};
 constexpr uint32_t TesterPeriodsMs[]{250, 500, 1000, 2000};
@@ -1359,6 +1360,10 @@ void Publish(uint8_t *base, uint32_t config)
         addChoices(L"Power hints (ADPF)", L"省電提示 (ADPF)", onOff(), GetConfig().performanceHints ? 0 : 1);
         addChoices(L"Match display refresh", L"配合螢幕更新率", onOff(), GetConfig().displayRateHint ? 0 : 1);
         addChoices(L"XMA per-voice locks", L"XMA 逐聲道鎖定", onOff(), GetConfig().xmaContextLocks ? 0 : 1);
+        addChoices(L"Shader constants in UBO", L"著色器常數使用 UBO", onOff(), GetConfig().shaderConstantsUbo ? 0 : 1);
+        addChoices(L"One pass for depth-only draws", L"僅深度繪製共用通道", onOff(), GetConfig().depthOnlyKeepColor ? 0 : 1);
+        addChoices(L"Turnip render mode", L"Turnip 渲染模式", {Tr(L"Automatic", L"自動"), L"Sysmem", L"GMEM"},
+                   std::min(GetConfig().turnipRenderMode, 2u));
         const auto seconds = d.Duration(::diagnostics::android_tester::NowNs()) / 1000000000ull;
         const std::wstring duration = std::to_wstring(seconds / 60) + L":" + (seconds % 60 < 10 ? L"0" : L"") + std::to_wstring(seconds % 60);
         next.rows.push_back({Tr(L"Recording", L"記錄"), (recording ? Tr(L"Stop", L"停止") : Tr(L"Start", L"開始")) + std::wstring(L"  ") + duration, d.enabled.load(), {}, 0});
@@ -1774,6 +1779,15 @@ void Publish(uint8_t *base, uint32_t config)
 #if LO_PLATFORM_ANDROID
     if (testerOpen)
         next.help = !status.empty() ? status
+            : testerFocus == TesterShaderUbo
+            ? Tr(L"Experimental: shaders read their constants from fast constant memory instead of memory loads. The first start compiles every shader on the phone (several minutes). Applies after restarting.",
+                 L"實驗性：著色器從快速常數記憶體讀取常數，而非記憶體載入。首次啟動會在手機上編譯所有著色器（數分鐘）。重新啟動後生效。")
+            : testerFocus == TesterTurnipMode
+            ? Tr(L"Turnip driver only: draw every render pass directly in memory (Sysmem) or in on-chip tiles (GMEM) instead of choosing per pass. Applies after restarting.",
+                 L"僅限 Turnip 驅動：所有渲染通道直接在記憶體 (Sysmem) 或晶片上的圖塊 (GMEM) 中繪製，而非逐通道選擇。重新啟動後生效。")
+            : testerFocus == TesterDepthKeepColor
+            ? Tr(L"Depth-only draws stay in the scene's render pass instead of starting a new one: fewer GPU pass changes. Applies immediately.",
+                 L"僅深度繪製留在場景的渲染通道中，而非另開新通道：減少 GPU 通道切換。立即套用。")
             : testerFocus == TesterXmaLocks
             ? Tr(L"Audio commands wait only for their own voice's decoding, not for every voice. Applies after restarting.",
                  L"音訊指令只等待自身聲道的解碼，而非所有聲道。重新啟動後生效。")
@@ -2576,7 +2590,7 @@ void PointerClick(float x, float y, bool reverse)
     mouseRow = int(hit);
     if (listPage) {
 #if LO_PLATFORM_ANDROID
-        if (testerOpen.load() && hit <= size_t(TesterXmaLocks)) {
+        if (testerOpen.load() && hit <= size_t(TesterTurnipMode)) {
             if (x >= 386) mouseAction = reverse ? 4 : 8;
         }
         else
@@ -3448,6 +3462,25 @@ PPC_FUNC(sub_822F19B0)
                 saved.xmaContextLocks = !saved.xmaContextLocks;
                 status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
                                            : Tr(L"Could not save settings.", L"無法儲存設定。");
+            }
+            else if (testerFocus == TesterShaderUbo) {
+                Config saved = GetConfig();
+                saved.shaderConstantsUbo = !saved.shaderConstantsUbo;
+                status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
+                                           : Tr(L"Could not save settings.", L"無法儲存設定。");
+            }
+            else if (testerFocus == TesterTurnipMode && (input & 0x100c)) {
+                const int delta = (input & 4) ? -1 : 1;
+                Config saved = GetConfig();
+                saved.turnipRenderMode = uint32_t((int(std::min(saved.turnipRenderMode, 2u)) + 3 + delta) % 3);
+                status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
+                                           : Tr(L"Could not save settings.", L"無法儲存設定。");
+            }
+            else if (testerFocus == TesterDepthKeepColor) {
+                Config saved = GetConfig();
+                saved.depthOnlyKeepColor = !saved.depthOnlyKeepColor;
+                gpu::draw_attachment::SetKeepColorForDepthOnly(saved.depthOnlyKeepColor);
+                if (!SaveConfig(saved)) status = Tr(L"Could not save settings.", L"無法儲存設定。");
             }
             else if (testerFocus == TesterDisplayRate) {
                 Config saved = GetConfig();

@@ -2691,6 +2691,21 @@ namespace gpu::renderer
                 renderFormat = vulkan ? RenderShaderFormat::SPIRV : RenderShaderFormat::DXIL;
                 if (!device || !queue)
                     return InitFailure("device_or_queue");
+#if defined(LO_GPU_PLUME)
+                // The uniform-buffer form binds a sixth descriptor set with
+                // three dynamic uniform buffers (kConstantSet). A driver that
+                // cannot (Turnip on Adreno 6xx keeps only four sets once one is
+                // reserved for dynamic offsets) keeps the pointer form.
+                if (nativeVulkan && xenos::cache::RuntimeUboConstantsFlag().load(std::memory_order_relaxed)) {
+                    const auto& limits = static_cast<plume::VulkanDevice*>(device)->physicalDeviceProperties.limits;
+                    if (limits.maxBoundDescriptorSets < kConstantSet + 1 || limits.maxDescriptorSetUniformBuffersDynamic < 3 ||
+                        limits.maxPerStageDescriptorUniformBuffers < 3) {
+                        LOG_WARNING("renderer: uniform-buffer shader constants unavailable (sets={} dynamic_ubos={} stage_ubos={}); keeping device-address constants",
+                            limits.maxBoundDescriptorSets, limits.maxDescriptorSetUniformBuffersDynamic, limits.maxPerStageDescriptorUniformBuffers);
+                        xenos::cache::SetRuntimeUboConstants(false);
+                    }
+                }
+#endif
                 cacheIdentity = xenos::cache::MakeIdentity(vulkan ? backend::Backend::Vulkan : backend::Backend::D3D12, xenos::DxcIdentity());
                 // Metal translates the same SPIR-V as Vulkan, so both read one pack.
                 uboConstants = xenos::cache::UsesUboConstants(cacheIdentity);
@@ -9794,6 +9809,8 @@ void main()
                 // Pipeline.
                 PipelineKey key{};
                 float layerDepthOffset = 0.0f;
+                // Read once: the setting applies live and both uses below must agree.
+                const bool keepColorForDepthOnly = draw_attachment::KeepColorForDepthOnly();
                 {
                     render_batch::CpuTimer<> pipelineLookupTimer(cpuTimingEnabled);
                     key.vs = vsHash;
@@ -9848,7 +9865,7 @@ void main()
                 key.colorMask = colorWrites ? (Reg(REG_RB_COLOR_MASK) & 0xF) : 0;
                 key.prim = info.primitiveType;
                 key.rtFormat = uint32_t(draw_attachment::DepthOnly(key.colorMask, depth != nullptr) &&
-                    !(depth && draw_attachment::KeepColorForDepthOnly() &&
+                    !(depth && keepColorForDepthOnly &&
                       color->width == depth->width && color->height == depth->height)
                     ? RenderFormat::UNKNOWN : color->format);
                 key.depthFormat = depth ? uint32_t(depth->format) : 0;
@@ -9868,7 +9885,7 @@ void main()
                 const bool depthOnlyRaster = draw_attachment::DepthOnly(key.colorMask, depth != nullptr);
                 HostTexture* rasterTarget = depthOnlyRaster ? depth : color;
                 // Same-size targets may keep the color attachment (see KeepColorForDepthOnly).
-                const bool depthOnlyKeepsColor = depthOnlyRaster && draw_attachment::KeepColorForDepthOnly() &&
+                const bool depthOnlyKeepsColor = depthOnlyRaster && keepColorForDepthOnly &&
                     color->width == depth->width && color->height == depth->height;
 
                 // Constants.
