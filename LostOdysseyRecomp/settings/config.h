@@ -193,6 +193,9 @@ struct Config
     // Android: declare the game frame rate on the phone surface so the panel
     // can match it (Surface.setFrameRate). Applied live.
     bool displayRateHint = true;
+    // XMA decoder locks per context instead of one global lock: a guest audio
+    // command no longer waits for another voice's decode. Applied at start.
+    bool xmaContextLocks = false;
     // Audio device-queue reserve in 256-sample frames: 0 is the platform
     // default (8 on Android, about 43 ms), 12 or 16 trade latency for
     // tolerance of late driver wakeups. Applied live (apu::SetQueueReserveFrames).

@@ -205,11 +205,19 @@ namespace apu::xma
         bool g_trace = false;
         bool g_traceContextWrites = false;
 
-        // g_mutex for a guest command or context (de)allocation. Uncontended
+        // Per-context locking (SetContextLocks, LO_XMA_CONTEXT_LOCKS=0/1): the
+        // worker holds only the mutex of the context it decodes, so a command
+        // for another context no longer waits for that decode. g_mutex then
+        // guards only registers and (de)allocation, briefly. Lock order:
+        // g_mutex before a context mutex; the worker takes no g_mutex.
+        bool g_contextLocks = false;
+        std::array<std::mutex, kContextCount> g_contextMutex;
+
+        // A mutex for a guest command or context (de)allocation. Uncontended
         // acquisitions cost one try_lock; only waits are timed.
-        std::unique_lock<std::mutex> LockForCommand()
+        std::unique_lock<std::mutex> TimedLock(std::mutex& mutex)
         {
-            std::unique_lock lock(g_mutex, std::try_to_lock);
+            std::unique_lock lock(mutex, std::try_to_lock);
             if (lock.owns_lock())
                 return lock;
             const auto start = std::chrono::steady_clock::now();
@@ -224,6 +232,15 @@ namespace apu::xma
                 g_contendedLatencySensitive.fetch_add(1, std::memory_order_relaxed);
             }
             return lock;
+        }
+
+        std::unique_lock<std::mutex> LockForCommand() { return TimedLock(g_mutex); }
+
+        // The decode lock of one context: its own mutex with per-context
+        // locking, otherwise nothing (g_mutex, already held, covers it).
+        std::unique_lock<std::mutex> LockContext(uint32_t id)
+        {
+            return g_contextLocks ? TimedLock(g_contextMutex[id]) : std::unique_lock<std::mutex>();
         }
 
         uint32_t* Register(uint32_t index)
@@ -657,7 +674,7 @@ namespace apu::xma
                     // decoding behind a stream of commands).
                     for (int spin = 0; spin < 64 && g_commandWaiters.load(std::memory_order_relaxed); ++spin)
                         std::this_thread::yield();
-                    std::lock_guard lock(g_mutex);
+                    std::lock_guard lock(g_contextLocks ? g_contextMutex[id] : g_mutex);
                     const auto start = std::chrono::steady_clock::now();
                     Work(id);
                     g_holdPeak.Record(std::chrono::steady_clock::now() - start);
@@ -687,6 +704,7 @@ namespace apu::xma
         for (uint32_t bits = value; bits; bits &= bits - 1)
         {
             const uint32_t id = (reg - first) * 32 + std::countr_zero(bits);
+            const auto contextLock = LockContext(id);
             if (first == kRegKick0) g_contexts[id].enabled = true;
             else if (first == kRegLock0) g_contexts[id].enabled = false;
             else ClearContext(id);
@@ -727,8 +745,8 @@ namespace apu::xma
         g_running = true;
         g_worker = std::thread(WorkerMain);
         g_worker.detach();
-        LOG_INFO("xma: {} contexts at {:#x} (physical {:#x}), FFmpeg XMA frame decoder, work budget {}", kContextCount, g_arrayGuest, g_arrayGuest & 0x1FFFFFFF,
-            g_workBudget > 0 ? std::min(g_workBudget, kUnboundedWork) : kUnboundedWork);
+        LOG_INFO("xma: {} contexts at {:#x} (physical {:#x}), FFmpeg XMA frame decoder, work budget {}, {} locks", kContextCount, g_arrayGuest, g_arrayGuest & 0x1FFFFFFF,
+            g_workBudget > 0 ? std::min(g_workBudget, kUnboundedWork) : kUnboundedWork, g_contextLocks ? "per-context" : "global");
     }
 
     void Shutdown()
@@ -745,6 +763,7 @@ namespace apu::xma
         {
             if (!g_contexts[id].allocated.exchange(true))
             {
+                const auto contextLock = LockContext(id);
                 memset(ContextHost(id), 0, kContextSize);
                 g_contexts[id].enabled = false;
                 g_contexts[id].Reset();
@@ -764,6 +783,7 @@ namespace apu::xma
             return;
         const uint32_t id = (guestAddress - g_arrayGuest) / kContextSize;
         auto lock = LockForCommand();
+        const auto contextLock = LockContext(id);
         if (g_contexts[id].allocated.exchange(false))
         {
             g_contexts[id].ReportSamples("release", id);
@@ -773,6 +793,13 @@ namespace apu::xma
             --g_allocatedCount;
             if (g_trace) LOG_INFO("xma: released context {}", id);
         }
+    }
+
+    void SetContextLocks(bool enabled)
+    {
+        // Chosen before Init starts the worker; LO_XMA_CONTEXT_LOCKS overrides.
+        if (const char* env = getenv("LO_XMA_CONTEXT_LOCKS")) enabled = std::strcmp(env, "0") != 0;
+        if (!g_running) g_contextLocks = enabled;
     }
 
     void MarkLatencySensitiveThread()

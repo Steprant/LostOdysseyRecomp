@@ -199,6 +199,7 @@ static int RunGuest(uint32_t entry)
     os::scheduling::SetPerformanceHints(settings::GetConfig().performanceHints);
     apu::SetQueueReserveFrames(settings::GetConfig().audioReserveFrames);
     apu::Init(apu::Output(settings::GetConfig().audioOutput));
+    apu::xma::SetContextLocks(settings::GetConfig().xmaContextLocks);
     apu::xma::Init();
     if (getenv("LO_HEADLESS"))
         hid::Init(); // otherwise the video thread initialises it

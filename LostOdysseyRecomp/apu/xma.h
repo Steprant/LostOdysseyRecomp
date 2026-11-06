@@ -32,6 +32,8 @@ namespace apu::xma
 
     // The calling thread's waits for the decoder mutex are reported
     // separately (the audio driver: a wait there delays the next frame).
+    // Per-context decoder locks instead of one global lock (before Init).
+    void SetContextLocks(bool enabled);
     void MarkLatencySensitiveThread();
     // Decoder mutex peaks since the previous call, in microseconds: the
     // longest wait by any command, by a latency-sensitive thread, the longest

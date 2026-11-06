@@ -233,6 +233,9 @@ int main(int argc, char** argv) {
     settings::testerFocus=settings::TesterPerformanceHints;
     tick(0x1000);Check(settings::savedConfig.performanceHints && os::scheduling::performanceHints,"power hints apply live and save");
     tick(8);Check(!settings::savedConfig.performanceHints && !os::scheduling::performanceHints,"power hints turn off live");
+    settings::testerFocus=settings::TesterXmaLocks;
+    tick(0x1000);Check(settings::savedConfig.xmaContextLocks && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"XMA per-voice locks saved for the next start");
+    tick(8);Check(!settings::savedConfig.xmaContextLocks,"XMA per-voice locks toggle off");
     settings::testerFocus=settings::TesterDisplayRate;
     Check(settings::savedConfig.displayRateHint,"display refresh matching defaults on");
     tick(0x1000);Check(!settings::savedConfig.displayRateHint,"display refresh matching turns off");

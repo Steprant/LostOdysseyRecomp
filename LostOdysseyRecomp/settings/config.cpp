@@ -350,6 +350,8 @@ Config Read()
             value.performanceHints = number != 0;
         else if (key == "display_rate_hint" && number <= 1)
             value.displayRateHint = number != 0;
+        else if (key == "xma_context_locks" && number <= 1)
+            value.xmaContextLocks = number != 0;
         else if (key == "audio_reserve_frames")
             value.audioReserveFrames = number;
         else if (key == "automatic_updates")
@@ -530,6 +532,7 @@ static bool WriteConfig(const Config &value)
            << "\ncompact_render_targets=" << (value.compactRenderTargets ? 1 : 0)
            << "\nperformance_hints=" << (value.performanceHints ? 1 : 0)
            << "\ndisplay_rate_hint=" << (value.displayRateHint ? 1 : 0)
+           << "\nxma_context_locks=" << (value.xmaContextLocks ? 1 : 0)
            << "\naudio_reserve_frames=" << value.audioReserveFrames
            << "\nskip_shader_prebuild=" << (value.skipShaderPrebuild ? 1 : 0)
            << "\nachievement_notifications=" << (value.achievementNotifications ? 1 : 0)

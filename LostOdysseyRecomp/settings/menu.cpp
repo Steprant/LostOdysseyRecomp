@@ -153,7 +153,7 @@ std::atomic<bool> achievementsOpen{false};
 #if LO_PLATFORM_ANDROID
 std::atomic<bool> testerOpen{false};
 int testerFocus = 0;
-enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterAudioReserve, TesterCompactTargets, TesterPerformanceHints, TesterDisplayRate, TesterRecording, TesterExport, TesterRowCount };
+enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterAudioReserve, TesterCompactTargets, TesterPerformanceHints, TesterDisplayRate, TesterXmaLocks, TesterRecording, TesterExport, TesterRowCount };
 // Audio buffer choices on the Tester page: settings::Config::audioReserveFrames.
 constexpr uint32_t TesterAudioReserves[]{0, 12, 16};
 constexpr uint32_t TesterPeriodsMs[]{250, 500, 1000, 2000};
@@ -1358,6 +1358,7 @@ void Publish(uint8_t *base, uint32_t config)
         addChoices(L"Compact render targets", L"精簡渲染目標", onOff(), GetConfig().compactRenderTargets ? 0 : 1);
         addChoices(L"Power hints (ADPF)", L"省電提示 (ADPF)", onOff(), GetConfig().performanceHints ? 0 : 1);
         addChoices(L"Match display refresh", L"配合螢幕更新率", onOff(), GetConfig().displayRateHint ? 0 : 1);
+        addChoices(L"XMA per-voice locks", L"XMA 逐聲道鎖定", onOff(), GetConfig().xmaContextLocks ? 0 : 1);
         const auto seconds = d.Duration(::diagnostics::android_tester::NowNs()) / 1000000000ull;
         const std::wstring duration = std::to_wstring(seconds / 60) + L":" + (seconds % 60 < 10 ? L"0" : L"") + std::to_wstring(seconds % 60);
         next.rows.push_back({Tr(L"Recording", L"記錄"), (recording ? Tr(L"Stop", L"停止") : Tr(L"Start", L"開始")) + std::wstring(L"  ") + duration, d.enabled.load(), {}, 0});
@@ -1773,6 +1774,9 @@ void Publish(uint8_t *base, uint32_t config)
 #if LO_PLATFORM_ANDROID
     if (testerOpen)
         next.help = !status.empty() ? status
+            : testerFocus == TesterXmaLocks
+            ? Tr(L"Audio commands wait only for their own voice's decoding, not for every voice. Applies after restarting.",
+                 L"音訊指令只等待自身聲道的解碼，而非所有聲道。重新啟動後生效。")
             : testerFocus == TesterDisplayRate
             ? Tr(L"Runs the screen at the game's frame rate instead of 120 Hz: less power, even frame spacing. Applies immediately.",
                  L"讓螢幕以遊戲的影格率運作而非 120 Hz：更省電、影格間隔更平均。立即套用。")
@@ -2572,7 +2576,7 @@ void PointerClick(float x, float y, bool reverse)
     mouseRow = int(hit);
     if (listPage) {
 #if LO_PLATFORM_ANDROID
-        if (testerOpen.load() && hit <= size_t(TesterDisplayRate)) {
+        if (testerOpen.load() && hit <= size_t(TesterXmaLocks)) {
             if (x >= 386) mouseAction = reverse ? 4 : 8;
         }
         else
@@ -3436,6 +3440,12 @@ PPC_FUNC(sub_822F19B0)
             else if (testerFocus == TesterCompactTargets) {
                 Config saved = GetConfig();
                 saved.compactRenderTargets = !saved.compactRenderTargets;
+                status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
+                                           : Tr(L"Could not save settings.", L"無法儲存設定。");
+            }
+            else if (testerFocus == TesterXmaLocks) {
+                Config saved = GetConfig();
+                saved.xmaContextLocks = !saved.xmaContextLocks;
                 status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
                                            : Tr(L"Could not save settings.", L"無法儲存設定。");
             }
