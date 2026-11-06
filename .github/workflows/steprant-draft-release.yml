@@ -62,6 +62,7 @@ jobs:
             exit 1
           elif [[ "$existing" == "true" ]]; then
             gh release upload "$TAG" "$apk" --clobber -R "$GITHUB_REPOSITORY"
+            gh release edit "$TAG" --draft --target "$commit" -R "$GITHUB_REPOSITORY"
           else
             gh release create "$TAG" "$apk" --draft --target "$commit" --title "$TITLE" \
               --notes-file docs/notes/steprant-1.6-draft-release.md -R "$GITHUB_REPOSITORY"
