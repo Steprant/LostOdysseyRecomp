@@ -1,0 +1,35 @@
+name: Build input public key diagnostic
+
+on:
+  push:
+    branches:
+      - maintenance/build-input-access-20261106
+    paths:
+      - .github/workflows/build-input-public-key.yml
+
+permissions:
+  contents: read
+
+jobs:
+  public-key:
+    name: Read public half of existing build input key
+    runs-on: ubuntu-22.04
+    timeout-minutes: 2
+    steps:
+      - name: Derive public key without exposing the private secret
+        env:
+          LO_BUILD_INPUT_KEY: ${{ secrets.LO_BUILD_INPUT_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$LO_BUILD_INPUT_KEY"
+          umask 077
+          key_file="$(mktemp)"
+          public_file="$(mktemp)"
+          trap 'rm -f "$key_file" "$public_file"' EXIT
+          printf '%s\n' "$LO_BUILD_INPUT_KEY" > "$key_file"
+          ssh-keygen -y -P '' -f "$key_file" > "$public_file"
+          echo 'BUILD_INPUT_PUBLIC_KEY_BEGIN'
+          awk '{print $1 " " $2}' "$public_file"
+          echo 'BUILD_INPUT_PUBLIC_KEY_END'
+          ssh-keygen -lf "$public_file"
