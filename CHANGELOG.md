@@ -11,12 +11,18 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - Android: experimental H.264 MP4 replacement-movie decoding through MediaCodec, with the original video retained on failure.
 - Fixed an audio streaming wait that could block other voices and retire an unwritten output buffer.
 - Changing internal or shadow resolution preserves the paused scene's textures until the game draws them again.
+- Android diagnostics: per-render-pass GPU profile in Tester recordings.
+- Android: optional compact 8-bit/10-bit render targets (half the bandwidth), optional ADPF power hints, display refresh matched to the game frame rate, and a 900p render resolution.
+- SGSR1 stays enabled after a swapchain format change.
 
 ### 简体中文
 
 - Android：新增通过 MediaCodec 解码 H.264 MP4 替换视频的实验性支持，解码失败时保留原始视频。
 - 修复音频流等待时可能阻塞其他声音并错误结束未写入输出缓冲区的问题。
 - 调整内部或阴影分辨率时，保留暂停场景仍在读取的纹理，直到游戏重新绘制。
+- Android 诊断：测试录制包含每个渲染通道的 GPU 分析。
+- Android：可选精简 8/10 位渲染目标（带宽减半）、可选 ADPF 节能提示、屏幕刷新率匹配游戏帧率，并新增 900p 渲染分辨率。
+- 交换链格式变化后 SGSR1 保持启用。
 
 ## [v1.5-steprant.20261104](https://github.com/Steprant/LostOdysseyRecomp-Android/releases/tag/v1.5-steprant.20261104) — Steprant Android 1.5 — 2026-11-04
 
