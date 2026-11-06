@@ -22,6 +22,7 @@ struct Presentation::Impl
     bool initialized = false;
     bool vulkan = false;
     bool sgsr1 = false;
+    Sgsr1State sgsr1State = Sgsr1State::Unavailable;
     RenderFormat swapchainFormat = RenderFormat::R8G8B8A8_UNORM;
     hdr::OutputTransform output;
     // Index 1 serves an HDR scene. The scene processor records an SDR and an
@@ -916,6 +917,11 @@ std::shared_ptr<Presentation::UiCompositionLease> Presentation::DrawSeparatedUi(
     commands->drawInstanced(3, 1, 0, 0);
     return lease;
 }
+Sgsr1State Presentation::LastSgsr1State() const
+{
+    return impl ? impl->sgsr1State : Sgsr1State::Unavailable;
+}
+
 void Presentation::DrawComposited(RenderCommandList *commands, RenderTexture *source, RenderTexture *target,
                                   uint32_t sw, uint32_t sh, uint32_t ow, uint32_t oh, ScalingFilter scalingFilter,
                                   bool expandRgbRange, bool displayGammaRamp)
@@ -951,6 +957,17 @@ void Presentation::Draw(RenderCommandList *commands, RenderTexture *source, Rend
     const uint32_t scalingFilter = p.sgsr1 && !options.hdrScene && !p.output.active &&
         !options.hdrCalibration && !options.brightnessPreview && scale > 1.0f &&
         options.scalingFilter == ScalingFilter::Bicubic ? 2u : uint32_t(options.scalingFilter);
+    if (toSwapchain) {
+        const Sgsr1State state = !p.sgsr1 ? Sgsr1State::Unavailable
+            : options.hdrScene || p.output.active ? Sgsr1State::Hdr
+            : options.hdrCalibration || options.brightnessPreview ? Sgsr1State::Calibration
+            : !(scale > 1.0f) ? Sgsr1State::NotUpscaling
+            : options.scalingFilter != ScalingFilter::Bicubic ? Sgsr1State::ScalingNotHigh : Sgsr1State::Active;
+        if (state != p.sgsr1State) {
+            p.sgsr1State = state;
+            LOG_INFO("presentation: SGSR1 {} ({}x{} -> {}x{}, scale {:.2f})", Sgsr1StateName(state), sw, sh, ow, oh, scale);
+        }
+    }
     // At native size, an odd number of spare pixels belongs to one black bar;
     // placing content on a half pixel would soften an otherwise exact copy.
     const float x = scale == 1.0f ? std::floor((ow-width)*0.5f) : (ow-width)*0.5f;
@@ -1137,6 +1154,11 @@ plume::RenderTexture* Presentation::ComposeHdrGain(plume::RenderCommandList *, p
 {
     return nullptr;
 }
+Sgsr1State Presentation::LastSgsr1State() const
+{
+    return Sgsr1State::Unavailable;
+}
+
 void Presentation::DrawComposited(plume::RenderCommandList *, plume::RenderTexture *, plume::RenderTexture *,
                                   uint32_t, uint32_t, uint32_t, uint32_t, ScalingFilter, bool, bool)
 {

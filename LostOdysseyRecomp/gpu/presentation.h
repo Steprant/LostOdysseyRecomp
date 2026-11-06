@@ -13,6 +13,19 @@ namespace gpu
 {
 enum class Antialiasing : uint32_t { Off, FXAA, SMAA, TAA };
 enum class ScalingFilter : uint32_t { Bilinear, Bicubic };
+// Whether the last swap chain presentation used SGSR1, and why not otherwise.
+enum class Sgsr1State : uint32_t { Unavailable, Active, NotUpscaling, ScalingNotHigh, Hdr, Calibration };
+inline const char* Sgsr1StateName(Sgsr1State state)
+{
+    switch (state) {
+    case Sgsr1State::Active: return "active";
+    case Sgsr1State::NotUpscaling: return "inactive: the output is not larger than the render size";
+    case Sgsr1State::ScalingNotHigh: return "inactive: scaling filter is not High";
+    case Sgsr1State::Hdr: return "inactive: HDR output or scene";
+    case Sgsr1State::Calibration: return "inactive: calibration or brightness preview";
+    default: return "off: disabled in settings or unsupported";
+    }
+}
 struct PresentationOptions
 {
     Antialiasing antialiasing = Antialiasing::Off;
@@ -76,6 +89,8 @@ class Presentation
     bool Init(plume::RenderDevice *device, plume::RenderFormat swapchainFormat, bool storageSwapchain = false,
               bool enableSgsr1 = false);
     void SetOutputTransform(const hdr::OutputTransform& transform);
+    // SGSR1 decision of the most recent Draw to the swap chain.
+    Sgsr1State LastSgsr1State() const;
     // Draw and ProcessSceneColor keep one framebuffer per caller-owned target,
     // keyed by texture address and size. Call this, with no recorded draw of this
     // instance pending, before targets are replaced without a size change (swap

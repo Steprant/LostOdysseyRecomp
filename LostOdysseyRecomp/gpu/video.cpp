@@ -4820,6 +4820,10 @@ namespace gpu::video
             const auto consumer = plan.cpuSerial ? plan.consumer : TemporalConsumer::None;
             sources.upscaler = upscaling::IsDlssConsumer(consumer) ? "DLSS" : consumer == TemporalConsumer::FsrSr ? "FSR" :
                 consumer == TemporalConsumer::XessSr ? "XeSS" : consumer == TemporalConsumer::MetalFxSr ? "MetalFX" : "NATIVE";
+            // Name the spatial upscaler the presentation actually used.
+            if (std::string_view(sources.upscaler) == "NATIVE" &&
+                g_presentation->LastSgsr1State() == gpu::Sgsr1State::Active)
+                sources.upscaler = "SGSR1";
             sources.renderWidth = plan.cpuSerial ? plan.width : sourceWidth;
             sources.renderHeight = plan.cpuSerial ? plan.height : sourceHeight;
             if (std::string_view(sources.upscaler) != "NATIVE") {
