@@ -35,6 +35,7 @@ static inline const wchar_t *Translate(uint32_t language, const wchar_t *en, con
         {L"Intensive", L"集中", L"집중", L"密集"},
         {L"Detect slow frames", L"遅いフレームを検出", L"느린 프레임 감지", L"检测慢帧"},
         {L"Thermal monitoring", L"温度監視", L"온도 모니터링", L"温度监测"},
+        {L"Compact render targets", L"コンパクトなレンダーターゲット", L"압축 렌더 타깃", L"精简渲染目标"},
         {L"Recording", L"記録", L"기록", L"记录"},
         {L"Start", L"開始", L"시작", L"开始"},
         {L"Stop", L"停止", L"중지", L"停止"},

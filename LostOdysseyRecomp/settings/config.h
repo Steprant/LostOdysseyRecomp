@@ -182,6 +182,10 @@ struct Config
     uint32_t audioOutput = AudioOutputStereo; // Applied live; saved by SaveAudioOutput.
     uint32_t audioMatrixRear = 110; // Matrix surround rear angle, 90-150 degrees in 10 degree steps. Applied live.
     uint32_t voiceVolume = 100; // Cutscene dialogue, 0-100, in place of the Sound effects volume. Applied live.
+    // Xenos 8_8_8_8 render targets as RGBA8 host textures instead of FP16 while
+    // the HDR scene is off: half the attachment bandwidth and tile memory, the
+    // console's own 8-bit precision. Applied at the next start.
+    bool compactRenderTargets = false;
     bool skipShaderPrebuild = false;
     // Achievement-unlocked toast and its chime (ui/achievement_overlay.cpp). Applied live.
     bool achievementNotifications = true;

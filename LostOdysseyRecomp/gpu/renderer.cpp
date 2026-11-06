@@ -7651,6 +7651,27 @@ void main()
                 }
             }
 
+            // Compact 8_8_8_8 targets (settings compactRenderTargets, or
+            // LO_COMPACT_RT=1/0): RGBA8 holds exactly the 8 bits the console
+            // stores; the shader epilogue already clamps this class to [0, 1].
+            // An HDR scene keeps FP16, whose extended-gamma copies need it.
+            static bool CompactRenderTargetsRequested()
+            {
+                static const bool requested = [] {
+                    if (const char* value = getenv("LO_COMPACT_RT")) return std::strcmp(value, "0") != 0;
+                    return settings::GetConfig().compactRenderTargets;
+                }();
+                return requested;
+            }
+
+            RenderFormat HostFormatForClass(uint32_t colorClass) const
+            {
+                if (colorClass == kClass8888 && CompactRenderTargetsRequested() &&
+                    !hdrSceneEnabled.load(std::memory_order_relaxed))
+                    return RenderFormat::R8G8B8A8_UNORM;
+                return ClassHostFormat(colorClass);
+            }
+
             static RenderFormat ColorFormat(uint32_t xenosFormat)
             {
                 switch (xenosFormat)
@@ -7878,7 +7899,7 @@ void main()
                 consecutiveResolveCopies.Invalidate();
                 auto tex = std::make_unique<HostTexture>();
                 tex->allocationSerial = ++nextTargetAllocation;
-                tex->format = depth ? RenderFormat::D32_FLOAT_S8_UINT : ClassHostFormat(colorClass);
+                tex->format = depth ? RenderFormat::D32_FLOAT_S8_UINT : HostFormatForClass(colorClass);
                 tex->guestWidth = pitch;
                 tex->guestHeight = effectiveHeight;
                 tex->resolutionSize = desiredSize;

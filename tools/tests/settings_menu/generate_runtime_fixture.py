@@ -211,6 +211,9 @@ int main(int argc, char** argv) {
     tick(0x1000);Check(d.enabled,"confirm enables tester");
     tick(2);tick(8);Check(d.profile==1,"right selects advanced profile");
     tick(0x200);Check(settings::testerOpen && settings::tab==3,"RB does not change tabs inside the page");
+    settings::testerFocus=settings::TesterCompactTargets;
+    tick(0x1000);Check(settings::savedConfig.compactRenderTargets && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"compact render targets saved for the next start");
+    tick(8);Check(!settings::savedConfig.compactRenderTargets,"compact render targets toggle off");
     settings::testerFocus=settings::TesterRecording;tick(0x1000);
     Check(d.recording && androidMessage==0x8002,"record starts the Android collector");
     settings::testerFocus=settings::TesterProfile;tick(8);Check(d.profile==1,"profile remains fixed during recording");

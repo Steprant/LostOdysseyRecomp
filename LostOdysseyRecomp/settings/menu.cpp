@@ -152,7 +152,7 @@ std::atomic<bool> achievementsOpen{false};
 #if LO_PLATFORM_ANDROID
 std::atomic<bool> testerOpen{false};
 int testerFocus = 0;
-enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterRecording, TesterExport, TesterRowCount };
+enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterCompactTargets, TesterRecording, TesterExport, TesterRowCount };
 constexpr uint32_t TesterPeriodsMs[]{250, 500, 1000, 2000};
 #endif
 std::vector<achievements_page::Item> achievementItems;
@@ -1343,6 +1343,8 @@ void Publish(uint8_t *base, uint32_t config)
         addChoices(L"Sample period", L"採樣週期", {L"250 ms", L"500 ms", L"1000 ms", L"2000 ms"}, periodIndex, !recording);
         addChoices(L"Detect slow frames", L"偵測慢影格", onOff(), d.automatic.load() ? 0 : 1, !recording);
         addChoices(L"Thermal monitoring", L"溫度監測", onOff(), d.thermal.load() ? 0 : 1, !recording);
+        // Saved for the next start (render targets are allocated by format).
+        addChoices(L"Compact render targets", L"精簡渲染目標", onOff(), GetConfig().compactRenderTargets ? 0 : 1);
         const auto seconds = d.Duration(::diagnostics::android_tester::NowNs()) / 1000000000ull;
         const std::wstring duration = std::to_wstring(seconds / 60) + L":" + (seconds % 60 < 10 ? L"0" : L"") + std::to_wstring(seconds % 60);
         next.rows.push_back({Tr(L"Recording", L"記錄"), (recording ? Tr(L"Stop", L"停止") : Tr(L"Start", L"開始")) + std::wstring(L"  ") + duration, d.enabled.load(), {}, 0});
@@ -1757,7 +1759,11 @@ void Publish(uint8_t *base, uint32_t config)
                        L"LB / RB：分類     方向鍵：選擇 / 調整     B：確認     A：返回");
 #if LO_PLATFORM_ANDROID
     if (testerOpen)
-        next.help = status.empty() ? Tr(L"Intensive sampling can affect performance. Stop recording manually; files rotate to a fixed size.", L"密集採樣可能影響效能。請手動停止錄製；檔案會循環覆寫。") : status;
+        next.help = !status.empty() ? status
+            : testerFocus == TesterCompactTargets
+            ? Tr(L"8-bit game render targets in 8-bit memory: less GPU bandwidth, SDR only. Applies after restarting.",
+                 L"8 位元遊戲渲染目標使用 8 位元記憶體：減少 GPU 頻寬，僅限 SDR。重新啟動後生效。")
+            : Tr(L"Intensive sampling can affect performance. Stop recording manually; files rotate to a fixed size.", L"密集採樣可能影響效能。請手動停止錄製；檔案會循環覆寫。");
 #endif
     if (tab == 0 && row == GameControlsRow)
         next.help = Tr(L"Button prompts, vibration, and the controller and keyboard buttons.",
@@ -2544,7 +2550,7 @@ void PointerClick(float x, float y, bool reverse)
     mouseRow = int(hit);
     if (listPage) {
 #if LO_PLATFORM_ANDROID
-        if (testerOpen.load() && hit <= size_t(TesterThermal)) {
+        if (testerOpen.load() && hit <= size_t(TesterCompactTargets)) {
             if (x >= 386) mouseAction = reverse ? 4 : 8;
         }
         else
@@ -3396,6 +3402,12 @@ PPC_FUNC(sub_822F19B0)
                 d.samplePeriodMs.store(TesterPeriodsMs[(int(index) + 4 + delta) % 4]);
             } else if (testerFocus == TesterAutomatic && !recording) d.automatic.store(!d.automatic.load());
             else if (testerFocus == TesterThermal && !recording) d.thermal.store(!d.thermal.load());
+            else if (testerFocus == TesterCompactTargets) {
+                Config saved = GetConfig();
+                saved.compactRenderTargets = !saved.compactRenderTargets;
+                status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
+                                           : Tr(L"Could not save settings.", L"無法儲存設定。");
+            }
             else if (testerFocus == TesterRecording && (input & 0x1000) && d.enabled.load()) {
                 if (recording) {
                     d.Stop(::diagnostics::android_tester::NowNs());
