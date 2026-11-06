@@ -274,6 +274,115 @@ static int TestHdrCalibration(plume::RenderDevice* device)
     return pass?0:1;
 }
 
+
+// CPU reference of Qualcomm SGSR1 (sgsr1_mobile.h at the pinned commit,
+// OperationMode 1, no edge direction) on an exactly sized texture with
+// clamp-to-edge sampling, as in the upstream sample. The production adapter
+// runs the same algorithm on a padded allocation through its own cropping.
+namespace sgsr1_reference
+{
+struct Image
+{
+    int w, h;
+    std::vector<float> rgb; // display-encoded 0..1
+    float at(int x, int y, int c) const
+    {
+        x = std::clamp(x, 0, w - 1);
+        y = std::clamp(y, 0, h - 1);
+        return rgb[(size_t(y) * w + x) * 3 + c];
+    }
+};
+struct F4 { float x, y, z, w; };
+static void Bilinear(const Image& image, float px, float py, float out[3])
+{
+    px = std::clamp(px, 0.5f, image.w - 0.5f);
+    py = std::clamp(py, 0.5f, image.h - 0.5f);
+    const float fx = px - 0.5f, fy = py - 0.5f;
+    const int x0 = int(std::floor(fx)), y0 = int(std::floor(fy));
+    const float tx = fx - x0, ty = fy - y0;
+    for (int c = 0; c < 3; ++c)
+    {
+        const float top = image.at(x0, y0, c) * (1 - tx) + image.at(x0 + 1, y0, c) * tx;
+        const float bottom = image.at(x0, y0 + 1, c) * (1 - tx) + image.at(x0 + 1, y0 + 1, c) * tx;
+        out[c] = top * (1 - ty) + bottom * ty;
+    }
+}
+// HLSL/Vulkan gather order at normalized (u, v): (i0,j1), (i1,j1), (i1,j0), (i0,j0).
+static F4 GatherGreen(const Image& image, float u, float v)
+{
+    const int i0 = int(std::floor(u * image.w - 0.5f)), j0 = int(std::floor(v * image.h - 0.5f));
+    return {image.at(i0, j0 + 1, 1), image.at(i0 + 1, j0 + 1, 1), image.at(i0 + 1, j0, 1), image.at(i0, j0, 1)};
+}
+static float FastLanczos2(float x)
+{
+    float wA = x - 4.0f;
+    const float wB = x * wA - wA;
+    wA *= wA;
+    return wB * wA;
+}
+static void WeightY(float dx, float dy, float c, float std, float& weight, float& sum)
+{
+    const float x = (dx * dx + dy * dy) * 0.5f + std::clamp(std::abs(c) * std, 0.0f, 1.0f);
+    const float w = FastLanczos2(x);
+    weight += w;
+    sum += w * c;
+}
+// pixel: input-space position of the output pixel centre. Returns false when
+// the edge test is within 1.5/255 of its threshold: GPU sampler rounding may
+// legitimately take the other branch there.
+static bool Sample(const Image& image, float px, float py, float out[3])
+{
+    const float sx = float(image.w), sy = float(image.h);
+    const float u = px / sx, v = py / sy;
+    float pix[4];
+    Bilinear(image, u * sx, v * sy, pix);
+    const float imgX = u * sx - 0.5f, imgY = v * sy + 0.5f;
+    const float floorX = std::floor(imgX), floorY = std::floor(imgY);
+    float coordX = floorX / sx;
+    const float coordY = floorY / sy;
+    const float plx = imgX - floorX, ply = imgY - floorY;
+    F4 left = GatherGreen(image, coordX, coordY);
+    const float edgeVote = std::abs(left.z - left.y) + std::abs(pix[1] - left.y) + std::abs(pix[1] - left.z);
+    const bool decided = std::abs(edgeVote - 8.0f / 255.0f) >= 1.5f / 255.0f;
+    if (edgeVote > 8.0f / 255.0f)
+    {
+        coordX += 1.0f / sx;
+        F4 right = GatherGreen(image, coordX + 1.0f / sx, coordY);
+        const F4 up = GatherGreen(image, coordX, coordY - 1.0f / sy);
+        const F4 down = GatherGreen(image, coordX, coordY + 1.0f / sy);
+        F4 upDown{up.w, up.z, down.y, down.x};
+        const float mean = (left.y + left.z + right.x + right.w) * 0.25f;
+        for (F4* v : {&left, &right, &upDown}) { v->x -= mean; v->y -= mean; v->z -= mean; v->w -= mean; }
+        pix[3] = pix[1] - mean;
+        const float sum = std::abs(left.x) + std::abs(left.y) + std::abs(left.z) + std::abs(left.w) +
+            std::abs(right.x) + std::abs(right.y) + std::abs(right.z) + std::abs(right.w) +
+            std::abs(upDown.x) + std::abs(upDown.y) + std::abs(upDown.z) + std::abs(upDown.w);
+        const float sumMean = 1.014185e+01f / sum;
+        const float std = sumMean * sumMean;
+        float weight = 0, total = 0;
+        WeightY(plx, ply + 1, upDown.x, std, weight, total);
+        WeightY(plx - 1, ply + 1, upDown.y, std, weight, total);
+        WeightY(plx - 1, ply - 2, upDown.z, std, weight, total);
+        WeightY(plx, ply - 2, upDown.w, std, weight, total);
+        WeightY(plx + 1, ply - 1, left.x, std, weight, total);
+        WeightY(plx, ply - 1, left.y, std, weight, total);
+        WeightY(plx, ply, left.z, std, weight, total);
+        WeightY(plx + 1, ply, left.w, std, weight, total);
+        WeightY(plx - 1, ply - 1, right.x, std, weight, total);
+        WeightY(plx - 2, ply - 1, right.y, std, weight, total);
+        WeightY(plx - 2, ply, right.z, std, weight, total);
+        WeightY(plx - 1, ply, right.w, std, weight, total);
+        float finalY = total / weight;
+        const float max4 = std::max(std::max(left.y, left.z), std::max(right.x, right.w));
+        const float min4 = std::min(std::min(left.y, left.z), std::min(right.x, right.w));
+        finalY = std::clamp(2.0f * finalY, min4, max4);
+        const float deltaY = finalY - pix[3];
+        for (int c = 0; c < 3; ++c) pix[c] = std::clamp(pix[c] + deltaY, 0.0f, 1.0f);
+    }
+    for (int c = 0; c < 3; ++c) out[c] = pix[c];
+    return decided;
+}
+}
 int main(int argc, char** argv)
 {
     using namespace plume;
@@ -553,6 +662,61 @@ int main(int argc, char** argv)
         pass &= preserved && detectsSecondPass;
         printf("Pre-UI %s + composited UI bypass / negative control: %s (scene ROI changed=%u, second AA UI mask changed=%u)\n",
                aa==gpu::Antialiasing::FXAA?"FXAA":"SMAA",preserved&&detectsSecondPass?"PASS":"FAIL",sceneChanged,uiChangedBySecondPass);
+    }
+    // SGSR1 against the CPU reference: textured noise, smooth gradients and a
+    // hard diagonal in the 32x16 valid region of the padded 40x20 allocation,
+    // at integer, fractional and aspect-fitted (letterboxed) upscales.
+    if (sgsr1Setting || (std::getenv("LO_SGSR1") && std::string_view(std::getenv("LO_SGSR1")) == "1")) {
+        auto patternAt=[](unsigned xx,unsigned yy) {
+            uint32_t hash=(xx*73856093u)^(yy*19349663u);
+            hash^=hash>>13;hash*=0x5bd1e995u;hash^=hash>>15;
+            uint32_t r,g,b;
+            if (xx<12) { r=g=b=(xx*16+yy*5)&255; r=(r+40)&255; }            // gentle gradient
+            else if (xx<22) { r=hash&255; g=(hash>>8)&255; b=(hash>>16)&255; } // noise
+            else { const bool on=xx>yy+12; r=g=b=on?235:20; }                 // hard edge
+            return 0xff000000u|(b<<16)|(g<<8)|r;
+        };
+        refill(patternAt);
+        // Readbacks use a 64-pixel row pitch, so outputs stay <= 64 wide. A
+        // 24x12 source inside the 32x16 image puts real content beyond the
+        // valid extent: the adapter must crop it exactly like clamp-to-edge.
+        struct Case { unsigned w,h,sw,sh; };
+        for (const Case size : {Case{64,32,32,16},Case{48,24,32,16},Case{40,20,32,16},Case{56,28,32,16},
+                                Case{60,26,32,16},Case{60,30,24,12},Case{64,24,24,12},Case{33,17,32,16}}) {
+            sgsr1_reference::Image image{int(size.sw),int(size.sh),std::vector<float>(size_t(size.sw)*size.sh*3)};
+            for(unsigned yy=0;yy<size.sh;++yy) for(unsigned xx=0;xx<size.sw;++xx) {
+                const uint32_t v=patternAt(xx,yy);
+                for(int c=0;c<3;++c) image.rgb[(size_t(yy)*size.sw+xx)*3+c]=float((v>>(8*c))&255)/255.0f;
+            }
+            const auto bilinear=render(size.w,size.h,gpu::Antialiasing::Off,size.sw,size.sh,gpu::ScalingFilter::Bilinear);
+            const auto output=render(size.w,size.h,gpu::Antialiasing::Off,size.sw,size.sh,gpu::ScalingFilter::Bicubic);
+            const float scale=std::min(float(size.w)/size.sw,float(size.h)/size.sh);
+            const float width=size.sw*scale,height=size.sh*scale;
+            const float ox=(size.w-width)*0.5f,oy=(size.h-height)*0.5f;
+            unsigned worst=0,mismatched=0,sharpened=0,compared=0,boundary=0;
+            for(unsigned yy=0;yy<size.h;++yy) for(unsigned xx=0;xx<size.w;++xx) {
+                const float px=xx+0.5f,py=yy+0.5f;
+                if(px<ox||px>=ox+width||py<oy||py>=oy+height) continue;
+                float expected[3];
+                const uint32_t actual=output[yy*size.w+xx];
+                sharpened+=actual!=bilinear[yy*size.w+xx];
+                if(!sgsr1_reference::Sample(image,(px-ox)/width*size.sw,(py-oy)/height*size.sh,expected)) { ++boundary; continue; }
+                for(int c=0;c<3;++c) {
+                    const int e=int(std::lround(expected[c]*255.0f)),a=int((actual>>(8*c))&255);
+                    const unsigned error=unsigned(std::abs(a-e));
+                    worst=std::max(worst,error);
+                    mismatched+=error>2;
+                    if(error>2 && std::getenv("LO_SGSR1_TRACE"))
+                        printf("  mismatch out=(%u,%u) in=(%.4f,%.4f) c=%d expected=%d actual=%d bilinear=%d\n",xx,yy,
+                               (px-ox)/width*size.sw,(py-oy)/height*size.sh,c,e,a,int((bilinear[yy*size.w+xx]>>(8*c))&255));
+                }
+                ++compared;
+            }
+            const bool matches=compared>0&&mismatched==0&&sharpened>0&&boundary*10<compared;
+            pass&=matches;
+            printf("SGSR1 %ux%u -> %ux%u vs Qualcomm reference: %u pixels (+%u at the edge threshold), max error %u/255, >2 LSB %u, changed vs bilinear %u: %s\n",
+                   size.sw,size.sh,size.w,size.h,compared,boundary,worst,mismatched,sharpened,matches?"PASS":"FAIL");
+        }
     }
     return pass ? 0 : 1;
 }

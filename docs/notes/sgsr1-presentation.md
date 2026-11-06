@@ -48,6 +48,16 @@ the destination size is not sharpened again.
   The SGSR1 review branch passes the first six; its older base predates the
   extended HDR-transfer CLI mode, which the standalone harness registers only
   when that mode exists. No failure is silently converted into a passing test.
+- Since 2026-11-06 the SGSR1 readbacks also compare every upscaled pixel with
+  a CPU port of the pinned `sgsr1_mobile.h` on an exactly sized,
+  clamp-to-edge texture (the upstream sample's setup): 1.03x to 2.5x,
+  fractional and letterboxed fits, and a 24x12 crop with real content beyond
+  the valid extent. Fragment and storage/compute output stay within 2/255 of
+  the reference; pixels whose edge test lies within 1.5/255 of the 8/255
+  threshold are reported separately, because sampler rounding may take either
+  branch there. Mutations of the gather offset, the border fallback order and
+  the valid-extent crop each fail all cases. `LO_SGSR1_TRACE=1` prints the
+  mismatching pixels. This is lavapipe evidence, not an Adreno result.
 - The standalone Linux fixture needs no game input. Install X11 development
   headers, the Vulkan loader and a software ICD, initialize submodules and
   apply the tracked Plume base and SDL3 overlays, then run:
@@ -64,6 +74,12 @@ The fixture replaces only the game-dependent PCH with standard headers and
 uses the production presentation, DXC wrapper, backend and readback bodies.
 `LO_PRESENTATION_DEPENDENCY_ROOT` may point at another checkout containing the
 same prepared pinned dependencies. The dedicated workflow uploads its test log.
+
+On Android the swapchain follows the device surface (2670x1200 on the
+Xiaomi 14) whenever the display mode does not select a smaller one, so a 1080
+internal resolution there is a 2403x1080 source scaled 1.11x, which uses
+SGSR1. Check the `video output: ... swapchain=` and `renderer: internal
+resolution ... effective=` log lines to know which periods were upscaled.
 
 Before accepting the filter, compare identical fixed scenes and resolution,
 with warm shader caches, off/on/off/on on Adreno 650/740/750 and at least one
