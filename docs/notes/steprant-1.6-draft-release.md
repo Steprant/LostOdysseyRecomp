@@ -7,7 +7,8 @@ Built by the Android APK workflow from `integration/v1.6-candidate-20261106`. Pa
 - Audio: no AAudio reopen on every return from a long background pause; the XMA decoder no longer holds its lock for a whole voice and runs on performance cores at audio priority; selectable audio buffer (43/64/85 ms) and timing peaks in the log; optional per-voice XMA locks (diagnostics page, restart).
 - Graphics: "Mobile 30 FPS" preset (1080 internal, 30 FPS, SGSR1, Low shadows, compact targets, power and refresh hints); optional compact 8/10-bit render targets with their pipelines prefetched; optional ADPF power hints; display refresh matched to the frame rate; 900p render resolution.
 - SGSR1: stays enabled after a swapchain format change; the log and the performance overlay say whether it is active and, if not, why.
-- Widescreen: the title screen's full-screen tiled layer covers the whole width on displays wider than 16:9.
+- Title screen: its full-screen mesh pattern is no longer drawn.
+- Android diagnostics, for A/B tests (off by default): shader constants in uniform buffers (experimental; the first start compiles the shaders on the phone, several minutes), one render pass for depth-only draws, Turnip render mode (Automatic / Sysmem / GMEM).
 - Diagnostics: per-render-pass GPU profile in Tester recordings.
 
 ## Validation
