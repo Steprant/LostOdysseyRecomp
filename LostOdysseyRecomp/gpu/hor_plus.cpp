@@ -8,6 +8,7 @@
 #include "settings/config.h"
 #include "cpu/ppc_context.h"
 #include "kernel/memory.h"
+#include <os/logger.h>
 
 extern "C" PPC_FUNC(__imp__sub_82300E50);
 extern "C" PPC_FUNC(__imp__sub_823BC220);

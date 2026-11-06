@@ -69,6 +69,9 @@ jobs:
         with:
           path: ${{ env.LO_ANDROID_CI_CACHE }}/android-dxc
           key: android-dxc-${{ runner.os }}-ndk28.2.13676358-${{ hashFiles('tools/android/build-dxc.sh', 'tools/android/ci_build.sh') }}
+          # A DXC source build takes about 25 minutes; keep it when a later
+          # step fails (build-dxc.sh verifies the cached library before use).
+          save-always: true
       - name: Cache Gradle dependencies
         uses: actions/cache@v4
         with:
