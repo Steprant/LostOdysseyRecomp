@@ -3240,7 +3240,9 @@ namespace gpu::renderer
                 // into the destination's original format.
                 auto scratch = std::make_unique<HostTexture>();
                 scratch->allocationSerial = ++nextTargetAllocation;
-                scratch->format = activePlan.requestedUpscaler == upscaling::Upscaler::Fsr ? RenderFormat::R16G16B16A16_FLOAT :
+                // SGSR2 writes RGBA16F storage in the input's own encoding.
+                scratch->format = activePlan.requestedUpscaler == upscaling::Upscaler::Fsr ||
+                    activePlan.requestedUpscaler == upscaling::Upscaler::Sgsr2 ? RenderFormat::R16G16B16A16_FLOAT :
                     activePlan.requestedUpscaler == upscaling::Upscaler::Xess ? RenderFormat::R8G8B8A8_UNORM : source.format;
                 scratch->guestWidth = scratch->width = std::max(1u, output.width);
                 scratch->guestHeight = scratch->height = std::max(1u, output.height);
@@ -3852,7 +3854,8 @@ namespace gpu::renderer
                 std::vector<RenderTextureBarrier> barriers;
                 for (auto* image : {promotion.inputs.color.texture, promotion.inputs.depth.texture,
                                     promotion.inputs.motion.texture, promotion.inputs.motionInvalidity.texture})
-                    if (image) barriers.emplace_back(image, (!nativeVulkan || activePlan.requestedUpscaler == upscaling::Upscaler::Fsr) ?
+                    if (image) barriers.emplace_back(image, (!nativeVulkan || activePlan.requestedUpscaler == upscaling::Upscaler::Fsr ||
+                        activePlan.requestedUpscaler == upscaling::Upscaler::Sgsr2) ?
                         RenderTextureLayout::SHADER_READ : RenderTextureLayout::GENERAL);
                 barriers.emplace_back(promotion.scratch->texture.get(), RenderTextureLayout::GENERAL);
                 // The scene-copy input only borrows this image. Hold the lease in
@@ -10278,7 +10281,13 @@ void main()
                 // per frame on Apple GPUs (Numara, M1 Pro), about twice MetalFX itself.
                 static const bool metalFxObjectMotion = [] {
                     const char* value = getenv("LO_METALFX_OBJECT_MV"); return value && strcmp(value, "1") == 0; }();
-                const bool cameraMotionOnly = activePlan.consumer == upscaling::TemporalConsumer::MetalFxSr && !metalFxObjectMotion;
+                // SGSR2 (mobile) likewise: its colour clamp absorbs moving objects,
+                // and the replay would cost more vertex work than SGSR2 saves
+                // unless LO_SGSR2_OBJECT_MV=1.
+                static const bool sgsr2ObjectMotion = [] {
+                    const char* value = getenv("LO_SGSR2_OBJECT_MV"); return value && strcmp(value, "1") == 0; }();
+                const bool cameraMotionOnly = (activePlan.consumer == upscaling::TemporalConsumer::MetalFxSr && !metalFxObjectMotion) ||
+                    (activePlan.consumer == upscaling::TemporalConsumer::Sgsr2Sr && !sgsr2ObjectMotion);
                 const bool motionScene = motionOptions.enabled && !cameraMotionOnly && (!motionOptions.replay || motionReplay) && temporalActive && jitterAnchor && temporalViewport && depth &&
                     depth->allocationSerial == jitterAnchor->depthAllocation && rasterViewport.x == 0 && rasterViewport.y == 0 &&
                     rasterViewport.width == jitterAnchor->viewport.width && rasterViewport.height == jitterAnchor->viewport.height;
@@ -15574,6 +15583,8 @@ void main()
                         page.fallbackReason = "fsr_sr_no_dispatch_this_frame";
                     else if (r.activePlan.consumer == upscaling::TemporalConsumer::XessSr)
                         page.fallbackReason = "xess_sr_no_dispatch_this_frame";
+                    else if (r.activePlan.consumer == upscaling::TemporalConsumer::Sgsr2Sr)
+                        page.fallbackReason = "sgsr2_sr_no_dispatch_this_frame";
                     else if (r.activePlan.consumer != upscaling::TemporalConsumer::DlssSr)
                         page.fallbackReason = "dlss_sr_plan_unavailable_this_frame";
                     else if (!page.entries.empty() && !page.entries.back()->reason.empty())

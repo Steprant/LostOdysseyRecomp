@@ -37,7 +37,7 @@ The work targets steadier frame pacing, lower redundant CPU/GPU work and sustain
 
 [Installation](docs/STEPRANT_ANDROID.md#installation) · [All Steprant releases](https://github.com/Steprant/LostOdysseyRecomp-Android/releases) · [Fork history](docs/audit/STORICO_20261026_20261104.md) · [Changelog](CHANGELOG.md) · [Build inputs and CI](docs/notes/android-fork-build-inputs.md)
 
-Supply supported game data from your own discs. Game assets, executables, private inputs and generated game sources are not distributed in this repository. The runtime remains [GPL-3.0](LICENSE); dependencies retain their licenses, including [Qualcomm SGSR1](thirdparty/licenses/SnapdragonGSR.txt).
+Supply supported game data from your own discs. Game assets, executables, private inputs and generated game sources are not distributed in this repository. The runtime remains [GPL-3.0](LICENSE); dependencies retain their licenses, including [Qualcomm SGSR1 and SGSR2](thirdparty/licenses/SnapdragonGSR.txt).
 
 Thanks to **Frank / freefrank**, the upstream contributors and the original community for Lost Odyssey Recomp and its platform support. [Official project](https://github.com/freefrank/LostOdysseyRecomp) · [Official downloads](https://github.com/freefrank/LostOdysseyRecomp/releases/latest) · [Upstream Discord](https://discord.gg/z2yPct6z2w) · [Support Frank](https://ko-fi.com/dotslash).
 

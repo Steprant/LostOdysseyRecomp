@@ -5,6 +5,8 @@
 #include "fsr_upscaler.h"
 #include "fsr_projection.h"
 #include "xess_upscaler.h"
+#include "sgsr2_upscaler.h"
+#include <cmath>
 #include <algorithm>
 #include <cctype>
 #include <cfloat>
@@ -89,6 +91,20 @@ xess::Config XessConfig(const SrRequest& request) {
         request.inputs.depthConvention == temporal::DepthConvention::Reversed};
 }
 #endif
+SrResultStatus Convert(sgsr2::Status status) {
+    switch (status) {
+    case sgsr2::Status::Ready: return SrResultStatus::Ready;
+    case sgsr2::Status::Unavailable: return SrResultStatus::Unavailable;
+    case sgsr2::Status::NeedsReconfigure: return SrResultStatus::NeedsReconfigure;
+    case sgsr2::Status::Failed: return SrResultStatus::Failed;
+    case sgsr2::Status::InputUnavailable: return SrResultStatus::InputUnavailable;
+    }
+    return SrResultStatus::Failed;
+}
+sgsr2::Config Sgsr2Config(const SrRequest& request) {
+    return {request.inputs.color.width, request.inputs.color.height, request.plan.output.width,
+        request.plan.output.height, request.plan.deviceEpoch};
+}
 // XeSS is compiled for D3D12 only; other backends never acquire a use.
 SrResult XessUnavailable(const SrRequest& request) {
     SrResult result{};
@@ -123,7 +139,8 @@ dlss::SrConfig DlssConfig(const SrRequest& request) {
 TemporalUpscaler::TemporalUpscaler(dlss::Controller& controller)
     : TemporalUpscaler(&controller) {}
 TemporalUpscaler::TemporalUpscaler(dlss::Controller* controller)
-    : dlss_(controller), fsr_(std::make_unique<fsr::Controller>()), xess_(std::make_unique<xess::Controller>()) {}
+    : dlss_(controller), fsr_(std::make_unique<fsr::Controller>()), xess_(std::make_unique<xess::Controller>()),
+      sgsr2_(std::make_unique<sgsr2::Controller>()) {}
 TemporalUpscaler::~TemporalUpscaler() = default;
 
 upscaling::OutputSizing TemporalUpscaler::QuerySizing(const plume::VulkanInterface& api,
@@ -141,6 +158,12 @@ upscaling::OutputSizing TemporalUpscaler::QuerySizing(const plume::VulkanInterfa
                 mode.optimal = mode.minimum = mode.maximum = *size;
             }
         }
+        // SGSR2 has no SDK presets: the FSR ratios pick the render extent.
+        if (key.provider == upscaling::Upscaler::Sgsr2 && key.outputWidth && key.outputHeight) {
+            mode.state = upscaling::SizingState::Ready;
+            mode.optimal = mode.minimum = mode.maximum =
+                sgsr2::RenderSizeFor({key.outputWidth, key.outputHeight}, upscaling::FsrQuality(i));
+        }
     }
     return unavailable;
 }
@@ -150,6 +173,11 @@ SrResult TemporalUpscaler::Prepare(plume::VulkanDevice& device, const SrRequest&
     result.requestedProvider = request.plan.requestedUpscaler;
     if (!ValidSrRequest(request)) return result;
     if (request.plan.requestedUpscaler == upscaling::Upscaler::Xess) return XessUnavailable(request);
+    if (request.plan.requestedUpscaler == upscaling::Upscaler::Sgsr2) {
+        result.actualProvider = upscaling::Upscaler::Sgsr2;
+        result.status = Convert(sgsr2_->EnsureSession(device, Sgsr2Config(request)));
+        return result;
+    }
     if (request.plan.requestedUpscaler == upscaling::Upscaler::Fsr) {
         result.actualProvider = upscaling::Upscaler::Fsr;
         result.status = FsrMetadata(request).cameraValid ? Convert(fsr_->EnsureSession(device, FsrConfig(request))) :
@@ -167,6 +195,29 @@ SrResult TemporalUpscaler::RecordIsolated(plume::VulkanCommandList& commands,
     result.requestedProvider = request.plan.requestedUpscaler;
     if (!ValidSrRequest(request)) return result;
     if (request.plan.requestedUpscaler == upscaling::Upscaler::Xess) return XessUnavailable(request);
+    if (request.plan.requestedUpscaler == upscaling::Upscaler::Sgsr2) {
+        const auto& inputs = request.inputs;
+        sgsr2::FrameValues frame{};
+        if (inputs.cameraValid && inputs.color.height) {
+            const double aspect = double(inputs.color.width) / inputs.color.height;
+            if (const auto projection = fsr::DeriveProjection(inputs.cameraViewProjection, aspect))
+                frame.cameraFovAngleHor = float(std::tan(projection->verticalFovRadians * 0.5) * aspect);
+            if (sgsr2Camera_ && sgsr2CameraFrame_ + 1 == inputs.renderFrameId) {
+                double difference = 0;
+                for (size_t i = 0; i < inputs.cameraViewProjection.size(); ++i)
+                    difference += std::abs(inputs.cameraViewProjection[i] - (*sgsr2Camera_)[i]);
+                frame.sameCamera = difference < 1e-5;
+            }
+            sgsr2Camera_ = inputs.cameraViewProjection;
+            sgsr2CameraFrame_ = inputs.renderFrameId;
+        } else sgsr2Camera_.reset();
+        const auto attempt = sgsr2_->RecordIsolated(commands, Sgsr2Config(request), inputs, frame, output);
+        result.actualProvider = upscaling::Upscaler::Sgsr2;
+        result.status = Convert(attempt.status);
+        if (attempt.useId) result.token = {upscaling::Upscaler::Sgsr2, request.plan.deviceEpoch,
+            attempt.useId, request.plan.requestSignature, request.plan.geometryEpoch};
+        return result;
+    }
     if (request.plan.requestedUpscaler == upscaling::Upscaler::Fsr) {
         const auto attempt = fsr_->RecordIsolated(commands, FsrConfig(request), request.inputs,
             FsrMetadata(request), output, capture);
@@ -352,35 +403,42 @@ void TemporalUpscaler::OnSubmitted(SrUseToken token, uint64_t checkedSerial) {
     if (dlss_) RouteSubmitted(token, checkedSerial, *dlss_);
     if (token.provider == upscaling::Upscaler::Fsr && token.useId && checkedSerial) fsr_->OnBatchSubmitted(token.useId, checkedSerial);
     if (token.provider == upscaling::Upscaler::Xess && token.useId && checkedSerial) xess_->OnBatchSubmitted(token.useId, checkedSerial);
+    if (token.provider == upscaling::Upscaler::Sgsr2 && token.useId && checkedSerial) sgsr2_->OnBatchSubmitted(token.useId, checkedSerial);
 }
 void TemporalUpscaler::OnDiscarded(SrUseToken token) {
     if (dlss_) RouteDiscarded(token, *dlss_);
     if (token.provider == upscaling::Upscaler::Fsr && token.useId) fsr_->OnBatchDiscarded(token.useId);
     if (token.provider == upscaling::Upscaler::Xess && token.useId) xess_->OnBatchDiscarded(token.useId);
+    if (token.provider == upscaling::Upscaler::Sgsr2 && token.useId) sgsr2_->OnBatchDiscarded(token.useId);
 }
 void TemporalUpscaler::ReleaseCompleted(uint64_t serial) {
     if (!serial) return;
     if (dlss_) dlss_->ReleaseCompletedThrough(serial);
     fsr_->ReleaseCompletedThrough(serial);
     xess_->ReleaseCompletedThrough(serial);
+    sgsr2_->ReleaseCompletedThrough(serial);
 }
 bool TemporalUpscaler::HasFeatureState() const {
-    return (dlss_ && dlss_->HasFeatureState()) || fsr_->HasFeatureState() || xess_->HasFeatureState();
+    return (dlss_ && dlss_->HasFeatureState()) || fsr_->HasFeatureState() || xess_->HasFeatureState() ||
+        sgsr2_->HasFeatureState();
 }
 void TemporalUpscaler::ReleaseFeatureAfterGpuDrain() {
     if (dlss_) dlss_->ReleaseFeatureAfterGpuDrain();
-    fsr_->ReleaseFeatureAfterGpuDrain(); xess_->ReleaseFeatureAfterGpuDrain();
+    fsr_->ReleaseFeatureAfterGpuDrain(); xess_->ReleaseFeatureAfterGpuDrain(); sgsr2_->ReleaseFeatureAfterGpuDrain();
+    sgsr2Camera_.reset();
 }
 void TemporalUpscaler::ShutdownAfterGpuDrain() {
     if (dlss_) dlss_->ShutdownAfterGpuDrain();
-    fsr_->ShutdownAfterGpuDrain(); xess_->ShutdownAfterGpuDrain();
+    fsr_->ShutdownAfterGpuDrain(); xess_->ShutdownAfterGpuDrain(); sgsr2_->ShutdownAfterGpuDrain();
+    sgsr2Camera_.reset();
 }
 bool TemporalUpscaler::ShutdownComplete() const {
-    return (!dlss_ || dlss_->ShutdownComplete()) && !fsr_->HasFeatureState() && !xess_->HasFeatureState();
+    return (!dlss_ || dlss_->ShutdownComplete()) && !fsr_->HasFeatureState() && !xess_->HasFeatureState() &&
+        !sgsr2_->HasFeatureState();
 }
 void TemporalUpscaler::AbandonAfterDeviceLoss() {
     if (dlss_) dlss_->AbandonUsesAfterDeviceLoss();
-    fsr_->AbandonUsesAfterDeviceLoss(); xess_->AbandonUsesAfterDeviceLoss();
+    fsr_->AbandonUsesAfterDeviceLoss(); xess_->AbandonUsesAfterDeviceLoss(); sgsr2_->AbandonUsesAfterDeviceLoss();
 }
 } // namespace gpu
 #endif

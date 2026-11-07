@@ -13,6 +13,7 @@ namespace plume { struct VulkanInterface; struct VulkanDevice; struct VulkanComm
 namespace gpu::dlss { class Controller; struct EvaluateCapture; }
 namespace gpu::fsr { class Controller; }
 namespace gpu::xess { class Controller; }
+namespace gpu::sgsr2 { class Controller; }
 
 namespace gpu {
 // Captured at record time. Queue completion/discard must never consult the
@@ -124,6 +125,10 @@ private:
     dlss::Controller* dlss_;
     std::unique_ptr<fsr::Controller> fsr_;
     std::unique_ptr<xess::Controller> xess_;
+    std::unique_ptr<sgsr2::Controller> sgsr2_;
+    // SGSR2's still-camera test compares view-projections of consecutive frames.
+    std::optional<temporal::Matrix> sgsr2Camera_;
+    uint64_t sgsr2CameraFrame_ = 0;
     uint64_t metalFxLastFrame_ = 0; // Render frame of the last MetalFX dispatch; a gap resets history.
 };
 } // namespace gpu

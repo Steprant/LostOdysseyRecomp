@@ -225,6 +225,17 @@ int main(int argc, char** argv) {
     // The 1.6 device sessions decided these: no Tester rows, fixed behaviour.
     Check(settings::TesterThermal+1==settings::TesterRecording,"only diagnostics rows on the Tester page");
     Check(gpu::draw_attachment::KeepColorForDepthOnly(),"depth-only draws keep colour bound on Android");
+    {
+        // Anti-aliasing choice 4 is SGSR2 (experimental temporal upscaler).
+        settings::Config aa=settings::GetConfig();
+        Check(settings::graphics_menu::AaChoiceCount==(settings::graphics_menu::AndroidFsrAvailable?6u:5u),"Android AA choices include SGSR2");
+        settings::graphics_menu::SelectAa(aa,4);
+        Check(aa.upscaler==gpu::upscaling::Upscaler::Sgsr2 && settings::graphics_menu::AaChoice(aa)==4,"SGSR2 selects and reads back");
+        Check(gpu::upscaling::UsesFsrQuality(aa.upscaler) &&
+              gpu::upscaling::FsrQualityConsumer(aa.upscaler)==gpu::upscaling::TemporalConsumer::Sgsr2Sr,"SGSR2 uses the quality presets");
+        settings::graphics_menu::SelectAa(aa,1);
+        Check(aa.upscaler==gpu::upscaling::Upscaler::Off && aa.antialiasing==1,"FXAA clears SGSR2");
+    }
     settings::testerFocus=settings::TesterRecording;tick(0x1000);
     Check(d.recording && androidMessage==0x8002,"record starts the Android collector");
     settings::testerFocus=settings::TesterProfile;tick(8);Check(d.profile==1,"profile remains fixed during recording");
@@ -336,7 +347,16 @@ int main(int argc, char** argv) {
         Check(settings::snapshot.rows[int(GraphicsRow::DlssModel)].hidden==(settings::edit.upscaler!=Upscaler::Dlss),
               "DLSS model shows only with DLSS");
     }
+#if LO_PLATFORM_ANDROID
+    // Android: choice 4 is SGSR2 (5 is FSR only in FSR-enabled builds).
+    tick(4);Check(settings::edit.upscaler==(aaChoices>5?Upscaler::Fsr:Upscaler::Sgsr2),"left from Off selects the last provider");
+    Check(!settings::snapshot.rows[int(GraphicsRow::DlssQuality)].hidden || settings::edit.upscaler!=Upscaler::Sgsr2,
+          "SGSR2 shows its quality row");
+    Check(settings::snapshot.rows[int(GraphicsRow::DlssQuality)].name==L"SGSR2 quality" || settings::edit.upscaler!=Upscaler::Sgsr2,
+          "SGSR2 names its quality row");
+#else
     tick(4);Check(settings::edit.upscaler==(aaChoices>6?Upscaler::Xess:Upscaler::Fsr),"left from Off selects the last provider");
+#endif
     if(aaChoices>6){
         Check(!settings::snapshot.rows[int(GraphicsRow::DlssQuality)].hidden &&
               settings::snapshot.rows[int(GraphicsRow::FsrSharpness)].hidden,"XeSS shows quality without FSR sharpening");

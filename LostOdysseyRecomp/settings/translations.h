@@ -609,6 +609,7 @@ static inline const wchar_t *Translate(uint32_t language, const wchar_t *en, con
         {L"Anti-aliasing / Upscaling", L"AA / アップスケール", L"안티앨리어싱 / 업스케일링", L"抗锯齿 / 超分"},
         {L"Scaling filter", L"拡大フィルター", L"스케일링 필터", L"缩放过滤"},
         {L"FSR quality", L"FSR 品質", L"FSR 품질", L"FSR 质量"},
+        {L"SGSR2 quality", L"SGSR2 品質", L"SGSR2 품질", L"SGSR2 质量"},
         {L"XeSS quality", L"XeSS 品質", L"XeSS 품질", L"XeSS 质量"},
         {L"XeSS needs Direct3D 12 and an XeSS-enabled build.", L"XeSS には Direct3D 12 と対応ビルドが必要です。",
          L"XeSS에는 Direct3D 12와 XeSS 지원 빌드가 필요합니다.", L"XeSS 需要 Direct3D 12 和包含 XeSS 的版本。"},

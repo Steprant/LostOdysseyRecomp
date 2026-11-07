@@ -1078,10 +1078,11 @@ std::wstring DlssNotice()
             AppendSentence(text, Tr(L" The new upscaler is not applied yet.", L" 新的縮放技術尚未套用。"));
         return text;
     }
-    for (const auto provider : {gpu::upscaling::Upscaler::Fsr, gpu::upscaling::Upscaler::Xess}) {
+    for (const auto provider : {gpu::upscaling::Upscaler::Fsr, gpu::upscaling::Upscaler::Xess, gpu::upscaling::Upscaler::Sgsr2}) {
         if (GetConfig().upscaler != provider && !(execution && execution->actualProvider == provider)) continue;
         const bool xess = provider == gpu::upscaling::Upscaler::Xess;
-        const std::wstring_view name = xess ? L"XeSS" : L"FSR";
+        const bool sgsr2 = provider == gpu::upscaling::Upscaler::Sgsr2;
+        const std::wstring_view name = xess ? L"XeSS" : sgsr2 ? L"SGSR2" : L"FSR";
         std::wstring fsrText;
         const bool matchingRequest = running.hasPlan && running.plannedRequest == provider;
         const bool matchingExecution = matchingRequest && execution &&
@@ -1095,7 +1096,9 @@ std::wstring DlssNotice()
             fsrText = Tr(L"FSR: graphics device is not ready.", L"FSR：圖形裝置尚未就緒。");
         else if (xess && !running.device.xessAvailable)
             fsrText = Tr(L"XeSS needs Direct3D 12 and an XeSS-enabled build.", L"XeSS 需要 Direct3D 12 與包含 XeSS 的版本。");
-        else if (!xess && !running.device.fsrAvailable)
+        else if (sgsr2 && !running.device.sgsr2Available)
+            fsrText = Tr(L"SGSR2 needs the Vulkan backend.", L"SGSR2 需要 Vulkan 圖形後端。");
+        else if (!xess && !sgsr2 && !running.device.fsrAvailable)
             fsrText = Tr(L"FSR is unavailable on this device or build.", L"目前的裝置或版本無法使用 FSR。");
         else if (matchingRequest && running.failure)
             fsrText = FsrFallbackSentence(gpu::frame_plan::DlssEffectReason::RequestFailure);
@@ -1116,7 +1119,7 @@ std::wstring DlssNotice()
             AppendSentence(fsrText, Tr(L" The backend change applies after restart.", L" 圖形後端變更會在重新啟動後套用。"));
         if (edit.upscaler != provider)
             AppendSentence(fsrText, Tr(L" The new upscaler is not applied yet.", L" 新的縮放技術尚未套用。"));
-        return xess ? WithProvider(std::move(fsrText), name) : fsrText;
+        return xess || sgsr2 ? WithProvider(std::move(fsrText), name) : fsrText;
     }
     // The menu itself covers the scene, so its frames report NoEligibleScene.
     // Describe a submitted frame of this request instead, or the reason of its
@@ -1198,7 +1201,10 @@ bool GraphicsRowHidden(int r)
         r == int(GraphicsRow::VariableRefreshRate) || r == int(GraphicsRow::FrameGeneration) ||
         r == int(GraphicsRow::FrameGenerationMultiplier) || r == int(GraphicsRow::DlssModel))
         return true;
-    if (r == int(GraphicsRow::DlssQuality) || r == int(GraphicsRow::FsrSharpness))
+    if (r == int(GraphicsRow::DlssQuality))
+        return edit.upscaler != gpu::upscaling::Upscaler::Sgsr2 &&
+            (!graphics_menu::AndroidFsrAvailable || edit.upscaler != gpu::upscaling::Upscaler::Fsr);
+    if (r == int(GraphicsRow::FsrSharpness))
         return !graphics_menu::AndroidFsrAvailable || edit.upscaler != gpu::upscaling::Upscaler::Fsr;
 #endif
     // A single adapter or display leaves nothing to choose.
@@ -1556,7 +1562,7 @@ void Publish(uint8_t *base, uint32_t config)
 #if LO_PLATFORM_MACOS
         std::vector<std::wstring> aaChoices{Tr(L"Off", L"關"), L"FXAA", L"SMAA", L"TAA", L"MetalFX Temporal"};
 #elif LO_PLATFORM_ANDROID
-        std::vector<std::wstring> aaChoices{Tr(L"Off", L"關"), L"FXAA", L"SMAA", L"TAA"};
+        std::vector<std::wstring> aaChoices{Tr(L"Off", L"關"), L"FXAA", L"SMAA", L"TAA", L"SGSR2"};
         if (graphics_menu::AndroidFsrAvailable) aaChoices.emplace_back(L"FSR 3.1");
 #else
         std::vector<std::wstring> aaChoices{Tr(L"Off", L"關"), L"FXAA", L"SMAA", L"TAA", L"DLSS", L"FSR 3.1", L"XeSS"};
@@ -1570,8 +1576,10 @@ void Publish(uint8_t *base, uint32_t config)
         const bool savedFsr = gpu::upscaling::UsesFsrQuality(edit.upscaler);
         const bool savedMetalFx = edit.upscaler == gpu::upscaling::Upscaler::MetalFx;
         const bool savedXess = edit.upscaler == gpu::upscaling::Upscaler::Xess;
-        auto dlssQuality = makeChoices(savedMetalFx ? L"MetalFX quality" : savedXess ? L"XeSS quality" : savedFsr ? L"FSR quality" : L"DLSS quality",
-                   savedMetalFx ? L"MetalFX 品質" : savedXess ? L"XeSS 品質" : savedFsr ? L"FSR 品質" : L"DLSS 品質",
+        const bool savedSgsr2 = edit.upscaler == gpu::upscaling::Upscaler::Sgsr2;
+        auto dlssQuality = makeChoices(savedMetalFx ? L"MetalFX quality" : savedXess ? L"XeSS quality" : savedSgsr2 ? L"SGSR2 quality" :
+                       savedFsr ? L"FSR quality" : L"DLSS quality",
+                   savedMetalFx ? L"MetalFX 品質" : savedXess ? L"XeSS 品質" : savedSgsr2 ? L"SGSR2 品質" : savedFsr ? L"FSR 品質" : L"DLSS 品質",
                    {Tr(L"Performance", L"效能"), Tr(L"Balanced", L"平衡"), Tr(L"Quality", L"品質"), savedFsr ? L"Native AA" : L"DLAA"},
                    QualityMenuIndex(savedFsr ? uint32_t(edit.fsrQuality) : uint32_t(edit.dlssQuality)));
         // Hidden instead of removed so this logical id stays stable for input, drawing and hit-testing.
@@ -1877,7 +1885,10 @@ void Publish(uint8_t *base, uint32_t config)
             break;
         case GraphicsRow::AntiAliasing:
 #if LO_PLATFORM_ANDROID
-            if (graphics_menu::AndroidFsrAvailable && edit.upscaler == gpu::upscaling::Upscaler::Fsr)
+            if (edit.upscaler == gpu::upscaling::Upscaler::Sgsr2)
+                next.help = Tr(L"Experimental: Qualcomm SGSR2 renders the scene below the screen resolution and rebuilds detail from earlier frames. Menus and transitions use normal rendering.",
+                              L"實驗性：Qualcomm SGSR2 以低於螢幕的解析度渲染場景，並利用先前的影格重建細節。選單和過場使用常規渲染。");
+            else if (graphics_menu::AndroidFsrAvailable && edit.upscaler == gpu::upscaling::Upscaler::Fsr)
                 next.help = Tr(L"FSR 3.1 needs D3D12 or Vulkan and an FSR-enabled build. Unsupported scenes use normal rendering.",
                               L"FSR 3.1 需要 D3D12 或 Vulkan 與包含 FSR 的版本。不支援的場景使用常規渲染。");
             else if (graphics_menu::AaChoice(edit) == 3)

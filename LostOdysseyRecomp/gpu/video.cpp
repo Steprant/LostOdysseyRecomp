@@ -1623,6 +1623,8 @@ namespace gpu::video
                 g_dlssController->Report().state == dlss::ProbeState::Available;
             snapshot.fsrAvailable = snapshot.deviceReady &&
                 (vulkan ? LO_HAS_FSR : LO_HAS_FSR_D3D12);
+            // SGSR2 compiles its compute shaders with the bundled DXC on first use.
+            snapshot.sgsr2Available = snapshot.deviceReady && vulkan && g_temporalUpscaler;
 #if defined(_WIN32) && defined(LO_HAS_XESS) && LO_HAS_XESS
             // libxess.dll and adapter support are checked by the sizing query.
             snapshot.xessAvailable = snapshot.deviceReady && !vulkan;
@@ -4819,7 +4821,8 @@ namespace gpu::video
             using upscaling::TemporalConsumer;
             const auto consumer = plan.cpuSerial ? plan.consumer : TemporalConsumer::None;
             sources.upscaler = upscaling::IsDlssConsumer(consumer) ? "DLSS" : consumer == TemporalConsumer::FsrSr ? "FSR" :
-                consumer == TemporalConsumer::XessSr ? "XeSS" : consumer == TemporalConsumer::MetalFxSr ? "MetalFX" : "NATIVE";
+                consumer == TemporalConsumer::XessSr ? "XeSS" : consumer == TemporalConsumer::MetalFxSr ? "MetalFX" :
+                consumer == TemporalConsumer::Sgsr2Sr ? "SGSR2" : "NATIVE";
             // Name the spatial upscaler the presentation actually used.
             if (std::string_view(sources.upscaler) == "NATIVE" &&
                 g_presentation->LastSgsr1State() == gpu::Sgsr1State::Active)

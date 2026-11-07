@@ -140,8 +140,21 @@ int main()
         "provider 3 decodes as MetalFX");
     malformed = v2; malformed[22] = (malformed[22] & ~3u) | 3u;
     Require(!Decode(malformed), "v2 plans cannot carry MetalFX");
+    // The three-bit consumer field is full: 7 is SGSR2 SR; provider 5 is SGSR2.
     malformed = words; malformed[22] |= (3u << 4) | (1u << 21);
-    Require(!Decode(malformed), "unknown consumer rejected");
+    Require(Decode(malformed) && Decode(malformed)->consumer == gpu::upscaling::TemporalConsumer::Sgsr2Sr,
+        "consumer 7 decodes as SGSR2");
+    malformed = words; malformed[22] = (malformed[22] & ~3u) | 1u | (1u << 25);
+    Require(Decode(malformed) && Decode(malformed)->requestedUpscaler == gpu::upscaling::Upscaler::Sgsr2,
+        "provider 5 decodes as SGSR2");
+    malformed = words; malformed[22] = (malformed[22] & ~3u) | 2u | (1u << 25);
+    Require(!Decode(malformed), "unknown provider 6 rejected");
+    {
+        auto sgsr2 = full;
+        sgsr2.requestedUpscaler = gpu::upscaling::Upscaler::Sgsr2;
+        sgsr2.consumer = gpu::upscaling::TemporalConsumer::Sgsr2Sr;
+        Require(Decode(wire::EncodePlan(sgsr2)) == sgsr2, "SGSR2 plans roundtrip");
+    }
     malformed = words; malformed[22] |= 1u << 27;
     Require(!Decode(malformed), "unknown flag rejected");
     malformed = words; malformed[22] |= (1u << 25) | 3u;

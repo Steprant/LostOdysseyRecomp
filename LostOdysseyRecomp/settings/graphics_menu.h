@@ -27,7 +27,8 @@ inline constexpr bool AndroidFsrAvailable = true;
 #else
 inline constexpr bool AndroidFsrAvailable = false;
 #endif
-inline constexpr uint32_t AaChoiceCount = AndroidFsrAvailable ? 5 : 4;
+// Choice 4 is SGSR2 (experimental), 5 FSR when the build has it.
+inline constexpr uint32_t AaChoiceCount = AndroidFsrAvailable ? 6 : 5;
 #elif defined(_WIN32) && defined(LO_HAS_XESS) && LO_HAS_XESS
 // Intel XeSS is D3D12-only; only XeSS-enabled Windows builds offer it.
 inline constexpr uint32_t AaChoiceCount = 7;
@@ -42,7 +43,8 @@ inline uint32_t AaChoice(const Config& config)
     if (config.upscaler == Upscaler::MetalFx) return 4;
 #elif LO_PLATFORM_ANDROID
     // NGX is unavailable here; a saved desktop request shows the AA fallback.
-    if (AndroidFsrAvailable && config.upscaler == Upscaler::Fsr) return 4;
+    if (config.upscaler == Upscaler::Sgsr2) return 4;
+    if (AndroidFsrAvailable && config.upscaler == Upscaler::Fsr) return 5;
 #else
     if (config.upscaler == Upscaler::Dlss) return 4;
     if (config.upscaler == Upscaler::Fsr) return 5;
@@ -62,7 +64,7 @@ inline void SelectAa(Config& config, uint32_t choice)
 #if LO_PLATFORM_MACOS
         config.upscaler = Upscaler::MetalFx;
 #elif LO_PLATFORM_ANDROID
-        config.upscaler = Upscaler::Fsr;
+        config.upscaler = choice == 4 ? Upscaler::Sgsr2 : Upscaler::Fsr;
 #else
         config.upscaler = choice == 4 ? Upscaler::Dlss : choice == 5 ? Upscaler::Fsr : Upscaler::Xess;
 #endif

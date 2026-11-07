@@ -192,6 +192,7 @@ if((UNIX AND NOT APPLE) OR WIN32)
   add_executable(LoVideoSubmissionStopTest "${ROOT}/tools/tests/video_submission_stop_test.cpp"
    "${ROOT}/LostOdysseyRecomp/gpu/video.cpp"
    "${ROOT}/LostOdysseyRecomp/gpu/temporal_upscaler.cpp"
+   "${ROOT}/LostOdysseyRecomp/gpu/sgsr2_upscaler.cpp"
    "${ROOT}/LostOdysseyRecomp/gpu/fsr_upscaler.cpp"
    "${ROOT}/LostOdysseyRecomp/gpu/fsr_upscaler_d3d12.cpp"
    "${ROOT}/LostOdysseyRecomp/gpu/xess_upscaler.cpp"

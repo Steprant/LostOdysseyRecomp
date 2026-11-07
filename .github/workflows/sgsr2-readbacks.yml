@@ -1,0 +1,38 @@
+name: SGSR2 Vulkan readbacks
+on:
+  workflow_dispatch:
+  push:
+    paths: ['LostOdysseyRecomp/gpu/sgsr2_upscaler*', 'LostOdysseyRecomp/gpu/shader/sgsr2_source.h', 'LostOdysseyRecomp/gpu/temporal_frame_inputs.h', 'tools/tests/sgsr2*', 'tools/tests/sgsr2/**', '.github/workflows/sgsr2-readbacks.yml']
+  pull_request:
+    paths: ['LostOdysseyRecomp/gpu/sgsr2_upscaler*', 'LostOdysseyRecomp/gpu/shader/sgsr2_source.h', 'LostOdysseyRecomp/gpu/temporal_frame_inputs.h', 'tools/tests/sgsr2*', 'tools/tests/sgsr2/**', '.github/workflows/sgsr2-readbacks.yml']
+permissions:
+  contents: read
+jobs:
+  lavapipe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Install software Vulkan and build tools
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libx11-dev mesa-vulkan-drivers libvulkan1
+      - name: Apply pinned backend overlays
+        run: |
+          git -C thirdparty/plume apply ../../tools/patches/plume-lostodyssey.patch
+          git -C thirdparty/plume apply ../../tools/patches/plume-sdl3.patch
+      - name: Compile and run the production SGSR2 controller on lavapipe
+        env:
+          VK_DRIVER_FILES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+        run: |
+          if [ ! -f "$VK_DRIVER_FILES" ]; then export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json; fi
+          cmake -S tools/tests/sgsr2 -B out/verify/sgsr2 -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build out/verify/sgsr2 --parallel 3
+          ctest --test-dir out/verify/sgsr2 --output-on-failure
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sgsr2-readbacks
+          path: out/verify/sgsr2/Testing/Temporary/LastTest.log
+          if-no-files-found: ignore

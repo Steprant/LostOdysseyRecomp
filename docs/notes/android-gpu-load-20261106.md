@@ -178,3 +178,41 @@ The remaining large lever is rendering fewer pixels: SGSR1 already
 reconstructs 720p/900p to the 2670×1200 panel, but it is spatial only. A
 temporal upscaler (Qualcomm SGSR2, BSD-3) fed with the renderer's jitter,
 depth and motion vectors would let 720p look close to native.
+
+## SGSR2 (experimental), 2026-11-07
+
+Anti-aliasing → **SGSR2** with an *SGSR2 quality* row (Quality 1.5×,
+Balanced 1.7×, Performance 2.0×, Native AA). It runs on the renderer's
+temporal SR route, like FSR: jittered scene colour, reversed R32 depth,
+backward render-pixel motion and motion invalidity are copied at the scene
+boundary, and Qualcomm's 2-pass compute SGSR2 (BSD-3, adapted to HLSL in
+`gpu/shader/sgsr2_source.h`) writes an RGBA16F output that the RGB composite
+returns to the game's target before the UI.
+
+Adaptations to the reference: reversed Z; the renderer's motion vectors
+instead of a velocity texture or a clip-to-previous-clip matrix; motion
+invalidity forces the depth clip; a reset frame never reads the previous
+history (it can be uninitialised or a discarded frame's, and NaN × 0 is
+NaN); SDR input skips the reference's `rgb / (max + 1)` tone map (HDR keeps
+it, with an exact inverse); the output is clipped to [0, 1] for SDR.
+
+Motion is camera-only by default (`LO_SGSR2_OBJECT_MV=1` adds the object
+replay) because the replay's vertex work would cost more than SGSR2 saves;
+the colour clamp handles moving characters. `LO_SGSR2_JITTER_SIGN=-1` flips
+the jitter handed to SGSR2 to check the convention on a device.
+
+`tools/tests/sgsr2` runs the production controller and shaders on lavapipe
+(CI: *SGSR2 Vulkan readbacks*), 64×36 → 128×72:
+
+| Check | Result |
+|---|---|
+| flat colour after reset / accumulation | worst error 0.0015 |
+| jittered static scene, RMSE R/G/B vs ideal 128×72 | 0.006 / 0.067 / 0.026 (bilinear 0.000 / 0.169 / 0.057) |
+| same with the jitter sign flipped | 0.023 / 0.291 / 0.032 |
+| pan with backward vectors vs reversed vectors | 0.009 / 0.224 / 0.035 vs 0.124 / 0.263 / 0.161 |
+| HDR flat colour (2.0, 0.5, 0.25) | 0.5% |
+| slots, resize, discard and shutdown lifecycle | pass |
+
+The green channel is a sinusoid above the render Nyquist limit: SGSR2
+recovers it on a still camera and, as expected, not during a pan. Not yet
+measured on the Adreno 750.
