@@ -959,8 +959,6 @@ namespace gpu::renderer
                 std::vector<RenderSpecConstant> specConstants;
                 bool seed = false;
             };
-            // Specialization constant of the pixel shader's alpha test (common HLSL).
-            static constexpr uint32_t kAlphaTestSpecConstant = 32;
             static bool DrawTimeJob(PrefetchJob::Kind kind) { return kind == PrefetchJob::Draw || kind == PrefetchJob::Sibling; }
             // Worker-made modules whose hash got another module first; a build may
             // have used them, so they live as long as the shader map.
@@ -6056,7 +6054,7 @@ void main()
                     if (state == RecipeShaderState::Ready) {
                         auto desc = DescribePipeline(key, vs, ps, false);
                         desc.fastLink = true;
-                        ApplyAlphaTestSpecialisation(desc, key, ps);
+                        UseKillFreePixelShader(desc, key, ps);
                         items.push_back({desc, key, vs, ps, {}, {}});
                     } else if (state == RecipeShaderState::Loading && !synchronousPreparation &&
                                !(key.prim == 8 && rectListExpansion && (!vs || !vs->rectList))) {
@@ -9204,9 +9202,6 @@ void main()
                 size_t word = 0;
                 for (uint32_t m = info.mask; m; m &= m - 1)
                     job->specConstants.emplace_back(uint32_t(std::countr_zero(m)), info.words[word++]);
-                if (vulkan && ps)
-                    job->specConstants.emplace_back(kAlphaTestSpecConstant,
-                        (key.flags & gpu::pipeline_cache::kFlagAlphaTest) ? 1u : 0u);
                 job->desc = DescribeForCreation(key, vs, ps, false, false);
                 job->desc.cacheKey = 0; // the D3D12 library and Metal archive name the generic pipeline
                 job->desc.specConstants = job->specConstants.data();
@@ -9383,15 +9378,18 @@ void main()
                 auto desc = DescribePipeline(key, vs, ps, trace);
                 desc.cacheKey = gpu::pipeline_cache::detail::Hash(gpu::pipeline_cache::detail::Encode(key)) | 1;
                 desc.fastLink = fastLink;
-                ApplyAlphaTestSpecialisation(desc, key, ps);
+                UseKillFreePixelShader(desc, key, ps);
                 return desc;
             }
-            void ApplyAlphaTestSpecialisation(RenderGraphicsPipelineDesc& desc, const PipelineKey& key, const Shader* ps) const
+            // Draws without the Xenos alpha test never reach the epilogue's discard;
+            // their pipelines take the pixel shader's kill-free module (Plume keeps
+            // one for fragment shaders whose only OpKill that is), so Turnip keeps
+            // early Z and LRZ writes. Shaders with Xenos kill instructions have
+            // more than one OpKill and keep their module.
+            void UseKillFreePixelShader(RenderGraphicsPipelineDesc& desc, const PipelineKey& key, const Shader* ps) const
             {
-                if (!vulkan || !ps) return;
-                static const RenderSpecConstant alphaTest[2] = {{kAlphaTestSpecConstant, 0u}, {kAlphaTestSpecConstant, 1u}};
-                desc.specConstants = &alphaTest[(key.flags & gpu::pipeline_cache::kFlagAlphaTest) ? 1 : 0];
-                desc.specConstantsCount = 1;
+                if (!nativeVulkan || !ps) return;
+                desc.pixelShaderWithoutKill = !(key.flags & gpu::pipeline_cache::kFlagAlphaTest);
             }
 
             std::unique_ptr<RenderPipeline> CreatePipeline(const PipelineKey& key, Shader* vs, Shader* ps, bool trace, bool fastLink = false)
@@ -9851,15 +9849,15 @@ void main()
                 key.ps = ps ? psHash : 0;
                 {
                     // The alpha test as pipeline state (see pipeline_cache::kFlagAlphaTest),
-                    // read the same way as the shared flag below. Vulkan only: the other
-                    // backends ignore the constant, so a second pipeline would be waste.
+                    // read the same way as the shared flag below. Native Vulkan only:
+                    // elsewhere both variants would be the same pipeline.
                     static const bool noAlphaTestKey = getenv("LO_NO_ALPHATEST") != nullptr;
                     static const bool dynamicAlphaTest = [] {
                         const char* value = getenv("LO_ALPHATEST_SPEC");
                         return value && std::string_view(value) == "0";
                     }();
                     const bool alphaTestOn = (Reg(REG_RB_COLORCONTROL) & 8) && !noAlphaTestKey;
-                    key.flags = vulkan && ps && (alphaTestOn || dynamicAlphaTest) ? gpu::pipeline_cache::kFlagAlphaTest : 0u;
+                    key.flags = nativeVulkan && ps && (alphaTestOn || dynamicAlphaTest) ? gpu::pipeline_cache::kFlagAlphaTest : 0u;
                 }
                 key.blend = Reg(REG_RB_BLENDCONTROL0);
                 key.depthControl = depthControl;

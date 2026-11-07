@@ -212,13 +212,6 @@ float4 XeDecodeTexture(float4 value, uint info)
 [[vk::constant_id(29)]] const uint xeTextureInfoSpec29 = 0xFFFFFFFFu;
 [[vk::constant_id(30)]] const uint xeTextureInfoSpec30 = 0xFFFFFFFFu;
 [[vk::constant_id(31)]] const uint xeTextureInfoSpec31 = 0xFFFFFFFFu;
-// Constant 32 is 0 for pipelines whose draws have the Xenos alpha test off.
-// The epilogue's discard then folds away at pipeline compile: a shader that
-// can discard makes tile GPUs (Adreno's LRZ, PowerVR, Mali) give up early
-// depth rejection and depth pre-tests for the whole draw. Default 1 keeps the
-// dynamic test (every pipeline made without the constant).
-[[vk::constant_id(32)]] const uint xeAlphaTestSpec = 1u;
-#define XE_ALPHA_TEST_POSSIBLE (xeAlphaTestSpec != 0u)
 
 uint XeTextureInfoSpec(uint slot)
 {
@@ -259,8 +252,6 @@ uint XeTextureInfoSpec(uint slot)
     }
     return 0xFFFFFFFFu;
 }
-#else
-#define XE_ALPHA_TEST_POSSIBLE true
 #endif
 
 float4 XeTextureResult(float4 value, uint slot)

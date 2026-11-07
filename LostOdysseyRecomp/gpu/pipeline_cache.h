@@ -319,10 +319,10 @@ namespace gpu::pipeline_cache
         }
     };
 
-    // Key::flags bit 0: the draw has the Xenos alpha test on. Vulkan builds the
-    // pixel shader's discard only into those pipelines (specialization constant
-    // 32); without it the driver keeps early depth rejection (Adreno LRZ).
-    // Older recipes (flags 0) prewarm the variant without the test.
+    // Key::flags bit 0: the draw has the Xenos alpha test on. Native Vulkan
+    // pipelines without it use the pixel shader's kill-free module (Plume), so
+    // the driver keeps early depth rejection (Adreno LRZ). Older recipes
+    // (flags 0) prewarm the variant without the test.
     inline constexpr uint32_t kFlagAlphaTest = 1u;
 
     // These masks are the values emitted by the current renderer. Primitive and

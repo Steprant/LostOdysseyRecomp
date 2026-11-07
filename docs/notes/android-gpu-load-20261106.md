@@ -292,21 +292,26 @@ frames and returns after 20 consecutive upscaled frames.
 ## Early depth rejection restored (2026-11-07)
 
 The profiles say the main scene pass is pixel-bound, not draw-bound: from
-1780×800 to 1282×576 (0.52× the pixels) its time per draw falls 1.7×.
-Every translated pixel shader carried the Xenos alpha test as a dynamic
-branch ending in `discard`, also when the game has the test off. A shader
-that can discard makes Turnip (and tile GPUs in general) give up early Z for
-the draw and stop writing LRZ, so with every shader like that the whole
-scene shaded every covered fragment before its depth test, overdraw
-included.
+1780×800 to 1282×576 (0.52× the pixels) its time per draw falls 1.7×
+(about 3.2 ms per megapixel, 1.8 µs per draw). 852 of its ~1,530 draws a
+frame are depth-only: the game lays depth down first, so the colour pass
+should shade only visible pixels. It did not. Every translated pixel shader
+carries the Xenos alpha test as a dynamic branch ending in `discard`, also
+when the game has the test off; a shader that can discard makes Turnip (and
+tile GPUs in general) give up early Z for the draw and stop writing LRZ, so
+every covered fragment was shaded before its depth test.
 
-The test is now pipeline state on Vulkan: `pipeline_cache::kFlagAlphaTest`
-in the key, specialization constant 32 (`xeAlphaTestSpec`) in the common
-HLSL. Pipelines of draws without the alpha test get 0 and the driver folds
-the discard away; draws with it keep the dynamic test. Old pipeline recipes
-(flags 0) now prewarm the variant without the test. The Plume Vulkan
-backend fast-links pipelines with fragment-only constants (index ≥ 32),
-keying the fragment library on their values, so the startup and draw-time
-fast-link paths are kept. D3D12 and Metal are unchanged. Shader translator
-version 29: the first start retranslates and recompiles the shaders.
-`LO_ALPHATEST_SPEC=0` restores the dynamic test everywhere.
+The alpha test is now pipeline state on native Vulkan
+(`pipeline_cache::kFlagAlphaTest` in the key). Plume gives each fragment
+module whose only `OpKill` is that test (exactly one `OpKill`, no
+terminate/demote) a second module with the instruction turned into
+`OpUnreachable` (one word each, patched in place), and pipelines whose draws
+have the alpha test off use it (`RenderGraphicsPipelineDesc::
+pixelShaderWithoutKill`), on the monolithic and the fast-link path alike.
+The translated HLSL and the shader packs are unchanged (an earlier
+specialization-constant version invalidated the 235 MB pack and was
+replaced). Shaders with Xenos kill instructions have two `OpKill`s and keep
+their module. Old pipeline recipes (flags 0) prewarm the kill-free variant.
+`LO_ALPHATEST_SPEC=0` keeps the discard everywhere. `tools/tests/
+kill_free_module_test.cpp` checks module selection and identical output on
+lavapipe.
