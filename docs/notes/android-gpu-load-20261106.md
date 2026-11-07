@@ -151,3 +151,30 @@ Same save and spot, 30 FPS, Tester *Intensive*, 3 minutes standing still +
 
 Compare `gpu passes:` pass_ms + outside_ms and per-target ms, the Tester
 GPU busy and 1% low.
+
+## A/B results of 2026-11-07 and what the build keeps
+
+Six recordings (08:43–10:13), Xiaomi 14, Turnip, 1080 internal, 30 FPS
+unless noted. Medians over gameplay windows (> 1,200 draws per frame):
+
+| Run | Constants | Depth-only pass | Turnip | Passes | Pass ms | GPU ms/frame |
+|---|---|---|---|---:|---:|---:|
+| 08:43 | pointer | separate | auto | 104 | 19.4 | 24.2 |
+| 09:12 | UBO | separate | auto | 102 | 19.3 | 24.2 (13% more draws) |
+| 09:33 | UBO | kept | GMEM | 67 | 26.6 | 31.4 |
+| 10:03 | UBO | kept | sysmem | 64 | 17.9 | 23.1 |
+| 10:13 | UBO | kept | auto | 74 | 17.8 | 22.1 |
+
+Per scene draw: pointer 8.6 µs, UBO 7.9 µs. In the 10:13 run 720p
+(1602×736) costs ~12.7 ms against ~22 ms at 1080p in comparable scenes.
+
+Kept: depth-only draws in the scene pass (Android default), compact 8-bit
+targets (always on Android), display refresh matching, 64 ms audio buffer.
+Removed: UBO constants (~7% for a long first-start compile and a ~900 MB
+bundle), Turnip render mode (GMEM much slower), ADPF hints (no effect on a
+GPU-bound frame), per-voice XMA locks (audio clean without them).
+
+The remaining large lever is rendering fewer pixels: SGSR1 already
+reconstructs 720p/900p to the 2670×1200 panel, but it is spatial only. A
+temporal upscaler (Qualcomm SGSR2, BSD-3) fed with the renderer's jitter,
+depth and motion vectors would let 720p look close to native.
