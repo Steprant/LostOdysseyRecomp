@@ -315,3 +315,16 @@ their module. Old pipeline recipes (flags 0) prewarm the kill-free variant.
 `LO_ALPHATEST_SPEC=0` keeps the discard everywhere. `tools/tests/
 kill_free_module_test.cpp` checks module selection and identical output on
 lavapipe.
+
+### Depth-only draws without their no-op pixel shader
+
+852 draws a frame write no colour (depth pre-pass, shadow maps, stencil
+volumes, occlusion boxes). Their pipelines kept the game's pixel shader,
+which then ran for every fragment that passed the depth test with no effect
+at all (no colour write, and with the alpha test off its only possible
+effect, the discard, cannot happen). On native Vulkan such pipelines now
+have no fragment shader when the shader neither exports depth nor has a
+second kill (`PixelShaderIsNoOp`), so the hardware takes its depth-only
+path. Occlusion-query draws with such a shader are counted by the fragment
+counter instead of a host query, like draws without one.
+`LO_KEEP_DEPTH_ONLY_PS=1` keeps the shaders.

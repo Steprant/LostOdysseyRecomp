@@ -4715,7 +4715,9 @@ void main()
             // colour writes (left undefined either way, but kept as they are).
             RenderPipeline* CountingPipeline(const PipelineKey& key, Shader* vs, Shader* ps)
             {
-                if (!occlusionCounting || ps || key.colorMask) return nullptr;
+                // A no-op pixel shader (see PixelShaderIsNoOp) can be replaced by the
+                // counter as well, instead of a host query.
+                if (!occlusionCounting || (ps && !PixelShaderIsNoOp(key, ps)) || key.colorMask) return nullptr;
                 if (const auto known = countingPipelines.find(key); known != countingPipelines.end())
                     return known->second.get(); // null after a failed creation: the query serves
                 ScopedTimer createTimer{ recordOtherPipelineMs, record_timing::Enabled() };
@@ -9386,10 +9388,36 @@ void main()
             // one for fragment shaders whose only OpKill that is), so Turnip keeps
             // early Z and LRZ writes. Shaders with Xenos kill instructions have
             // more than one OpKill and keep their module.
+            // The draw's pixel shader cannot change anything: no colour write, no
+            // depth export, and its only kill is the alpha test, which is off.
+            bool PixelShaderIsNoOp(const PipelineKey& key, const Shader* ps) const
+            {
+                static const bool keepDepthOnlyPs = [] {
+                    const char* value = getenv("LO_KEEP_DEPTH_ONLY_PS");
+                    return value && *value && std::string_view(value) != "0";
+                }();
+                return nativeVulkan && !keepDepthOnlyPs && ps && ps->shader && !(key.colorMask & 0xF) &&
+                    !(key.flags & gpu::pipeline_cache::kFlagAlphaTest) && !ps->info.writesDepth &&
+                    static_cast<const VulkanShader*>(ps->shader.get())->vkWithoutKill != VK_NULL_HANDLE;
+            }
             void UseKillFreePixelShader(RenderGraphicsPipelineDesc& desc, const PipelineKey& key, const Shader* ps) const
             {
                 if (!nativeVulkan || !ps) return;
                 desc.pixelShaderWithoutKill = !(key.flags & gpu::pipeline_cache::kFlagAlphaTest);
+                // A depth-only draw (no colour write) whose pixel shader can neither
+                // discard (its only kill is the alpha test, off here) nor export depth
+                // has no observable effect: drop the shader, so the hardware runs its
+                // depth-only path instead of shading every fragment of the game's
+                // depth pre-pass, shadow maps and stencil volumes for nothing.
+                // LO_KEEP_DEPTH_ONLY_PS=1 keeps it.
+                if (desc.pixelShader && desc.pixelShader == (ps->shader ? ps->shader.get() : nullptr) &&
+                    desc.renderTargetCount <= 1 && PixelShaderIsNoOp(key, ps)) {
+                    desc.pixelShader = nullptr;
+                    desc.pixelShaderWithoutKill = false;
+                    static std::atomic<uint32_t> dropped{0};
+                    if (const uint32_t n = ++dropped; n <= 4 || n == 100 || n == 1000)
+                        LOG_INFO("renderer: depth-only pipelines without their no-op pixel shader: {} (ps={:016x})", n, key.ps);
+                }
             }
 
             std::unique_ptr<RenderPipeline> CreatePipeline(const PipelineKey& key, Shader* vs, Shader* ps, bool trace, bool fastLink = false)
