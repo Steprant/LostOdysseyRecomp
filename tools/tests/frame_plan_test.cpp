@@ -182,7 +182,13 @@ int main()
         for (uint32_t i = 0; i < Policy::kEnterFrames; ++i) change = policy.Observe(false, true, frame++);
         Require(change == Change::EnterNative && policy.native, "a menu switches to the output size");
         Require(policy.Observe(false, true, frame++) == Change::None && policy.native, "the menu stays native");
-        Require(policy.Observe(true, false, frame++) == Change::ReturnToQuality && !policy.native, "the 3D scene returns to quality");
+        for (uint32_t i = 0; i + 1 < Policy::kReturnFrames; ++i)
+            Require(policy.Observe(true, false, frame++) == Change::None && policy.native, "a fade-in stays at one resolution");
+        Require(policy.Observe(false, true, frame++) == Change::None && policy.native && policy.sceneFrames == 0,
+            "a scene-less frame restarts the return count");
+        for (uint32_t i = 0; i + 1 < Policy::kReturnFrames; ++i) policy.Observe(true, false, frame++);
+        Require(policy.Observe(true, false, frame++) == Change::ReturnToQuality && !policy.native,
+            "a settled 3D scene returns to quality");
         for (uint32_t i = 0; i < Policy::kEnterFrames + 5; ++i) change = policy.Observe(false, true, frame++);
         Require(change == Change::None && !policy.native, "no switch back inside the cooldown");
         frame += Policy::kCooldownFrames;

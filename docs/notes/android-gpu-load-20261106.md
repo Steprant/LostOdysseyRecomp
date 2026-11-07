@@ -268,3 +268,23 @@ Findings and changes:
   since sharpened edges show stair steps more. Every 300 frames the log
   prints `SGSR2 jitter:` with the jittered, unjittered and unknown-camera
   scene draws: unjittered draws are never anti-aliased by SGSR2.
+
+### Third round (2026-11-07): blocks in shadows, transition ghosting
+
+Device session with Dynamic shadows On showed a blocky, brick-like pattern
+over shadowed walls and floors at the SGSR2 input sizes (not at the output
+size). The `SGSR2 jitter:` lines show every known scene draw jittered but
+one or two draws a frame in the scene viewport with no known camera
+constant, so unjittered: the class of bug fixed for cutscene shadow volumes
+in PR #197 (a depth-testing pass half a pixel off the jittered depth flips
+its stencil or shadow test per triangle or texel). Under SR those
+depth-testing unknown draws now take the frame jitter as a viewport
+translation, which moves clip space exactly as the projection offset does
+(`LO_SR_VIEWPORT_JITTER=0` off); each such pair is logged once, and the
+periodic line counts them (`viewport_jittered=`). Resolved render targets
+(shadow maps, scene copies) are also excluded from anisotropic filtering and
+the SR mip bias.
+
+Transitions: the menu policy returned to the quality size on the first 3D
+frame, often in the middle of a fade-in. It now enters after 30 scene-less
+frames and returns after 20 consecutive upscaled frames.

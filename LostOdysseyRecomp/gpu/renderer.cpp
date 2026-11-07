@@ -1561,7 +1561,8 @@ namespace gpu::renderer
             // Last frame whose scene had two camera views (split screen), and the
             // first frame of that run, for the frame-start jitter policy and the log.
             uint64_t temporalSplitViewFrame=~0ull,temporalSplitViewStart=~0ull;
-            uint32_t temporalJitterDraws=0,temporalJitterMisses=0,temporalJitterUnknowns=0;
+            uint32_t temporalJitterDraws=0,temporalJitterMisses=0,temporalJitterUnknowns=0,temporalJitterViewportDraws=0;
+            temporal::JitterMissLog viewportJitterLog;
             uint64_t temporalEpoch=1,temporalFramesLogged=0,temporalSubmittedFrame=~0ull;
             temporal::JitterSample actualRasterJitter{}, frameRasterJitter{};
             std::chrono::steady_clock::time_point srFrameTime{};
@@ -10371,6 +10372,29 @@ void main()
                     jitterSampledDepth ? &*jitterSampledDepth : nullptr,
                     ActiveTaaOptions().jitter_scale, dlssSrRequested ? &frameRasterJitter : nullptr,
                     constantScreenSample);
+                // A scene-viewport draw whose shader pair is not in the jitter
+                // table (no known camera constant) would test the jittered
+                // scene depth half a pixel off. For stencil shadow volumes and
+                // shadow projections that flips the result per triangle or
+                // shadow texel: the blocky pattern seen with SGSR2 on shadowed
+                // walls and floors. Under SR, such depth-testing draws take the
+                // same jitter as a viewport translation, which moves clip space
+                // exactly as the projection offset does, whatever their
+                // constants. LO_SR_VIEWPORT_JITTER=0 turns it off.
+                static const bool viewportJitterEnabled = [] {
+                    const char* value = std::getenv("LO_SR_VIEWPORT_JITTER");
+                    return !(value && std::string_view(value) == "0");
+                }();
+                if (viewportJitterEnabled && jitterEnabled && dlssSrRequested && !drawJitter.applied &&
+                    temporalViewport && temporalSlot < 0 && depth && (depthControl & 2) && frameRasterJitter.phase &&
+                    drawJitter.rejection == temporal::JitterRejection::UnknownShader) {
+                    rasterViewport.x += float(frameRasterJitter.pixelX);
+                    rasterViewport.y += float(frameRasterJitter.pixelY);
+                    ++temporalJitterViewportDraws;
+                    if (viewportJitterLog.First(key.vs, key.ps, drawJitter.rejection))
+                        LOG_INFO("renderer: SR viewport jitter for unknown scene draw vs={:016x} ps={:016x} depth_control={:#x} color_mask={} frame={}",
+                            key.vs, key.ps, depthControl, key.colorMask, frame);
+                }
                 // Jitter writes the draw's constant copy; the next draw restores it.
                 if (drawJitter.applied) {
                     drawConstantsModified[0] = true;
@@ -11320,6 +11344,9 @@ void main()
                         // Vulkan through an R/B-swapped image view, Metal by folding
                         // the swap into the word, D3D12 in the shader (bit 20).
                         textureSwapSlots &= ~(1u << slot);
+                        // A resolved render target (shadow maps, scene copies) keeps
+                        // its guest sampler: no anisotropy and no SR mip bias.
+                        const bool resolvedFetch = FindResolved((fetch[1] >> 12) << 12, fetch[1] & 0x3F) != nullptr;
                         if (ResolvedSurface* rs = FindResolved((fetch[1] >> 12) << 12, fetch[1] & 0x3F); rs && rs->swapRedBlue) {
                             if (nativeVulkan) textureSwapSlots |= 1u << slot;
                             else if (vulkan) shared.textureInfo[slot] = FoldRedBlueSwap(shared.textureInfo[slot]);
@@ -11334,7 +11361,7 @@ void main()
                         const bool afEligible = sampling::Eligible(samplerKey, tex->guestBytes != 0,
                             dimension, s == ps && depth && (depthControl & 2) && !(shared.vtxFmt & 1) &&
                                 !((vs->info.textureSlotMask >> slot) & 1),
-                            temporalDisplay || aoColor || bloomFiltered || hdrBinding);
+                            temporalDisplay || aoColor || bloomFiltered || hdrBinding || resolvedFetch);
                         const auto samplerIndex = GetSamplerIndex(samplerKey, afEligible);
                         if (!samplerIndex) { failedPlan = true; return; }
                         shared.samplerIndex[slot] = *samplerIndex;
@@ -15578,10 +15605,10 @@ void main()
                 }
                 temporal::CommitTemporalFrameEnd(*owner, temporalEnd, now, r.temporalSupportedFrame, r.temporalEpoch, r.temporalFrameTime);
                 if (r.activePlan.consumer == upscaling::TemporalConsumer::Sgsr2Sr && r.frame % 300 == 0)
-                    LOG_INFO("SGSR2 jitter: frame={} jittered_draws={} unjittered_known={} unknown_camera={} input={}x{}",
+                    LOG_INFO("SGSR2 jitter: frame={} jittered_draws={} unjittered_known={} unknown_camera={} viewport_jittered={} input={}x{}",
                         r.frame, r.temporalJitterDraws, r.temporalJitterMisses, r.temporalJitterUnknowns,
-                        r.activePlan.width, r.activePlan.height);
-                r.temporalJitterDraws=r.temporalJitterMisses=r.temporalJitterUnknowns=0;
+                        r.temporalJitterViewportDraws, r.activePlan.width, r.activePlan.height);
+                r.temporalJitterDraws=r.temporalJitterMisses=r.temporalJitterUnknowns=r.temporalJitterViewportDraws=0;
                 // Split-screen shots (#702) draw a full scene per panel. No upscaler
                 // can take two cameras, so these frames are shown as rendered.
                 const bool splitView = r.temporalScene.Frame() == r.frame &&
