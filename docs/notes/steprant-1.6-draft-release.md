@@ -4,8 +4,9 @@ Built by the Android APK workflow from `integration/v1.6-candidate-20261106`. Pa
 
 ## Changes since 1.5
 
-- Audio: no AAudio reopen on every return from a long background pause; the XMA decoder no longer holds its lock for a whole voice and runs on performance cores at audio priority; selectable audio buffer (43/64/85 ms) and timing peaks in the log; optional per-voice XMA locks (diagnostics page, restart).
+- Audio: no AAudio reopen on every return from a long background pause; the XMA decoder no longer holds its lock for a whole voice and runs on performance cores at audio priority; timing peaks in the log.
 - Graphics: "Mobile 30 FPS" preset (1080 internal, 30 FPS, SGSR1, Low shadows); 8-bit render targets in 8-bit memory with pipelines prepared at startup; depth-only draws stay in the scene's render pass (about 40% fewer passes, ~8% less pass time on the Xiaomi 14); display refresh matched to the frame rate; 900p render resolution.
+- SGSR2 (experimental): Anti-aliasing → SGSR2 with an SGSR2 quality row. Qualcomm's temporal upscaler renders at 1/1.5 (Quality) to 1/2 (Performance) of the output size and rebuilds the output from jitter, depth and camera motion. Vulkan only; may ghost on fast-moving characters.
 - SGSR1: stays enabled after a swapchain format change; the log and the performance overlay say whether it is active and, if not, why, and show its render and display sizes.
 - Title screen: its mesh pattern is no longer drawn, and full-screen see-through 2D layers cover the whole width (no darker 16:9 box).
 - Audio: 64 ms buffer on Android.
@@ -13,6 +14,6 @@ Built by the Android APK workflow from `integration/v1.6-candidate-20261106`. Pa
 
 ## Validation
 
-CI: native ARM64 build, JVM tests, lint, APK Signature Scheme v2, `zipalign -c -P 16 4`, runtime structure check; host regression, presentation readback and integration workflows. **Not yet tested on a device**: gameplay, FPS, temperature, audio listening and A/V sync on the Xiaomi 14 are still to be checked. New options are off by default except the display refresh hint.
+CI: native ARM64 build, JVM tests, lint, APK Signature Scheme v2, `zipalign -c -P 16 4`, runtime structure check; host regression, presentation readback and integration workflows. SGSR2 controller and shaders on lavapipe (*SGSR2 Vulkan readbacks*). The 2026-11-07 A/B sessions on the Xiaomi 14 decided which options were kept; SGSR2 itself is **not yet tested on a device**.
 
 Game data is supplied by the player; this APK contains no game executable or assets. GPL-3.0; dependency notices are included in the app.
