@@ -6,6 +6,7 @@
 #include <stdafx.h>
 #include <cmath>
 #include <cstring>
+#include <functional>
 
 namespace plume
 {
@@ -108,15 +109,20 @@ struct Fixture {
 
     // Uploads the scene; motion is (mx, my) render pixels everywhere and the
     // left `invalidColumns` columns are flagged invalid.
+    // Optional per-pixel overrides of the scene colour and depth.
+    std::function<uint32_t(uint32_t, uint32_t)> colorFn;
+    std::function<float(uint32_t, uint32_t)> depthFn;
+
     bool Upload(const Scene& scene, float mx, float my, uint32_t invalidColumns, bool first, double jx = 0, double jy = 0)
     {
         auto* bytes = static_cast<uint8_t*>(upload->map());
         if (!bytes) return false;
         for (uint32_t y = 0; y < kRenderH; ++y)
             for (uint32_t x = 0; x < kRenderW; ++x) {
-                reinterpret_cast<uint32_t*>(bytes + kColor)[y * kRenderW + x] = scene.Pixel(x, y, jx, jy);
+                reinterpret_cast<uint32_t*>(bytes + kColor)[y * kRenderW + x] = colorFn ? colorFn(x, y) : scene.Pixel(x, y, jx, jy);
                 // A flat wall (reverse Z), plus a nearer box in the lower right.
-                reinterpret_cast<float*>(bytes + kDepth)[y * kRenderW + x] = x >= 48 && y >= 24 ? 0.2f : 0.05f;
+                reinterpret_cast<float*>(bytes + kDepth)[y * kRenderW + x] = depthFn ? depthFn(x, y) :
+                    x >= 48 && y >= 24 ? 0.2f : 0.05f;
                 auto* mv = reinterpret_cast<uint16_t*>(bytes + kMotion) + 2 * (y * kRenderW + x);
                 mv[0] = FloatToHalf(mx); mv[1] = FloatToHalf(my);
                 bytes[kInvalid + y * 256 + x] = x < invalidColumns ? 255 : 0;
@@ -264,13 +270,14 @@ bool Check(bool condition, const char* what)
 
 const gpu::sgsr2::Config kConfig{kRenderW, kRenderH, kOutW, kOutH, 1};
 float gSharpness = 0.0f; // the sharpening pass, off unless a check turns it on
+float gEdgeClip = NAN;   // the controller's default unless a check sets it
 
 // Records one frame, submits it and retires it, as the renderer does.
 gpu::sgsr2::Status RunFrame(Fixture& f, gpu::sgsr2::Controller& controller, uint64_t frame, bool reset,
     double jx, double jy, bool sameCamera, uint64_t& serial)
 {
     const auto attempt = controller.RecordIsolated(*f.sr, kConfig, f.Inputs(frame, reset, jx, jy),
-        gpu::sgsr2::FrameValues{0.9f, sameCamera, gSharpness}, *f.output);
+        gpu::sgsr2::FrameValues{0.9f, sameCamera, gSharpness, gEdgeClip}, *f.output);
     if (attempt.status != gpu::sgsr2::Status::Ready) return attempt.status;
     controller.OnBatchSubmitted(attempt.useId, ++serial);
     f.Submit(f.sr.get());
@@ -389,6 +396,91 @@ int Run(RenderDevice* device)
         for (uint64_t frame = 650; frame < 654; ++frame) RunFrame(f, controller, frame, frame == 650, 0.25, -0.25, true, serial);
         pass &= Check(flatDeviation(f.Read()) < 0.006, "sharpening leaves a flat colour unchanged");
         gSharpness = 0.0f;
+    }
+
+    // 2c. Thin railings and a moving character, as on the device.
+    // Railings: one-render-pixel posts nearer than the wall, jittered, still
+    // camera. Weighting down the reference's depth-edge clip must bring the
+    // posts closer to the ideal output (anti-aliasing on thin geometry).
+    {
+        // Posts every 8 output pixels, 2.6 output (1.3 render) pixels wide.
+        const auto post = [](double ox) { const double m = std::fmod(ox, 8.0); return m >= 2.0 && m < 4.6; };
+        const auto railColor = [&](double ox, double oy) { (void)oy; return post(ox) ? 0.85 : 0.15; };
+        std::array<double, 2> rmse{};
+        int run = 0;
+        for (const float edge : {1.0f, 0.35f}) {
+            gEdgeClip = edge;
+            uint64_t base = 700 + 100 * run;
+            double jx = 0, jy = 0;
+            f.colorFn = [&](uint32_t x, uint32_t y) {
+                const double ox = (x + 0.5 - jx) * kOutW / kRenderW, oy = (y + 0.5 - jy) * kOutH / kRenderH;
+                const uint32_t v = uint32_t(std::lround(railColor(ox, oy) * 255));
+                return 0xff000000u | (v << 16) | (v << 8) | v;
+            };
+            f.depthFn = [&](uint32_t x, uint32_t) { return post((x + 0.5 - jx) * kOutW / kRenderW) ? 0.3f : 0.05f; };
+            for (uint64_t frame = base; frame < base + 32; ++frame) {
+                const auto j = gpu::temporal::FrameJitter(frame, kRenderW, kRenderH);
+                jx = j.pixelX; jy = j.pixelY;
+                f.Upload(detail, 0, 0, 0, false);
+                RunFrame(f, controller, frame, frame == base, j.pixelX, j.pixelY, frame != base, serial);
+            }
+            const auto out = f.Read();
+            double sum = 0; size_t count = 0;
+            for (uint32_t y = 2; y + 2 < kOutH; ++y)
+                for (uint32_t x = 2; x + 2 < kOutW; ++x, ++count) {
+                    const double ideal = std::lround(railColor(x + 0.5, y + 0.5) * 255) / 255.0;
+                    const double d = out[(size_t(y) * kOutW + x) * 3 + 1] - ideal;
+                    sum += d * d;
+                }
+            if (std::getenv("LO_SGSR2_TEST_DUMP")) {
+                printf("  rail row:");
+                for (uint32_t x = 0; x < 48; ++x) printf(" %.2f", out[(size_t(36) * kOutW + x) * 3 + 1]);
+                printf("\n");
+            }
+            rmse[run++] = std::sqrt(sum / double(count));
+        }
+        printf("  railings rmse: edge clip 1 (default) %.4f, 0.35 %.4f\n", rmse[0], rmse[1]);
+        pass &= Check(rmse[0] < 0.12 && rmse[1] < 0.12, "1.3-pixel railings resolve on a still camera");
+
+        // A character: a bright box nearer than the wall moving right 1.5
+        // render pixels a frame, with camera-only (zero) motion vectors.
+        // Where it was, the wall must come back without a ghost.
+        run = 0;
+        std::array<double, 2> ghost{};
+        for (const float edge : {1.0f, 0.35f}) {
+            gEdgeClip = edge;
+            uint64_t base = 900 + 100 * run;
+            double boxX = 4;
+            f.colorFn = [&](uint32_t x, uint32_t y) {
+                const bool inBox = x >= boxX && x < boxX + 10 && y >= 10 && y < 26;
+                const uint32_t v = inBox ? 240 : 40;
+                return 0xff000000u | (v << 16) | (v << 8) | v;
+            };
+            f.depthFn = [&](uint32_t x, uint32_t y) { return x >= boxX && x < boxX + 10 && y >= 10 && y < 26 ? 0.3f : 0.05f; };
+            for (uint64_t frame = base; frame < base + 20; ++frame) {
+                boxX = 4 + 1.5 * double(frame - base);
+                f.Upload(detail, 0, 0, 0, false);
+                RunFrame(f, controller, frame, frame == base, 0, 0, frame != base, serial);
+            }
+            const auto out = f.Read();
+            // Wall pixels the box covered two to four frames ago (nearer ones
+            // are inside the Lanczos footprint of its current edge).
+            double worst = 0;
+            const double boxOut = boxX * kOutW / kRenderW;
+            for (uint32_t y = 2 * 12; y < 2 * 24; ++y)
+                for (uint32_t x = uint32_t(boxOut - 2 * 6); x < uint32_t(boxOut - 2 * 2.5); ++x)
+                    worst = std::max(worst, double(std::abs(out[(size_t(y) * kOutW + x) * 3 + 1] - 40 / 255.0)));
+            if (std::getenv("LO_SGSR2_TEST_DUMP")) {
+                printf("  row 36 (box out x %.1f..%.1f):", boxOut, boxOut + 20);
+                for (uint32_t x = 0; x < kOutW; x += 2) printf(" %.2f", out[(size_t(36) * kOutW + x) * 3 + 1]);
+                printf("\n");
+            }
+            ghost[run++] = worst;
+        }
+        printf("  moving character trail, worst error: edge clip 1 (default) %.4f, 0.35 %.4f\n", ghost[0], ghost[1]);
+        pass &= Check(ghost[0] < 0.1 && ghost[1] < 0.1, "a moving character leaves no ghost trail");
+        f.colorFn = nullptr; f.depthFn = nullptr;
+        gEdgeClip = NAN;
     }
 
     // 3. Content panning right and down by (0.75, 0.25) render pixels a

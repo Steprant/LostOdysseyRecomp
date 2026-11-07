@@ -10416,11 +10416,15 @@ void main()
                         }
                     }
                 }
-                if(temporalExperiment && temporalJitter && temporalSlot<0 && temporalViewport) {
+                // Counted for the TAA experiment and for SR consumers (SGSR2's
+                // periodic jitter line): an unjittered scene draw is not
+                // anti-aliased and shimmers against the jittered ones.
+                const bool countJitter = (temporalExperiment || dlssSrRequested) && temporalJitter && temporalViewport;
+                if(countJitter && temporalSlot<0) {
                     ++temporalJitterUnknowns;
                 }
                 if (drawJitter.applied) ++temporalJitterDraws;
-                else if (temporalExperiment && temporalJitter && temporalSlot >= 0 && temporalViewport) {
+                else if (countJitter && temporalSlot >= 0) {
                     ++temporalJitterMisses;
                     // A known scene shader left unjittered; each VS/PS/reason once per session.
                     if (jitterMissLog.First(key.vs, key.ps, drawJitter.rejection))
@@ -15573,6 +15577,10 @@ void main()
                     ++r.temporalFramesLogged;
                 }
                 temporal::CommitTemporalFrameEnd(*owner, temporalEnd, now, r.temporalSupportedFrame, r.temporalEpoch, r.temporalFrameTime);
+                if (r.activePlan.consumer == upscaling::TemporalConsumer::Sgsr2Sr && r.frame % 300 == 0)
+                    LOG_INFO("SGSR2 jitter: frame={} jittered_draws={} unjittered_known={} unknown_camera={} input={}x{}",
+                        r.frame, r.temporalJitterDraws, r.temporalJitterMisses, r.temporalJitterUnknowns,
+                        r.activePlan.width, r.activePlan.height);
                 r.temporalJitterDraws=r.temporalJitterMisses=r.temporalJitterUnknowns=0;
                 // Split-screen shots (#702) draw a full scene per panel. No upscaler
                 // can take two cameras, so these frames are shown as rendered.

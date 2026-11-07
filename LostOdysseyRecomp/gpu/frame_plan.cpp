@@ -1,5 +1,7 @@
 #include <stdafx.h>
 #include "gpu/frame_plan.h"
+#include "gpu/sgsr2_idle_policy.h"
+#include <mutex>
 #include "gpu/android_tv.h"
 #include "gpu/cinematic_bars.h"
 #include "gpu/guest_writes.h"
@@ -46,6 +48,18 @@ namespace gpu::frame_plan
         std::atomic<uint64_t> drawable{ (uint64_t(1280) << 32) | 720 };
         std::atomic<bool> narrowTallView{false};
         PlannerState planner;
+        // Render thread observes, the CPU frame reads the flag.
+        std::mutex sgsr2IdleMutex;
+        Sgsr2IdlePolicy sgsr2Idle;
+        std::atomic<bool> sgsr2Native{false};
+        bool Sgsr2NativeMenusEnabled()
+        {
+            static const bool enabled = [] {
+                const char* value = getenv("LO_SGSR2_NATIVE_MENUS");
+                return !(value && std::string_view(value) == "0");
+            }();
+            return enabled;
+        }
         struct StatusIdentity {
             upscaling::Upscaler upscaler = upscaling::Upscaler::Off;
             upscaling::DlssQuality quality = upscaling::DlssQuality::Quality;
@@ -144,6 +158,16 @@ namespace gpu::frame_plan
         const auto output = readback ? upscaling::ResolveOutputRegion(drawableSize, config.aspectRatio) :
             PlannedOutputRegion(drawableSize, config);
         config.internalResolution = int(PlannedInternalResolution(config));
+        if (config.upscaler != upscaling::Upscaler::Sgsr2 && sgsr2Native.load(std::memory_order_relaxed)) {
+            std::lock_guard lock(sgsr2IdleMutex);
+            sgsr2Idle.Reset();
+            sgsr2Native.store(false, std::memory_order_relaxed);
+        }
+        if (config.upscaler == upscaling::Upscaler::Sgsr2 && sgsr2Native.load(std::memory_order_relaxed)) {
+            // No 3D scene for a while (menu): render it at the output size.
+            config.fsrQuality = upscaling::FsrQuality::NativeAA;
+            if (config.internalResolution == int(kSgsr2LowInputHeight)) config.internalResolution = 720;
+        }
         narrowTallView.store(aspect_ratio::NarrowsView(config.aspectRatio), std::memory_order_relaxed);
         const auto device = video::BackendDeviceState();
         std::optional<upscaling::OutputSizing> sizing;
@@ -215,6 +239,20 @@ namespace gpu::frame_plan
     void ReportUpscalerExecution(const UpscalerExecutionObservation& observation)
     {
         if (observation.actualProvider == upscaling::Upscaler::Dlss) { ReportDlssExecution(observation); return; }
+        if (observation.plan.requestedUpscaler == upscaling::Upscaler::Sgsr2 && Sgsr2NativeMenusEnabled()) {
+            std::lock_guard lock(sgsr2IdleMutex);
+            const bool submitted = observation.outcome == DlssExecutionOutcome::Submitted;
+            const auto change = sgsr2Idle.Observe(submitted,
+                !submitted && observation.reason == DlssEffectReason::NoEligibleScene, observation.renderFrame);
+            if (change != Sgsr2IdlePolicy::Change::None) {
+                sgsr2Native.store(sgsr2Idle.native, std::memory_order_relaxed);
+                if (change == Sgsr2IdlePolicy::Change::EnterNative)
+                    LOG_INFO("SGSR2: no 3D scene for {} frames (menu or transition), rendering at the output size {}x{}",
+                        Sgsr2IdlePolicy::kEnterFrames, observation.plan.output.width, observation.plan.output.height);
+                else
+                    LOG_INFO("SGSR2: 3D scene at frame {}, back to the selected quality", observation.renderFrame);
+            }
+        }
         if (!planner.ReportUpscalerExecution(observation) || !ExecutionLogChanged(observation)) return;
         LOG_INFO("{}: frame={} outcome={} input={}x{} output={}x{} quality={} serial={} reason={}",
             UpscalerName(observation.plan.requestedUpscaler), observation.renderFrame, observation.outcome == DlssExecutionOutcome::Submitted ? "submitted" : "fallback",

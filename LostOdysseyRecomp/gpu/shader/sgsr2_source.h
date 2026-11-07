@@ -16,6 +16,9 @@
 //   (depth clip 1), so its history is replaced rather than blended.
 // - Texture gathers use a point sampler; every read stays inside the image.
 // - A reset frame never reads the previous history (it may be uninitialised).
+// - A disocclusion test against the previous frame's depth also rejects
+//   history where a moving object uncovered the background (the reference
+//   has no previous depth); edgeClip can weight the depth-edge clip.
 // - SDR input (display-referred, [0, 1]) skips the HDR tone map around the
 //   YCoCg packing and the output is clipped to [0, 1]; HDR input keeps the
 //   reference tone map with an exact inverse. Non-finite colour reads as 0.
@@ -42,7 +45,9 @@ struct Sgsr2Parameters {
     uint   depthReversed;
     float  sharpness;         // 0..1 strength of the sharpening pass
     uint   sharpen;           // 1: the upscale leaves the output to sgsr2Sharpen
-    uint2  padding;
+    float2 previousJitter;    // last frame's jitterOffset
+    float  edgeClip;          // weight of the reference's depth-edge clip (1 = reference)
+    uint3  padding;
 };
 [[vk::push_constant]] ConstantBuffer<Sgsr2Parameters> params;
 
@@ -70,6 +75,9 @@ float3 Sgsr2OutputColor(float3 ycocg, float colorMax)
 [[vk::binding(4,0)]] SamplerState pointClamp : register(s0);
 [[vk::binding(5,0)]] [[vk::image_format("rgba16f")]] RWTexture2D<float4> motionDepthClipAlpha : register(u0);
 [[vk::binding(6,0)]] [[vk::image_format("r32ui")]]   RWTexture2D<uint>   ycocgColor : register(u1);
+[[vk::binding(7,0)]] Texture2D<float>  previousDepth : register(t4);
+[[vk::binding(8,0)]] [[vk::image_format("r32f")]]    RWTexture2D<float>  depthHistory : register(u2);
+float Farthest(float a, float b) { return params.depthReversed != 0 ? min(a, b) : max(a, b); }
 
 float Nearest(float a, float b) { return params.depthReversed != 0 ? max(a, b) : min(a, b); }
 float Nearest4(float4 v) { return Nearest(Nearest(v.x, v.y), Nearest(v.z, v.w)); }
@@ -106,11 +114,37 @@ void sgsr2Convert(uint3 id : SV_DispatchThreadID)
         weight += saturate(separation / (abs(nearest - bottomRight4) + EPSILON));
         depthClip = saturate(1.0 - weight * 0.25);
     }
+    // The reference clips history at every depth edge of the current frame
+    // (weighted by edgeClip, 1 by default). On top of it, a disocclusion test
+    // the reference has no data for: the surface now at this pixel lies
+    // behind everything that was around its reprojected position last frame
+    // (where a character stood, whose own motion the camera-only vectors do
+    // not carry). Depth is jittered, so the previous position moves by the
+    // jitter difference too.
+    depthClip *= params.edgeClip;
+    const float currentDepth = inputDepth.Load(int3(id.xy, 0));
+    depthHistory[id.xy] = currentDepth;
+    const float2 renderMotion = inputMotion.Load(int3(id.xy, 0));
+    if (params.reset == 0 && geometry && all(isfinite(renderMotion))) {
+        const float2 previousPosition = float2(id.xy) + 0.5 + renderMotion + params.previousJitter - params.jitterOffset;
+        const float2 previousUv = previousPosition * texel;
+        float disocclusion = 1.0; // off-screen last frame
+        if (all(previousUv >= 0.0) && all(previousUv <= 1.0)) {
+            const float4 around = previousDepth.GatherRed(pointClamp, previousUv);
+            const float behind = Farthest(Farthest(around.x, around.y), Farthest(around.z, around.w));
+            // Relative depth gap (reverse Z ~ near / z), positive when the
+            // current surface is farther: none below 4%, full from 8%.
+            const float scale = params.depthReversed != 0 ? max(behind, 1.0e-6) : max(1.0 - behind, 1.0e-6);
+            const float gap = (params.depthReversed != 0 ? behind - currentDepth : currentDepth - behind) / scale;
+            disocclusion = saturate((gap - 0.04) / 0.04);
+        }
+        depthClip = max(depthClip, disocclusion);
+    }
     if (inputInvalidity.Load(int3(id.xy, 0)) > 0.5) depthClip = 1.0;
 
     // Backward render-pixel motion -> SGSR2's NDC (current - previous), +Y down.
     // A non-finite vector (never expected) is treated as a disocclusion.
-    float2 motion = -2.0 * inputMotion.Load(int3(id.xy, 0)) * texel;
+    float2 motion = -2.0 * renderMotion * texel;
     if (any(!isfinite(motion))) { motion = float2(0.0, 0.0); depthClip = 1.0; }
 
     // YCoCg 11:11:10 packing, as the reference. Display-referred SDR input

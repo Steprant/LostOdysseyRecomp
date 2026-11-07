@@ -202,7 +202,7 @@ SrResult TemporalUpscaler::RecordIsolated(plume::VulkanCommandList& commands,
         // otherwise looks soft and flat. LO_SGSR2_SHARPNESS=0..1 (0 = off).
         static const float sharpness = [] {
             const char* value = std::getenv("LO_SGSR2_SHARPNESS");
-            return value && *value ? float(std::clamp(std::atof(value), 0.0, 1.0)) : 0.5f;
+            return value && *value ? float(std::clamp(std::atof(value), 0.0, 1.0)) : 0.3f;
         }();
         frame.sharpness = sharpness;
         if (inputs.cameraValid && inputs.color.height) {

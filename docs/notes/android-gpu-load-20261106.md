@@ -244,3 +244,27 @@ Findings and changes:
 - **576p**: new render resolution row. With SGSR2 it renders 576 lines
   (1282×576 on this panel, about 2.1×) whatever the quality row says; other
   rows keep the SGSR2 quality ratio.
+
+### Second round (2026-11-07): menus, NPC shadows, aliasing
+
+- **Menus at the output size**: after 20 frames without a 3D scene for SGSR2
+  (`NoEligibleScene`: menus, pause, transitions) the CPU plan asks for
+  SGSR2's native-AA size, the output size, so the 2D screens are no longer
+  enlarged from the SGSR2 input. The first frame SGSR2 submits again (a 3D
+  scene is back) returns to the chosen quality; a 90-frame cooldown keeps a
+  scene that flickers between eligible and not from reallocating every few
+  frames. `gpu/sgsr2_idle_policy.h`, covered by the frame plan test;
+  `LO_SGSR2_NATIVE_MENUS=0` turns it off.
+- **NPC shadows**: the session ran Dynamic shadows = Low, which keeps the
+  shadows of only eight casters, the largest on screen; in Uhra's squares a
+  dozen NPCs traded those places and the smaller ones' shadows vanished and
+  came back. Low keeps sixteen casters on Android. On keeps them all.
+- **Aliasing**: SGSR2 now also rejects history where the previous frame's
+  depth shows a nearer surface everywhere around the reprojected position
+  (a disocclusion test the 2-pass reference lacks; it helps moving
+  characters, which have no motion vectors of their own). On the fixture's
+  1.3-pixel railings the reference's depth-edge clip resolved them best, so
+  it stays (`LO_SGSR2_EDGE_CLIP` can weight it). Sharpening drops to 0.3,
+  since sharpened edges show stair steps more. Every 300 frames the log
+  prints `SGSR2 jitter:` with the jittered, unjittered and unknown-camera
+  scene draws: unjittered draws are never anti-aliased by SGSR2.

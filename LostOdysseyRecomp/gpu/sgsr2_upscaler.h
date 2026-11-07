@@ -3,6 +3,7 @@
 #if defined(LO_GPU_PLUME)
 #include "temporal_frame_inputs.h"
 
+#include <cmath>
 #include <cstdint>
 #include <deque>
 #include <memory>
@@ -35,6 +36,7 @@ struct FrameValues {
     float cameraFovAngleHor = 1.0f; // tan(horizontal fov / 2)
     bool sameCamera = false;        // view-projection unchanged since the last frame
     float sharpness = 0.0f;         // 0 off, up to 1: contrast-adaptive sharpening of the output
+    float edgeClip = NAN;           // depth-edge history clip weight; NaN: LO_SGSR2_EDGE_CLIP or 1
 };
 
 // Render size for an FsrQuality-style ratio (Quality 1.5, Balanced 1.7,

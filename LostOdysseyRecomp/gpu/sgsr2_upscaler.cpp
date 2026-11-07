@@ -36,9 +36,23 @@ struct PushConstants {
     uint32_t depthReversed;
     float sharpness;
     uint32_t sharpen;
-    uint32_t padding[2];
+    float previousJitter[2];
+    float edgeClip;
+    uint32_t padding[3];
 };
-static_assert(sizeof(PushConstants) == 80);
+static_assert(sizeof(PushConstants) == 96);
+
+// Weight of the reference's depth-edge history clip; LO_SGSR2_EDGE_CLIP=0..1.
+// 1 (Qualcomm's) by default: on the fixture's 1.3-pixel railings a lower
+// weight did not resolve them better, it only let more history through.
+float EdgeClip()
+{
+    static const float weight = [] {
+        const char* value = std::getenv("LO_SGSR2_EDGE_CLIP");
+        return value && *value ? float(std::clamp(std::atof(value), 0.0, 1.0)) : 1.0f;
+    }();
+    return weight;
+}
 
 // LO_SGSR2_JITTER_SIGN=-1 flips the jitter handed to SGSR2, to check the
 // convention on screen (a wrong sign blurs static detail).
@@ -68,7 +82,8 @@ struct Controller::Impl {
     std::unique_ptr<RenderPipeline> convertPipeline, upscalePipeline, sharpenPipeline;
     std::unique_ptr<RenderSampler> linearClamp, pointClamp;
     std::unique_ptr<RenderTexture> motionDepthClip, ycocg;
-    std::array<std::unique_ptr<RenderTexture>, 2> history;
+    std::array<std::unique_ptr<RenderTexture>, 2> history, depthHistory;
+    float previousJitter[2] = {0.0f, 0.0f};
     struct Slot { std::unique_ptr<RenderDescriptorSet> convert, upscale, sharpen; };
     std::array<Slot, kSlots> slots;
     struct Use { uint64_t useId = 0, serial = 0; size_t slot = 0; };
@@ -82,6 +97,7 @@ struct Controller::Impl {
     {
         motionDepthClip.reset(); ycocg.reset();
         for (auto& texture : history) texture.reset();
+        for (auto& texture : depthHistory) texture.reset();
         historyValid = false;
         lastFrame.reset();
     }
@@ -128,6 +144,8 @@ struct Controller::Impl {
         convertSet.addSampler(4);
         convertSet.addReadWriteTexture(5);
         convertSet.addReadWriteTexture(6);
+        convertSet.addTexture(7);
+        convertSet.addReadWriteTexture(8);
         convertSet.end();
         RenderDescriptorSetBuilder upscaleSet;
         upscaleSet.begin();
@@ -187,9 +205,12 @@ struct Controller::Impl {
         for (auto& texture : history)
             texture = device->createTexture(RenderTextureDesc::Texture2D(config.outputWidth, config.outputHeight, 1,
                 RenderFormat::R16G16B16A16_FLOAT, storage));
+        for (auto& texture : depthHistory)
+            texture = device->createTexture(RenderTextureDesc::Texture2D(config.renderWidth, config.renderHeight, 1,
+                RenderFormat::R32_FLOAT, storage));
         historyValid = false;
         lastFrame.reset();
-        return motionDepthClip && ycocg && history[0] && history[1];
+        return motionDepthClip && ycocg && history[0] && history[1] && depthHistory[0] && depthHistory[1];
     }
 
     std::optional<size_t> FreeSlot() const
@@ -286,6 +307,9 @@ Attempt Controller::RecordIsolated(RenderCommandList& commands, const Config& co
     const float sharpness = std::isfinite(frame.sharpness) ? std::clamp(frame.sharpness, 0.0f, 1.0f) : 0.0f;
     constants.sharpness = sharpness;
     constants.sharpen = sharpness > 0.0f ? 1u : 0u;
+    constants.previousJitter[0] = reset ? constants.jitterOffset[0] : p.previousJitter[0];
+    constants.previousJitter[1] = reset ? constants.jitterOffset[1] : p.previousJitter[1];
+    constants.edgeClip = std::isfinite(frame.edgeClip) ? std::clamp(frame.edgeClip, 0.0f, 1.0f) : EdgeClip();
 
     slot.convert->setTexture(0, inputs.depth.texture, RenderTextureLayout::SHADER_READ);
     slot.convert->setTexture(1, inputs.motion.texture, RenderTextureLayout::SHADER_READ);
@@ -293,6 +317,9 @@ Attempt Controller::RecordIsolated(RenderCommandList& commands, const Config& co
     slot.convert->setTexture(3, inputs.motionInvalidity.texture, RenderTextureLayout::SHADER_READ);
     slot.convert->setTexture(5, p.motionDepthClip.get(), RenderTextureLayout::GENERAL);
     slot.convert->setTexture(6, p.ycocg.get(), RenderTextureLayout::GENERAL);
+    // Same ping-pong index as the colour history: read last frame's depth.
+    slot.convert->setTexture(7, p.depthHistory[read].get(), RenderTextureLayout::GENERAL);
+    slot.convert->setTexture(8, p.depthHistory[write].get(), RenderTextureLayout::GENERAL);
     slot.upscale->setTexture(0, p.history[read].get(), RenderTextureLayout::GENERAL);
     slot.upscale->setTexture(1, p.motionDepthClip.get(), RenderTextureLayout::GENERAL);
     slot.upscale->setTexture(2, p.ycocg.get(), RenderTextureLayout::GENERAL);
@@ -313,6 +340,8 @@ Attempt Controller::RecordIsolated(RenderCommandList& commands, const Config& co
         RenderTextureBarrier(p.ycocg.get(), RenderTextureLayout::GENERAL),
         RenderTextureBarrier(p.history[read].get(), RenderTextureLayout::GENERAL),
         RenderTextureBarrier(p.history[write].get(), RenderTextureLayout::GENERAL),
+        RenderTextureBarrier(p.depthHistory[read].get(), RenderTextureLayout::GENERAL),
+        RenderTextureBarrier(p.depthHistory[write].get(), RenderTextureLayout::GENERAL),
         RenderTextureBarrier(&output, RenderTextureLayout::GENERAL)});
     commands.setComputePipelineLayout(p.convertLayout.get());
     commands.setPipeline(p.convertPipeline.get());
@@ -343,6 +372,8 @@ Attempt Controller::RecordIsolated(RenderCommandList& commands, const Config& co
 
     p.historyWritten = write;
     p.historyValid = true;
+    p.previousJitter[0] = constants.jitterOffset[0];
+    p.previousJitter[1] = constants.jitterOffset[1];
     p.lastFrame = inputs.renderFrameId;
     if (reset && (inputs.renderFrameId % 120 == 0 || !inputs.resetHistory))
         LOG_INFO("SGSR2: history reset frame={} input_reset={} gap={}", inputs.renderFrameId,

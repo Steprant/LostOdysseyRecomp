@@ -1,4 +1,5 @@
 #include <gpu/frame_plan.h>
+#include <gpu/sgsr2_idle_policy.h>
 #include <gpu/movie_clear.h>
 #include <settings/config.h>
 #include <cstdio>
@@ -166,6 +167,26 @@ int main()
             "the 576p input cap is SGSR2 only");
         Require(gpu::frame_plan::Sgsr2InputCap(Upscaler::Sgsr2, {1280, 576}, 576, 1280, 576) == gpu::resolution::Size{1280, 576},
             "the cap never raises the input");
+    }
+    {
+        using Policy = gpu::frame_plan::Sgsr2IdlePolicy;
+        using Change = Policy::Change;
+        Policy policy;
+        uint64_t frame = 100;
+        for (uint32_t i = 0; i + 1 < Policy::kEnterFrames; ++i)
+            Require(policy.Observe(false, true, frame++) == Change::None, "a short scene-less run stays at the quality size");
+        Require(policy.Observe(true, false, frame++) == Change::None && policy.idleFrames == 0, "a submitted frame restarts the count");
+        Require(policy.Observe(false, false, frame++) == Change::None && policy.idleFrames == 0,
+            "a scene skipped for another reason is not a menu");
+        Change change = Change::None;
+        for (uint32_t i = 0; i < Policy::kEnterFrames; ++i) change = policy.Observe(false, true, frame++);
+        Require(change == Change::EnterNative && policy.native, "a menu switches to the output size");
+        Require(policy.Observe(false, true, frame++) == Change::None && policy.native, "the menu stays native");
+        Require(policy.Observe(true, false, frame++) == Change::ReturnToQuality && !policy.native, "the 3D scene returns to quality");
+        for (uint32_t i = 0; i < Policy::kEnterFrames + 5; ++i) change = policy.Observe(false, true, frame++);
+        Require(change == Change::None && !policy.native, "no switch back inside the cooldown");
+        frame += Policy::kCooldownFrames;
+        Require(policy.Observe(false, true, frame++) == Change::EnterNative, "after the cooldown a menu switches again");
     }
     malformed = words; malformed[22] |= 1u << 27;
     Require(!Decode(malformed), "unknown flag rejected");

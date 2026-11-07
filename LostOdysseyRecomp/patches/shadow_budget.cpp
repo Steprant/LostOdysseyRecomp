@@ -26,7 +26,17 @@ extern "C" PPC_FUNC(__imp__sub_823BE9D0);
 
 namespace
 {
-constexpr size_t LowCount = 8, HistoryLimit = 4096;
+// Android keeps sixteen casters: a town square (Uhra) has a dozen NPCs in
+// view, and eight let the smaller ones' shadows vanish and pop back as they
+// traded places. Desktop keeps the eight the fixture's scenarios count on.
+#if defined(LO_SHADOW_LOW_COUNT)
+constexpr size_t LowCount = LO_SHADOW_LOW_COUNT;
+#elif defined(LO_PLATFORM_ANDROID) && LO_PLATFORM_ANDROID
+constexpr size_t LowCount = 16;
+#else
+constexpr size_t LowCount = 8;
+#endif
+constexpr size_t HistoryLimit = 4096;
 constexpr float KeepFraction = 0.8f;
 constexpr uint64_t OffScreenFrames = 15;
 
