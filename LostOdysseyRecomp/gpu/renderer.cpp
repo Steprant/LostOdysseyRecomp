@@ -1037,6 +1037,16 @@ namespace gpu::renderer
                 ~LibraryPrecompile() { stop = true; if (thread.joinable()) thread.join(); }
             } libraryPrecompile;
             std::unordered_map<RenderTargetKey, std::unique_ptr<HostTexture>, RenderTargetKeyHash> renderTargets;
+            // The targets of the previous internal size, kept across a resize so
+            // that the SGSR2 menu switch (quality size <-> output size) and back
+            // reuses their allocations instead of making 20-40 new ones on the
+            // frame of the switch. GetRenderTarget takes one back only for the
+            // same key and host size, under a new allocation serial; their
+            // pixels are stale like any target after a resize. Bounded by
+            // kParkedTargetBytes; LO_PARK_TARGETS=0 frees them at the resize.
+            std::unordered_map<RenderTargetKey, std::unique_ptr<HostTexture>, RenderTargetKeyHash> parkedTargets;
+            static constexpr uint64_t kParkedTargetBytes = 512ull << 20;
+            uint32_t parkedTargetReuses = 0;
             std::unordered_map<TextureKey, std::unique_ptr<HostTexture>, TextureKeyHash> textures;
             // Changes on every insert into or erase from `textures`; an iterator
             // remembered at an unchanged version is still valid.
@@ -1563,6 +1573,7 @@ namespace gpu::renderer
             uint64_t temporalSplitViewFrame=~0ull,temporalSplitViewStart=~0ull;
             uint32_t temporalJitterDraws=0,temporalJitterMisses=0,temporalJitterUnknowns=0,temporalJitterViewportDraws=0;
             temporal::JitterMissLog viewportJitterLog;
+            temporal::JitterMissLog unknownSceneDrawLog;
             uint64_t temporalEpoch=1,temporalFramesLogged=0,temporalSubmittedFrame=~0ull;
             temporal::JitterSample actualRasterJitter{}, frameRasterJitter{};
             std::chrono::steady_clock::time_point srFrameTime{};
@@ -7823,7 +7834,7 @@ void main()
                     promotionPool.clear();
                     framebuffers.clear();
                     lastFramebuffer = nullptr;
-                    renderTargets.clear();
+                    ParkRenderTargets();
                     // Resolves stand in for guest memory: the GPU-only path
                     // never writes their pixels back to RAM. A paused scene
                     // can keep sampling them after a settings change, before
@@ -7908,6 +7919,39 @@ void main()
                 FailCurrentPlan();
             }
 
+            // After the drain of a resize: the current targets replace the parked
+            // ones of the same key, unless the total would exceed the budget.
+            void ParkRenderTargets()
+            {
+                static const bool parking = [] {
+                    const char* value = std::getenv("LO_PARK_TARGETS");
+                    return !(value && std::string_view(value) == "0");
+                }();
+                const uint32_t reused = parkedTargetReuses;
+                parkedTargetReuses = 0;
+                if (!parking) {
+                    parkedTargets.clear();
+                    renderTargets.clear();
+                    return;
+                }
+                for (auto& [key, target] : renderTargets) {
+                    // Scene-copy promotion images belong to their pool.
+                    if (!target || !target->texture || target->poolFlags) continue;
+                    if (auto& slot = parkedTargets[key]) Gpu().retiredTextures.push_back(std::move(slot));
+                    parkedTargets[key] = std::move(target);
+                }
+                renderTargets.clear();
+                uint64_t bytes = 0;
+                for (const auto& [key, target] : parkedTargets)
+                    bytes += uint64_t(target->width) * target->height * std::max(1u, RenderFormatSize(target->format));
+                if (bytes > kParkedTargetBytes) {
+                    LOG_INFO("renderer: {} parked render targets ({} MB) exceed the budget, freed", parkedTargets.size(), bytes >> 20);
+                    parkedTargets.clear();
+                    return;
+                }
+                LOG_INFO("renderer: resize parked {} render targets ({} MB); the last size reused {}", parkedTargets.size(), bytes >> 20, reused);
+            }
+
             // Last catalog role per attachment kind (color, depth); draws reuse targets.
             struct CatalogRoleCache { uint64_t key = ~0ull, generation = 0; resolution::TargetRole role{}; } catalogRoleCache[2];
             HostTexture* GetRenderTarget(uint32_t base, uint32_t format, uint32_t pitch, uint32_t height, bool depth)
@@ -7956,6 +8000,36 @@ void main()
                 }
 
                 consecutiveResolveCopies.Invalidate();
+                if (!oldTarget) {
+                    auto parked = parkedTargets.find(key);
+                    if (parked != parkedTargets.end()) {
+                        auto reused = std::move(parked->second);
+                        parkedTargets.erase(parked);
+                        if (reused && reused->texture && reused->resolutionSize == desiredSize &&
+                            reused->guestHeight >= effectiveHeight && reused->guestWidth == pitch &&
+                            reused->format == (depth ? RenderFormat::D32_FLOAT_S8_UINT : HostFormatForClass(colorClass))) {
+                            // Same allocation, new identity: no lineage, provenance or
+                            // frame-generation state of its earlier life carries over.
+                            auto fresh = std::make_unique<HostTexture>();
+                            fresh->allocationSerial = ++nextTargetAllocation;
+                            fresh->texture = std::move(reused->texture);
+                            fresh->layout = reused->layout;
+                            fresh->format = reused->format;
+                            fresh->guestWidth = reused->guestWidth;
+                            fresh->guestHeight = reused->guestHeight;
+                            fresh->resolutionSize = reused->resolutionSize;
+                            fresh->width = reused->width;
+                            fresh->height = reused->height;
+                            fresh->shadowMap = role == resolution::TargetRole::Shadow;
+                            Gpu().retiredTextures.push_back(std::move(reused));
+                            ++parkedTargetReuses;
+                            HostTexture* result = fresh.get();
+                            renderTargets.emplace(key, std::move(fresh));
+                            return result;
+                        }
+                        if (reused) Gpu().retiredTextures.push_back(std::move(reused));
+                    }
+                }
                 auto tex = std::make_unique<HostTexture>();
                 tex->allocationSerial = ++nextTargetAllocation;
                 tex->format = depth ? RenderFormat::D32_FLOAT_S8_UINT : HostFormatForClass(colorClass);
@@ -10053,7 +10127,8 @@ void main()
                         }
                     }
                     frameSrOptions = {};
-                    if (activePlan.requestedUpscaler == upscaling::Upscaler::Fsr) {
+                    if (activePlan.requestedUpscaler == upscaling::Upscaler::Fsr ||
+                        activePlan.requestedUpscaler == upscaling::Upscaler::Sgsr2) {
                         const uint32_t percent = std::min(settings::GetConfig().fsrSharpnessPercent, 100u);
                         frameSrOptions = {percent != 0, float(percent) / 100.0f};
                     } else if (activePlan.requestedUpscaler == upscaling::Upscaler::Dlss) {
@@ -10498,6 +10573,44 @@ void main()
                 const bool countJitter = (temporalExperiment || dlssSrRequested) && temporalJitter && temporalViewport;
                 if(countJitter && temporalSlot<0) {
                     ++temporalJitterUnknowns;
+                    // What the unjittered draws in the jittered scene are (each VS/PS
+                    // once, 64 at most): depth state, raster, the textures it samples
+                    // (resolved surfaces with their host size and scale, and whether
+                    // it is the full scene depth) and its first pixel constants. A
+                    // screen-space pass that rebuilds positions from the jittered
+                    // scene depth needs the jitter in its ray (as IsShadowProjectionPair).
+                    if (unknownSceneDrawLog.First(key.vs, key.ps, drawJitter.rejection)) {
+                        std::string textures;
+                        const uint32_t mask = ps ? ps->info.textureSlotMask : 0u;
+                        uint32_t listed = 0;
+                        for (uint32_t pending = mask; pending && listed < 4; pending &= pending - 1, ++listed) {
+                            const uint32_t slot = uint32_t(std::countr_zero(pending));
+                            const uint32_t f0 = Reg(REG_FETCH_CONSTANTS + slot * 6), f1 = Reg(REG_FETCH_CONSTANTS + slot * 6 + 1);
+                            const uint32_t f2 = Reg(REG_FETCH_CONSTANTS + slot * 6 + 2), f5 = Reg(REG_FETCH_CONSTANTS + slot * 6 + 5);
+                            const uint32_t address = (f1 >> 12) << 12, format = f1 & 0x3f;
+                            const uint32_t gw = (f2 & 0x1fff) + 1, gh = ((f2 >> 13) & 0x1fff) + 1;
+                            const auto* source = (f0 & 3) == 2 ? FindResolved(address, format) : nullptr;
+                            const bool sceneDepth = source && source->tex && source->tex->format == RenderFormat::R32_FLOAT &&
+                                temporal::IsFullSceneDepthFetch(f2, f5, source->tex->guestWidth, source->tex->guestHeight);
+                            textures += fmt::format(" t{}=fmt{}:{}x{}@{:#x}", slot, format, gw, gh, address);
+                            if (source && source->tex)
+                                textures += fmt::format("[resolved {}x{} host {}x{}{}{}{}]", source->tex->guestWidth, source->tex->guestHeight,
+                                    source->tex->width, source->tex->height,
+                                    source->tex->shadowMap ? " shadow" : "", sceneDepth ? " scene_depth" : "",
+                                    source->frame == frame ? "" : " stale");
+                        }
+                        std::string constants;
+                        for (uint32_t c = 0; c < 6; ++c)
+                            constants += fmt::format(" c{}=({:.4g},{:.4g},{:.4g},{:.4g})", c,
+                                std::bit_cast<float>(psConstants[c * 4]), std::bit_cast<float>(psConstants[c * 4 + 1]),
+                                std::bit_cast<float>(psConstants[c * 4 + 2]), std::bit_cast<float>(psConstants[c * 4 + 3]));
+                        LOG_INFO("renderer: unjittered scene draw vs={:016x} ps={:016x} rejection={} depth_control={:#x} depth={} color_mask={:#x} "
+                            "blend={:#x} prim={} indices={} viewport={}x{}+{}+{} frame={} draw={} textures:{} ps_constants:{}",
+                            key.vs, key.ps, temporal::JitterRejectionName(drawJitter.rejection), depthControl, depth != nullptr,
+                            key.colorMask, key.blend, key.prim, info.indexCount, uint32_t(rasterViewport.width), uint32_t(rasterViewport.height),
+                            int32_t(rasterViewport.x), int32_t(rasterViewport.y), frame, drawsThisFrame,
+                            textures.empty() ? std::string(" none") : textures, constants);
+                    }
                 }
                 if (drawJitter.applied) ++temporalJitterDraws;
                 else if (countJitter && temporalSlot >= 0) {

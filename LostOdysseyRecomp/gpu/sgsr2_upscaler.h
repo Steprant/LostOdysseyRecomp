@@ -37,6 +37,7 @@ struct FrameValues {
     bool sameCamera = false;        // view-projection unchanged since the last frame
     float sharpness = 0.0f;         // 0 off, up to 1: contrast-adaptive sharpening of the output
     float edgeClip = NAN;           // depth-edge history clip weight; NaN: LO_SGSR2_EDGE_CLIP or 1
+    float kernelScale = 1.0f;       // 0.5..1: narrows the Lanczos window's bias (wider, softer kernel) below 1
 };
 
 // Render size for an FsrQuality-style ratio (Quality 1.5, Balanced 1.7,

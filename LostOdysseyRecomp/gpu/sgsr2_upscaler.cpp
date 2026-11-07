@@ -38,7 +38,8 @@ struct PushConstants {
     uint32_t sharpen;
     float previousJitter[2];
     float edgeClip;
-    uint32_t padding[3];
+    float kernelScale;
+    uint32_t padding[2];
 };
 static_assert(sizeof(PushConstants) == 96);
 
@@ -245,6 +246,22 @@ Status Controller::EnsureSession(RenderDevice& device, const Config& config)
         return Status::Ready;
     }
     if (!p.uses.empty()) return Status::NeedsReconfigure;
+    // A feature released for a resize (the menu switch between the quality
+    // size and the output size) keeps its pipelines: only the images are
+    // remade, not three compute pipelines on the frame of the switch.
+    if (p.device == &device && p.convertPipeline && p.upscalePipeline && p.sharpenPipeline) {
+        p.config = config;
+        if (!p.CreateResources()) {
+            LOG_WARNING("SGSR2: unavailable (image creation failed)");
+            p.DropAll();
+            p.poisoned = true;
+            return Status::Failed;
+        }
+        p.ready = true;
+        LOG_INFO("SGSR2: ready {}x{} -> {}x{} (pipelines kept)", config.renderWidth, config.renderHeight,
+            config.outputWidth, config.outputHeight);
+        return Status::Ready;
+    }
     p.DropAll();
     p.device = &device;
     p.config = config;
@@ -310,6 +327,7 @@ Attempt Controller::RecordIsolated(RenderCommandList& commands, const Config& co
     constants.previousJitter[0] = reset ? constants.jitterOffset[0] : p.previousJitter[0];
     constants.previousJitter[1] = reset ? constants.jitterOffset[1] : p.previousJitter[1];
     constants.edgeClip = std::isfinite(frame.edgeClip) ? std::clamp(frame.edgeClip, 0.0f, 1.0f) : EdgeClip();
+    constants.kernelScale = std::isfinite(frame.kernelScale) ? std::clamp(frame.kernelScale, 0.5f, 1.0f) : 1.0f;
 
     slot.convert->setTexture(0, inputs.depth.texture, RenderTextureLayout::SHADER_READ);
     slot.convert->setTexture(1, inputs.motion.texture, RenderTextureLayout::SHADER_READ);
@@ -400,7 +418,15 @@ void Controller::ReleaseCompletedThrough(uint64_t serial)
         [&](const Impl::Use& use) { return use.serial && use.serial <= serial; }), uses.end());
 }
 bool Controller::HasFeatureState() const { return impl_->ready; }
-void Controller::ReleaseFeatureAfterGpuDrain() { impl_->DropAll(); impl_->poisoned = false; }
+// Images only: HasFeatureState() is false afterwards, the pipelines and
+// their descriptor sets stay for the next EnsureSession on the same device.
+void Controller::ReleaseFeatureAfterGpuDrain()
+{
+    impl_->DropResources();
+    impl_->uses.clear();
+    impl_->ready = false;
+    impl_->poisoned = false;
+}
 void Controller::ShutdownAfterGpuDrain() { impl_->DropAll(); impl_->poisoned = false; }
 void Controller::AbandonUsesAfterDeviceLoss() { impl_->uses.clear(); impl_->DropAll(); }
 

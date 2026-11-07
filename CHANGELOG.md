@@ -15,6 +15,7 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - Audio: the XMA decoder no longer holds its lock for a whole voice while the audio driver waits; it runs on performance cores at audio priority.
 - Android diagnostics: selectable audio buffer (43/64/85 ms) and audio/XMA timing peaks in the runtime log.
 - Android diagnostics: per-render-pass GPU profile in Tester recordings.
+- Vulkan: depth-only draws run their vertex shaders without the varyings nobody reads; SGSR2 menus turn sharp sooner and the switch back reuses its render targets and pipelines; SGSR2 Quality is smoother, with sharpening on the Sharpness row (Off by default).
 - Android: experimental SGSR2 temporal upscaling (Anti-aliasing → SGSR2, with an SGSR2 quality row): renders at 1/1.5–1/2 of the output size and reconstructs it from jitter, depth and camera motion; scene textures keep their output-resolution detail (mip bias), a contrast-adaptive sharpen follows it, and the new 576p render resolution renders SGSR2 at 576 lines.
 - Vulkan: pixel shaders keep early depth rejection unless the game enables the alpha test (Adreno LRZ), so occluded pixels are no longer shaded; existing shader packs stay valid.
 - Android: compact 8-bit/10-bit render targets (half the bandwidth), display refresh matched to the game frame rate, and a 900p render resolution.

@@ -328,3 +328,41 @@ second kill (`PixelShaderIsNoOp`), so the hardware takes its depth-only
 path. Occlusion-query draws with such a shader are counted by the fragment
 counter instead of a host query, like draws without one.
 `LO_KEEP_DEPTH_ONLY_PS=1` keeps the shaders.
+
+### Depth-only vertex work, menu switch cost, softer Quality (2026-11-07 evening)
+
+- **Position-only vertex modules.** Without a fragment stage a driver links
+  no consumer for the vertex shader's varyings and keeps computing them
+  (Turnip trims only its binning variant, which sysmem rendering does not
+  use). Plume now gives every vertex module with non-built-in outputs a
+  copy whose stores to those outputs are dropped (`OpStore` removed; any
+  load, copy or call argument of such an output leaves the module without
+  the copy), and pipelines without pixel and geometry shaders use it, on
+  the monolithic and the fast-link path. The driver then removes the vertex
+  fetches, constant reads and ALU that fed only the varyings of the ~650–850
+  depth-only draws a frame. The shader pack is unchanged.
+  `LO_VK_KEEP_VS_OUTPUTS=1` turns it off; `kill_free_module_test.cpp`
+  checks the variant and identical depth on lavapipe; the stripped module
+  of a test shader with arrays, clip distance and point size passes
+  `spirv-val`.
+- **Menu switch.** The idle policy enters the output size after 8
+  scene-less frames (was 30, a full second of soft text at 30 FPS) and
+  returns after 12 upscaled frames (was 20, rendered at the output size).
+  The switch itself no longer rebuilds everything: the renderer keeps the
+  previous size's render targets (`parkedTargets`, ≤ 512 MB, taken back for
+  the same key and host size under a new allocation serial;
+  `LO_PARK_TARGETS=0` frees them) and SGSR2 keeps its compute pipelines
+  across `ReleaseFeatureAfterGpuDrain`, making only its images. The 17:16
+  trace had a 40–75 ms frame at every return to the quality size.
+- **Softer Quality.** SGSR2's post-sharpen now follows the Sharpness row
+  (shown for SGSR2, Off by default; it was a fixed 30%), and Quality widens
+  the upsampling kernel (`kernelScale` 0.8 on the Lanczos bias; Balanced and
+  Performance keep the reference). `LO_SGSR2_SHARPNESS` and
+  `LO_SGSR2_KERNEL_SCALE` override both.
+- **Diagnostic.** Each unjittered draw in the jittered scene is logged once
+  (`renderer: unjittered scene draw`): depth state, raster, sampled
+  textures with their resolved host size and scale, `scene_depth` for the
+  full scene depth and `stale` for a surface not written this frame, and
+  pixel constants c0–c5. It identifies the screen-space pass behind the
+  blocky shadows so its ray can be compensated like
+  `IsShadowProjectionPair`.

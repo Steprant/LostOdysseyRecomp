@@ -551,6 +551,14 @@ int Run(RenderDevice* device)
     pass &= Check(s.finite && s.max <= 1.05f, "post-discard output finite");
     pass &= Check(controller.EnsureSession(*device, {kRenderW / 2, kRenderH / 2, kOutW, kOutH, 1}) ==
         gpu::sgsr2::Status::Ready, "resize after retirement");
+    // The renderer's resize: release after its drain, then a session at the other size.
+    controller.ReleaseFeatureAfterGpuDrain();
+    pass &= Check(!controller.HasFeatureState(), "release leaves no feature state");
+    pass &= Check(controller.EnsureSession(*device, {kOutW, kOutH, kOutW, kOutH, 1}) == gpu::sgsr2::Status::Ready,
+        "session at the output size after a release (pipelines kept)");
+    controller.ReleaseFeatureAfterGpuDrain();
+    pass &= Check(controller.EnsureSession(*device, {kRenderW, kRenderH, kOutW, kOutH, 1}) == gpu::sgsr2::Status::Ready,
+        "and back at the render size");
     controller.ShutdownAfterGpuDrain();
     pass &= Check(!controller.HasFeatureState(), "shutdown releases state");
 

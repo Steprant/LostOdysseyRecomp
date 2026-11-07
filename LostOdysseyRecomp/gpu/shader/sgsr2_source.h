@@ -47,7 +47,8 @@ struct Sgsr2Parameters {
     uint   sharpen;           // 1: the upscale leaves the output to sgsr2Sharpen
     float2 previousJitter;    // last frame's jitterOffset
     float  edgeClip;          // weight of the reference's depth-edge clip (1 = reference)
-    uint3  padding;
+    float  kernelScale;       // 1 = reference; below 1 a wider, softer upsampling kernel
+    uint2  padding;
 };
 [[vk::push_constant]] ConstantBuffer<Sgsr2Parameters> params;
 
@@ -247,7 +248,7 @@ void sgsr2Upscale(uint3 id : SV_DispatchThreadID)
     const float biasMax = biasMaxViewportScale - biasMaxViewportScale * kernelFactor;
     const float biasMin = max(1.0, 0.3 + 0.3 * biasMax);
     const float biasFactor = max(0.25 * depthFactor, kernelFactor);
-    const float kernelBias = lerp(biasMax, biasMin, biasFactor) * 0.5;
+    const float kernelBias = lerp(biasMax, biasMin, biasFactor) * 0.5 * params.kernelScale;
     const float kernelBias2 = kernelBias * kernelBias;
     const float motionViewportLength = length(motion * displaySize);
     const float curveBias = lerp(-2.0, -3.0, saturate(motionViewportLength * 0.02));

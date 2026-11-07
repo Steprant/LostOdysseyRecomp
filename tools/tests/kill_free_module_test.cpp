@@ -2,6 +2,8 @@
 // a shader whose only discard is behind a run-time test gets a second module
 // with that OpKill turned into OpUnreachable, pipelines that ask for it render
 // the same image when the test is off, and shaders with two kills keep one module.
+// Vertex modules with varyings also get a position-only copy (their output
+// stores dropped) that pipelines without a fragment shader use: same depth.
 #include <plume_render_interface.h>
 #include <plume_vulkan.h>
 #include <stdafx.h>
@@ -45,6 +47,26 @@ float4 main(float4 position : SV_Position) : SV_Target0
     clip(position.x - 4.0);
     if (push.test & 1u) { if (!(colour.a > push.reference)) discard; }
     return colour;
+}
+)";
+
+// Position plus varyings that share its inputs (the depth-only draw shape).
+constexpr char kVaryingVs[] = R"(
+struct Out { float4 position : SV_Position; float4 uv : TEXCOORD0; float3 normal : NORMAL; };
+Out main(uint id : SV_VertexID)
+{
+    const float2 p = float2((id << 1) & 2, id & 2);
+    Out o;
+    o.position = float4(p * 2.0 - 1.0, 0.2 + 0.15 * p.x + 0.1 * p.y, 1.0);
+    o.uv = float4(p, sin(p.x * 3.0), cos(p.y * 5.0));
+    o.normal = normalize(float3(p, 1.0));
+    return o;
+}
+)";
+constexpr char kVaryingPs[] = R"(
+float4 main(float4 position : SV_Position, float4 uv : TEXCOORD0, float3 normal : NORMAL) : SV_Target0
+{
+    return float4(uv.xy, normal.z, uv.w);
 }
 )";
 
@@ -127,6 +149,73 @@ int Run(RenderDevice* device)
     std::vector<uint8_t> twoGeneric, twoKillFree;
     Check(render(twoKills.get(), false, 0, twoGeneric) && render(twoKills.get(), true, 0, twoKillFree) && twoGeneric == twoKillFree,
         "two-kill shader ignores the request and keeps its clip()");
+
+    // Position-only vertex modules.
+    auto varyingVs = Compile(device, kVaryingVs, "vs_6_0");
+    auto varyingPs = Compile(device, kVaryingPs, "ps_6_0");
+    auto depth = device->createTexture(RenderTextureDesc::DepthTarget(kSize, kSize, RenderFormat::D32_FLOAT));
+    auto depthReadback = device->createBuffer(RenderBufferDesc::ReadbackBuffer(64 * kSize * 4));
+    const RenderTexture* colourAndDepth[] = {target.get()};
+    auto depthFramebuffer = device->createFramebuffer(RenderFramebufferDesc(colourAndDepth, 1, depth.get()));
+    if (!varyingVs || !varyingPs || !depth || !depthReadback || !depthFramebuffer) return 1;
+    Check(static_cast<VulkanShader*>(varyingVs.get())->vkPositionOnly != VK_NULL_HANDLE, "vertex shader with varyings gets a position-only module");
+    Check(static_cast<VulkanShader*>(vs.get())->vkPositionOnly == VK_NULL_HANDLE, "position-only vertex shader keeps one module");
+    Check(static_cast<VulkanShader*>(oneKill.get())->vkPositionOnly == VK_NULL_HANDLE, "pixel shader has no position-only module");
+    const auto renderDepth = [&](RenderShader* ps, std::vector<uint8_t>& out) {
+        RenderGraphicsPipelineDesc desc;
+        desc.pipelineLayout = layout.get();
+        desc.vertexShader = varyingVs.get();
+        desc.pixelShader = ps;
+        desc.renderTargetFormat[0] = RenderFormat::R8G8B8A8_UNORM;
+        desc.renderTargetBlend[0] = RenderBlendDesc::Copy();
+        desc.renderTargetBlend[0].renderTargetWriteMask = 0;
+        desc.renderTargetCount = 1;
+        desc.depthTargetFormat = RenderFormat::D32_FLOAT;
+        desc.depthEnabled = true;
+        desc.depthWriteEnabled = true;
+        desc.depthFunction = RenderComparisonFunction::ALWAYS;
+        desc.primitiveTopology = RenderPrimitiveTopology::TRIANGLE_LIST;
+        auto pipeline = device->createGraphicsPipeline(desc);
+        if (!pipeline) return false;
+        list->begin();
+        list->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(target.get(), RenderTextureLayout::COLOR_WRITE));
+        list->barriers(RenderBarrierStage::GRAPHICS, RenderTextureBarrier(depth.get(), RenderTextureLayout::DEPTH_WRITE));
+        list->setFramebuffer(depthFramebuffer.get());
+        list->clearDepth(true, 1.0f);
+        const RenderViewport viewport(0, 0, kSize, kSize);
+        const RenderRect scissor(0, 0, kSize, kSize);
+        list->setViewports(&viewport, 1);
+        list->setScissors(&scissor, 1);
+        list->setGraphicsPipelineLayout(layout.get());
+        list->setPipeline(pipeline.get());
+        list->drawInstanced(3, 1, 0, 0);
+        list->setFramebuffer(nullptr);
+        list->barriers(RenderBarrierStage::COPY, RenderTextureBarrier(depth.get(), RenderTextureLayout::COPY_SOURCE));
+        list->copyTextureRegion(RenderTextureCopyLocation::PlacedFootprint(depthReadback.get(), RenderFormat::D32_FLOAT, kSize, kSize, 1, 64),
+            RenderTextureCopyLocation::Subresource(depth.get()));
+        list->end();
+        const RenderCommandList* lists[] = {list.get()};
+        queue->executeCommandLists(lists, 1, nullptr, 0, nullptr, 0, fence.get());
+        queue->waitForCommandFence(fence.get());
+        const auto* bytes = static_cast<const uint8_t*>(depthReadback->map());
+        out.assign(bytes, bytes + 64 * kSize * 4);
+        depthReadback->unmap();
+        return true;
+    };
+    std::vector<uint8_t> depthFull, depthPositionOnly;
+    Check(renderDepth(varyingPs.get(), depthFull), "depth with the full vertex module renders");
+    Check(renderDepth(nullptr, depthPositionOnly), "depth-only pipeline with the position-only module renders");
+    bool written = false;
+    for (size_t row = 0; row < kSize && !depthFull.empty(); ++row)
+        for (size_t x = 0; x < kSize; ++x) {
+            float value = 1.0f;
+            std::memcpy(&value, depthFull.data() + (row * 64 + x) * 4, 4);
+            written |= value < 0.99f;
+        }
+    bool same = depthFull.size() == depthPositionOnly.size();
+    for (size_t row = 0; row < kSize && same; ++row)
+        same = std::memcmp(depthFull.data() + row * 64 * 4, depthPositionOnly.data() + row * 64 * 4, kSize * 4) == 0;
+    Check(written && same, "position-only module writes the same depth");
     std::printf("kill-free modules: %d/%d checks passed\n", checks - failures, checks);
     return failures ? 1 : 0;
 }
