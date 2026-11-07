@@ -1,5 +1,4 @@
 #pragma once
-#include <atomic>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -40,17 +39,6 @@ inline bool UboConstantsRequested() {
     return value && *value && std::string_view(value) != "0";
 #endif
 }
-// Play may also choose the uniform-buffer form (Android: the Tester's shader
-// constants setting, set once at startup before the renderer and never during
-// play). No published pack has that form, so the shaders are then translated
-// and compiled on the device and kept in the local shader store. On Adreno a
-// uniform-buffer read comes from the constant registers or constant cache,
-// where the pointer form issues a memory load for every constant.
-inline std::atomic<bool>& RuntimeUboConstantsFlag() {
-    static std::atomic<bool> flag{false};
-    return flag;
-}
-inline void SetRuntimeUboConstants(bool enabled) { RuntimeUboConstantsFlag().store(enabled, std::memory_order_relaxed); }
 inline bool UboConstants() {
 #if LO_PLATFORM_SWITCH
     return true;
@@ -59,7 +47,7 @@ inline bool UboConstants() {
         const char* exportPath = std::getenv("LO_SHADER_EXPORT_PACK");
         return exportPath && *exportPath && UboConstantsRequested();
     }();
-    return selected || RuntimeUboConstantsFlag().load(std::memory_order_relaxed);
+    return selected;
 #endif
 }
 inline constexpr std::string_view UboConstantsOption = ";constants-ubo-set5";

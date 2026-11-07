@@ -14,8 +14,6 @@
 #include <gpu/renderer.h>
 #include <gpu/video.h>
 #include <gpu/pipeline_prepare_progress.h>
-#include <gpu/draw_attachment_policy.h>
-#include <gpu/shader/cache.h>
 #include <gpu/rtl_text.h>
 #include <apu/audio.h>
 #include <apu/xma.h>
@@ -198,10 +196,14 @@ static int RunGuest(uint32_t entry)
     XexLoader::StartTimeStampThread();
     apu::SetMatrixRearAngle(settings::GetConfig().audioMatrixRear);
     apu::SetVoiceVolume(settings::GetConfig().voiceVolume);
-    os::scheduling::SetPerformanceHints(settings::GetConfig().performanceHints);
-    apu::SetQueueReserveFrames(settings::GetConfig().audioReserveFrames);
+#if LO_PLATFORM_ANDROID
+    // 12 frames (64 ms) instead of 8: the 2026-11-06/07 device sessions ran
+    // without queue starvation at this size. LO_AUDIO_RESERVE_FRAMES overrides.
+    apu::SetQueueReserveFrames(12);
+#endif
     apu::Init(apu::Output(settings::GetConfig().audioOutput));
-    apu::xma::SetContextLocks(settings::GetConfig().xmaContextLocks);
+    // One decoder lock; LO_XMA_CONTEXT_LOCKS=1 selects per-voice locks.
+    apu::xma::SetContextLocks(false);
     apu::xma::Init();
     if (getenv("LO_HEADLESS"))
         hid::Init(); // otherwise the video thread initialises it
@@ -701,14 +703,6 @@ int main(int argc, char* argv[])
         // The pipeline recipe corpus comes from the same index, on its own thread.
         updater::shader_pack::StartCorpusDownload(settings::GetConfig().automaticUpdates, packRequest.redownload);
     }
-#if LO_PLATFORM_ANDROID
-    // After the distribution pack check (which keeps the published form) and
-    // before the renderer derives its shader identity.
-    xenos::cache::SetRuntimeUboConstants(settings::GetConfig().shaderConstantsUbo);
-    if (settings::GetConfig().shaderConstantsUbo)
-        LOG_INFO("shader constants: uniform buffers requested; guest shaders compile on the device when not in the local store");
-#endif
-    gpu::draw_attachment::SetKeepColorForDepthOnly(settings::GetConfig().depthOnlyKeepColor);
 
     // Exercise the same renderer preparation as ordinary startup, without
     // starting guest threads or opening game saves/profiles. This also provides

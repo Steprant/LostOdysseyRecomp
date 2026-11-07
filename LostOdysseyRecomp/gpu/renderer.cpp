@@ -2691,21 +2691,6 @@ namespace gpu::renderer
                 renderFormat = vulkan ? RenderShaderFormat::SPIRV : RenderShaderFormat::DXIL;
                 if (!device || !queue)
                     return InitFailure("device_or_queue");
-#if defined(LO_GPU_PLUME)
-                // The uniform-buffer form binds a sixth descriptor set with
-                // three dynamic uniform buffers (kConstantSet). A driver that
-                // cannot (Turnip on Adreno 6xx keeps only four sets once one is
-                // reserved for dynamic offsets) keeps the pointer form.
-                if (nativeVulkan && xenos::cache::RuntimeUboConstantsFlag().load(std::memory_order_relaxed)) {
-                    const auto& limits = static_cast<plume::VulkanDevice*>(device)->physicalDeviceProperties.limits;
-                    if (limits.maxBoundDescriptorSets < kConstantSet + 1 || limits.maxDescriptorSetUniformBuffersDynamic < 3 ||
-                        limits.maxPerStageDescriptorUniformBuffers < 3) {
-                        LOG_WARNING("renderer: uniform-buffer shader constants unavailable (sets={} dynamic_ubos={} stage_ubos={}); keeping device-address constants",
-                            limits.maxBoundDescriptorSets, limits.maxDescriptorSetUniformBuffersDynamic, limits.maxPerStageDescriptorUniformBuffers);
-                        xenos::cache::SetRuntimeUboConstants(false);
-                    }
-                }
-#endif
                 cacheIdentity = xenos::cache::MakeIdentity(vulkan ? backend::Backend::Vulkan : backend::Backend::D3D12, xenos::DxcIdentity());
                 // Metal translates the same SPIR-V as Vulkan, so both read one pack.
                 uboConstants = xenos::cache::UsesUboConstants(cacheIdentity);
@@ -6881,6 +6866,16 @@ void main()
                         if (const auto removed = RemoveLegacyShaderCacheFiles(false))
                             LOG_INFO("renderer: removed {} per-shader cache files of older translator versions", removed);
                         RemovePackCoveredShaderCache();
+#if LO_PLATFORM_ANDROID
+                        // Android always plays from the pack; a local startup
+                        // bundle there is left from the 1.6 test builds'
+                        // uniform-buffer experiment (about 900 MB).
+                        std::error_code bundleError;
+                        const auto bundle = std::filesystem::path(shaderCacheDir) / "startup_vk12_v1.bundle";
+                        const auto bundleBytes = std::filesystem::file_size(bundle, bundleError);
+                        if (!bundleError && std::filesystem::remove(bundle, bundleError))
+                            LOG_INFO("renderer: removed the unused local startup bundle ({} MB)", bundleBytes >> 20);
+#endif
                     }
                     ResetTimers();
                     return;
@@ -7684,7 +7679,7 @@ void main()
                 }
             }
 
-            // Compact targets (settings compactRenderTargets, or LO_COMPACT_RT=1/0):
+            // Compact targets (always on Android, elsewhere LO_COMPACT_RT=1/0):
             // 8_8_8_8(_GAMMA) as RGBA8 and fixed 2_10_10_10 as A2B10G10R10,
             // which hold exactly the bits the console stores; the shader
             // epilogue already clamps both classes to [0, 1]. Transfers
@@ -7694,7 +7689,7 @@ void main()
             {
                 static const bool requested = [] {
                     if (const char* value = getenv("LO_COMPACT_RT")) return std::strcmp(value, "0") != 0;
-                    return settings::GetConfig().compactRenderTargets;
+                    return bool(LO_PLATFORM_ANDROID);
                 }();
                 return requested;
             }

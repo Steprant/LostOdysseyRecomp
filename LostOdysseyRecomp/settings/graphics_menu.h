@@ -104,9 +104,6 @@ inline void ApplyPreset(Config& config, Preset preset)
         config.scalingQuality = 1;
         config.sgsr1 = true;
         config.shadowResolution = 1;
-        config.compactRenderTargets = true;
-        config.performanceHints = true;
-        config.displayRateHint = true;
         return;
     }
     const bool low = preset == Preset::LowEnd;

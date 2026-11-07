@@ -18,7 +18,6 @@
 #include <gpu/frame_plan.h>
 #include <gpu/frame_generation_settings.h>
 #include <gpu/shader_preparation_request.h>
-#include <gpu/draw_attachment_policy.h>
 #include <kernel/io/file_system.h>
 #include <os/logger.h>
 #include <stdafx.h>
@@ -154,9 +153,7 @@ std::atomic<bool> achievementsOpen{false};
 #if LO_PLATFORM_ANDROID
 std::atomic<bool> testerOpen{false};
 int testerFocus = 0;
-enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterAudioReserve, TesterCompactTargets, TesterPerformanceHints, TesterDisplayRate, TesterXmaLocks, TesterShaderUbo, TesterDepthKeepColor, TesterTurnipMode, TesterRecording, TesterExport, TesterRowCount };
-// Audio buffer choices on the Tester page: settings::Config::audioReserveFrames.
-constexpr uint32_t TesterAudioReserves[]{0, 12, 16};
+enum TesterRow { TesterEnabled, TesterProfile, TesterSampling, TesterAutomatic, TesterThermal, TesterRecording, TesterExport, TesterRowCount };
 constexpr uint32_t TesterPeriodsMs[]{250, 500, 1000, 2000};
 #endif
 std::vector<achievements_page::Item> achievementItems;
@@ -1347,23 +1344,6 @@ void Publish(uint8_t *base, uint32_t config)
         addChoices(L"Sample period", L"採樣週期", {L"250 ms", L"500 ms", L"1000 ms", L"2000 ms"}, periodIndex, !recording);
         addChoices(L"Detect slow frames", L"偵測慢影格", onOff(), d.automatic.load() ? 0 : 1, !recording);
         addChoices(L"Thermal monitoring", L"溫度監測", onOff(), d.thermal.load() ? 0 : 1, !recording);
-        {
-            // Applied live and logged with each audio report, so a recording
-            // can compare buffer sizes.
-            const uint32_t reserve = GetConfig().audioReserveFrames;
-            size_t reserveIndex = 0;
-            while (reserveIndex + 1 < std::size(TesterAudioReserves) && TesterAudioReserves[reserveIndex] != reserve) ++reserveIndex;
-            addChoices(L"Audio buffer", L"音訊緩衝", {L"43 ms", L"64 ms", L"85 ms"}, reserveIndex);
-        }
-        // Saved for the next start (render targets are allocated by format).
-        addChoices(L"Compact render targets", L"精簡渲染目標", onOff(), GetConfig().compactRenderTargets ? 0 : 1);
-        addChoices(L"Power hints (ADPF)", L"省電提示 (ADPF)", onOff(), GetConfig().performanceHints ? 0 : 1);
-        addChoices(L"Match display refresh", L"配合螢幕更新率", onOff(), GetConfig().displayRateHint ? 0 : 1);
-        addChoices(L"XMA per-voice locks", L"XMA 逐聲道鎖定", onOff(), GetConfig().xmaContextLocks ? 0 : 1);
-        addChoices(L"Shader constants in UBO", L"著色器常數使用 UBO", onOff(), GetConfig().shaderConstantsUbo ? 0 : 1);
-        addChoices(L"One pass for depth-only draws", L"僅深度繪製共用通道", onOff(), GetConfig().depthOnlyKeepColor ? 0 : 1);
-        addChoices(L"Turnip render mode", L"Turnip 渲染模式", {Tr(L"Automatic", L"自動"), L"Sysmem", L"GMEM"},
-                   std::min(GetConfig().turnipRenderMode, 2u));
         const auto seconds = d.Duration(::diagnostics::android_tester::NowNs()) / 1000000000ull;
         const std::wstring duration = std::to_wstring(seconds / 60) + L":" + (seconds % 60 < 10 ? L"0" : L"") + std::to_wstring(seconds % 60);
         next.rows.push_back({Tr(L"Recording", L"記錄"), (recording ? Tr(L"Stop", L"停止") : Tr(L"Start", L"開始")) + std::wstring(L"  ") + duration, d.enabled.load(), {}, 0});
@@ -1779,30 +1759,6 @@ void Publish(uint8_t *base, uint32_t config)
 #if LO_PLATFORM_ANDROID
     if (testerOpen)
         next.help = !status.empty() ? status
-            : testerFocus == TesterShaderUbo
-            ? Tr(L"Experimental: shaders read their constants from fast constant memory instead of memory loads. The first start compiles every shader on the phone (several minutes). Applies after restarting.",
-                 L"實驗性：著色器從快速常數記憶體讀取常數，而非記憶體載入。首次啟動會在手機上編譯所有著色器（數分鐘）。重新啟動後生效。")
-            : testerFocus == TesterTurnipMode
-            ? Tr(L"Turnip driver only: draw every render pass directly in memory (Sysmem) or in on-chip tiles (GMEM) instead of choosing per pass. Applies after restarting.",
-                 L"僅限 Turnip 驅動：所有渲染通道直接在記憶體 (Sysmem) 或晶片上的圖塊 (GMEM) 中繪製，而非逐通道選擇。重新啟動後生效。")
-            : testerFocus == TesterDepthKeepColor
-            ? Tr(L"Depth-only draws stay in the scene's render pass instead of starting a new one: fewer GPU pass changes. Applies immediately.",
-                 L"僅深度繪製留在場景的渲染通道中，而非另開新通道：減少 GPU 通道切換。立即套用。")
-            : testerFocus == TesterXmaLocks
-            ? Tr(L"Audio commands wait only for their own voice's decoding, not for every voice. Applies after restarting.",
-                 L"音訊指令只等待自身聲道的解碼，而非所有聲道。重新啟動後生效。")
-            : testerFocus == TesterDisplayRate
-            ? Tr(L"Runs the screen at the game's frame rate instead of 120 Hz: less power, even frame spacing. Applies immediately.",
-                 L"讓螢幕以遊戲的影格率運作而非 120 Hz：更省電、影格間隔更平均。立即套用。")
-            : testerFocus == TesterPerformanceHints
-            ? Tr(L"Lets Android lower CPU clocks while frames keep their margin: less heat and battery use. Applies immediately.",
-                 L"讓 Android 在影格仍有餘裕時降低 CPU 時脈：減少發熱與耗電。立即套用。")
-            : testerFocus == TesterCompactTargets
-            ? Tr(L"8-bit game render targets in 8-bit memory: less GPU bandwidth, SDR only. Applies after restarting.",
-                 L"8 位元遊戲渲染目標使用 8 位元記憶體：減少 GPU 頻寬，僅限 SDR。重新啟動後生效。")
-            : testerFocus == TesterAudioReserve
-            ? Tr(L"A larger audio buffer tolerates late audio wakeups but adds latency. Applies immediately.",
-                 L"較大的音訊緩衝可容忍音訊執行緒延遲喚醒，但會增加延遲。立即套用。")
             : Tr(L"Intensive sampling can affect performance. Stop recording manually; files rotate to a fixed size.", L"密集採樣可能影響效能。請手動停止錄製；檔案會循環覆寫。");
 #endif
     if (tab == 0 && row == GameControlsRow)
@@ -2590,7 +2546,7 @@ void PointerClick(float x, float y, bool reverse)
     mouseRow = int(hit);
     if (listPage) {
 #if LO_PLATFORM_ANDROID
-        if (testerOpen.load() && hit <= size_t(TesterTurnipMode)) {
+        if (testerOpen.load() && hit <= size_t(TesterThermal)) {
             if (x >= 386) mouseAction = reverse ? 4 : 8;
         }
         else
@@ -3442,57 +3398,6 @@ PPC_FUNC(sub_822F19B0)
                 d.samplePeriodMs.store(TesterPeriodsMs[(int(index) + 4 + delta) % 4]);
             } else if (testerFocus == TesterAutomatic && !recording) d.automatic.store(!d.automatic.load());
             else if (testerFocus == TesterThermal && !recording) d.thermal.store(!d.thermal.load());
-            else if (testerFocus == TesterAudioReserve && (input & 0x100c)) {
-                const int delta = (input & 4) ? -1 : 1;
-                Config saved = GetConfig();
-                size_t index = 0;
-                while (index + 1 < std::size(TesterAudioReserves) && TesterAudioReserves[index] != saved.audioReserveFrames) ++index;
-                saved.audioReserveFrames = TesterAudioReserves[(int(index) + 3 + delta) % 3];
-                apu::SetQueueReserveFrames(saved.audioReserveFrames);
-                if (!SaveConfig(saved)) status = Tr(L"Could not save settings.", L"無法儲存設定。");
-            }
-            else if (testerFocus == TesterCompactTargets) {
-                Config saved = GetConfig();
-                saved.compactRenderTargets = !saved.compactRenderTargets;
-                status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
-                                           : Tr(L"Could not save settings.", L"無法儲存設定。");
-            }
-            else if (testerFocus == TesterXmaLocks) {
-                Config saved = GetConfig();
-                saved.xmaContextLocks = !saved.xmaContextLocks;
-                status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
-                                           : Tr(L"Could not save settings.", L"無法儲存設定。");
-            }
-            else if (testerFocus == TesterShaderUbo) {
-                Config saved = GetConfig();
-                saved.shaderConstantsUbo = !saved.shaderConstantsUbo;
-                status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
-                                           : Tr(L"Could not save settings.", L"無法儲存設定。");
-            }
-            else if (testerFocus == TesterTurnipMode && (input & 0x100c)) {
-                const int delta = (input & 4) ? -1 : 1;
-                Config saved = GetConfig();
-                saved.turnipRenderMode = uint32_t((int(std::min(saved.turnipRenderMode, 2u)) + 3 + delta) % 3);
-                status = SaveConfig(saved) ? Tr(L"Applies after restarting.", L"重新啟動後生效。")
-                                           : Tr(L"Could not save settings.", L"無法儲存設定。");
-            }
-            else if (testerFocus == TesterDepthKeepColor) {
-                Config saved = GetConfig();
-                saved.depthOnlyKeepColor = !saved.depthOnlyKeepColor;
-                gpu::draw_attachment::SetKeepColorForDepthOnly(saved.depthOnlyKeepColor);
-                if (!SaveConfig(saved)) status = Tr(L"Could not save settings.", L"無法儲存設定。");
-            }
-            else if (testerFocus == TesterDisplayRate) {
-                Config saved = GetConfig();
-                saved.displayRateHint = !saved.displayRateHint;
-                if (!SaveConfig(saved)) status = Tr(L"Could not save settings.", L"無法儲存設定。");
-            }
-            else if (testerFocus == TesterPerformanceHints) {
-                Config saved = GetConfig();
-                saved.performanceHints = !saved.performanceHints;
-                os::scheduling::SetPerformanceHints(saved.performanceHints);
-                if (!SaveConfig(saved)) status = Tr(L"Could not save settings.", L"無法儲存設定。");
-            }
             else if (testerFocus == TesterRecording && (input & 0x1000) && d.enabled.load()) {
                 if (recording) {
                     d.Stop(::diagnostics::android_tester::NowNs());

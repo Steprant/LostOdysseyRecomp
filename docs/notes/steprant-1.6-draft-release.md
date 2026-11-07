@@ -5,10 +5,10 @@ Built by the Android APK workflow from `integration/v1.6-candidate-20261106`. Pa
 ## Changes since 1.5
 
 - Audio: no AAudio reopen on every return from a long background pause; the XMA decoder no longer holds its lock for a whole voice and runs on performance cores at audio priority; selectable audio buffer (43/64/85 ms) and timing peaks in the log; optional per-voice XMA locks (diagnostics page, restart).
-- Graphics: "Mobile 30 FPS" preset (1080 internal, 30 FPS, SGSR1, Low shadows, compact targets, power and refresh hints); optional compact 8/10-bit render targets with their pipelines prefetched; optional ADPF power hints; display refresh matched to the frame rate; 900p render resolution.
-- SGSR1: stays enabled after a swapchain format change; the log and the performance overlay say whether it is active and, if not, why.
-- Title screen: its full-screen mesh pattern is no longer drawn.
-- Android diagnostics, for A/B tests (off by default): shader constants in uniform buffers (experimental; the first start compiles the shaders on the phone, several minutes), one render pass for depth-only draws, Turnip render mode (Automatic / Sysmem / GMEM).
+- Graphics: "Mobile 30 FPS" preset (1080 internal, 30 FPS, SGSR1, Low shadows); 8-bit render targets in 8-bit memory with pipelines prepared at startup; depth-only draws stay in the scene's render pass (about 40% fewer passes, ~8% less pass time on the Xiaomi 14); display refresh matched to the frame rate; 900p render resolution.
+- SGSR1: stays enabled after a swapchain format change; the log and the performance overlay say whether it is active and, if not, why, and show its render and display sizes.
+- Title screen: its mesh pattern is no longer drawn, and full-screen see-through 2D layers cover the whole width (no darker 16:9 box).
+- Audio: 64 ms buffer on Android.
 - Diagnostics: per-render-pass GPU profile in Tester recordings.
 
 ## Validation

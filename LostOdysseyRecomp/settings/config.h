@@ -182,36 +182,6 @@ struct Config
     uint32_t audioOutput = AudioOutputStereo; // Applied live; saved by SaveAudioOutput.
     uint32_t audioMatrixRear = 110; // Matrix surround rear angle, 90-150 degrees in 10 degree steps. Applied live.
     uint32_t voiceVolume = 100; // Cutscene dialogue, 0-100, in place of the Sound effects volume. Applied live.
-    // Xenos 8_8_8_8 and fixed 2_10_10_10 render targets as 32-bit host
-    // textures (RGBA8, A2B10G10R10) instead of FP16 while the HDR scene is off:
-    // half the attachment bandwidth and tile memory, the console's own
-    // precision. Applied at the next start.
-    bool compactRenderTargets = false;
-    // Android Performance Hint session for the game threads (lower CPU clocks
-    // when frames have margin). Applied live.
-    bool performanceHints = false;
-    // Android: declare the game frame rate on the phone surface so the panel
-    // can match it (Surface.setFrameRate). Applied live.
-    bool displayRateHint = true;
-    // XMA decoder locks per context instead of one global lock: a guest audio
-    // command no longer waits for another voice's decode. Applied at start.
-    bool xmaContextLocks = false;
-    // Translated guest shaders read their constants from uniform buffers
-    // instead of device-address loads (xenos::cache::SetRuntimeUboConstants).
-    // No published shader pack has this form, so the first start compiles the
-    // shaders on the device. Applied at start.
-    bool shaderConstantsUbo = false;
-    // Depth-only draws keep the colour target bound with a zero write mask, so
-    // the scene's colour and depth-only draws share one render pass
-    // (gpu::draw_attachment::KeepColorForDepthOnly). Applied live.
-    bool depthOnlyKeepColor = false;
-    // Turnip only (Android custom driver): 0 lets Turnip choose sysmem or GMEM
-    // per render pass, 1 forces sysmem, 2 GMEM (TU_DEBUG). Applied at start.
-    uint32_t turnipRenderMode = 0;
-    // Audio device-queue reserve in 256-sample frames: 0 is the platform
-    // default (8 on Android, about 43 ms), 12 or 16 trade latency for
-    // tolerance of late driver wakeups. Applied live (apu::SetQueueReserveFrames).
-    uint32_t audioReserveFrames = 0;
     bool skipShaderPrebuild = false;
     // Achievement-unlocked toast and its chime (ui/achievement_overlay.cpp). Applied live.
     bool achievementNotifications = true;

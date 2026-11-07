@@ -370,7 +370,7 @@ PPC_FUNC(sub_8230B308)
     uint32_t matrix = 0;
     if (canvas == fullOutputCanvas || canvas == fullMenuCanvas ||
         !gpu::aspect_layout::CoversGuestScreen(ctx.f1.f64, ctx.f2.f64, ctx.f3.f64, ctx.f4.f64) ||
-        !gpu::aspect_layout::TiledUv(ctx.f7.f64, ctx.f8.f64) || !IsPrimaryCanvas(canvas, matrix))
+        !IsPrimaryCanvas(canvas, matrix))
     {
         __imp__sub_8230B308(ctx, base);
         return;
@@ -383,6 +383,35 @@ PPC_FUNC(sub_8230B308)
             __imp__sub_8230B308(ctx, base);
             return;
         }
+    if (!gpu::aspect_layout::TiledUv(ctx.f7.f64, ctx.f8.f64))
+    {
+        // A single image over the whole guest screen. A see-through one (a
+        // shade or gradient over the scene: the title screen darkens its
+        // clouds this way) would end at the 16:9 edges, leaving brighter
+        // strips at the sides of a wider screen; it is stretched over the
+        // full output. Opaque artwork keeps the fit and its proportions.
+        const uint32_t colour = LoadWord(ctx.r1.u32 + 92);
+        const float alpha = ValidRange(colour, 16) ? LoadFloat(colour + 12) : 1.0f;
+        const uint32_t blend = LoadWord(ctx.r1.u32 + 108);
+        const bool seeThrough = blend != 0 || alpha < 0.99f;
+        static uint32_t logged = 0;
+        if (logged < 12 && ++logged)
+            LOG_INFO("hor+: full-screen single-image layer texture={:#x} alpha={:.2f} blend={} -> {}",
+                LoadWord(ctx.r1.u32 + 100), alpha, blend, seeThrough && !scale.IsIdentity() ? "full output" : "16:9 fit");
+        if (!seeThrough || scale.IsIdentity())
+        {
+            __imp__sub_8230B308(ctx, base);
+            return;
+        }
+        FlushCanvas(ctx, base, canvas);
+        const PPCContext saved = ctx;
+        const uint32_t previous = fullOutputCanvas;
+        fullOutputCanvas = canvas;
+        __imp__sub_8230B308(ctx, base);
+        FlushCanvas(saved, base, canvas);
+        fullOutputCanvas = previous;
+        return;
+    }
     if (!ShowScreenPattern() && gpu::aspect_layout::FineScreenPattern(ctx.f7.f64, ctx.f8.f64))
     {
         static uint32_t hidden = 0;

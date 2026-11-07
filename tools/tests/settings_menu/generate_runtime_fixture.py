@@ -213,47 +213,18 @@ int main(int argc, char** argv) {
     tick(0x1000);Check(d.enabled,"confirm enables tester");
     tick(2);tick(8);Check(d.profile==1,"right selects advanced profile");
     tick(0x200);Check(settings::testerOpen && settings::tab==3,"RB does not change tabs inside the page");
-    settings::testerFocus=settings::TesterAudioReserve;
-    tick(8);Check(apu::queueReserve==12 && settings::savedConfig.audioReserveFrames==12,"audio buffer steps to 64 ms, live and saved");
-    tick(8);Check(apu::queueReserve==16 && settings::savedConfig.audioReserveFrames==16,"audio buffer steps to 85 ms");
-    tick(8);Check(apu::queueReserve==0 && settings::savedConfig.audioReserveFrames==0,"audio buffer wraps to the default");
-    tick(4);Check(apu::queueReserve==16 && settings::savedConfig.audioReserveFrames==16,"left steps the audio buffer back");
-    tick(4);tick(4);Check(apu::queueReserve==0,"audio buffer returns to the default");
     {
         settings::Config mobile=settings::GetConfig();
         settings::graphics_menu::ApplyPreset(mobile,settings::graphics_menu::Preset::Mobile30);
         Check(settings::graphics_menu::PresetOf(mobile)==settings::graphics_menu::Preset::Mobile30 &&
               mobile.internalResolution==1080 && mobile.sgsr1 && mobile.scalingQuality==1 && mobile.shadowResolution==1 &&
-              mobile.compactRenderTargets && mobile.performanceHints && mobile.frameRate==30,"Mobile 30 FPS preset");
+              mobile.frameRate==30,"Mobile 30 FPS preset");
         mobile.shadowResolution=2;
         Check(settings::graphics_menu::PresetOf(mobile)==settings::graphics_menu::Preset::Custom,"a changed row leaves the mobile preset");
     }
-    settings::testerFocus=settings::TesterCompactTargets;
-    tick(0x1000);Check(settings::savedConfig.compactRenderTargets && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"compact render targets saved for the next start");
-    tick(8);Check(!settings::savedConfig.compactRenderTargets,"compact render targets toggle off");
-    settings::testerFocus=settings::TesterPerformanceHints;
-    tick(0x1000);Check(settings::savedConfig.performanceHints && os::scheduling::performanceHints,"power hints apply live and save");
-    tick(8);Check(!settings::savedConfig.performanceHints && !os::scheduling::performanceHints,"power hints turn off live");
-    settings::testerFocus=settings::TesterXmaLocks;
-    tick(0x1000);Check(settings::savedConfig.xmaContextLocks && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"XMA per-voice locks saved for the next start");
-    tick(8);Check(!settings::savedConfig.xmaContextLocks,"XMA per-voice locks toggle off");
-    settings::testerFocus=settings::TesterShaderUbo;
-    tick(0x1000);Check(settings::savedConfig.shaderConstantsUbo && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"shader constants in UBO saved for the next start");
-    tick(8);Check(!settings::savedConfig.shaderConstantsUbo,"shader constants in UBO toggle off");
-    settings::testerFocus=settings::TesterDepthKeepColor;
-    tick(0x1000);Check(settings::savedConfig.depthOnlyKeepColor && gpu::draw_attachment::KeepColorForDepthOnly(),"one pass for depth-only draws applies live and saves");
-    tick(8);Check(!settings::savedConfig.depthOnlyKeepColor && !gpu::draw_attachment::KeepColorForDepthOnly(),"one pass for depth-only draws turns off live");
-    settings::testerFocus=settings::TesterTurnipMode;
-    Check(settings::savedConfig.turnipRenderMode==0,"Turnip chooses its render mode by default");
-    tick(8);Check(settings::savedConfig.turnipRenderMode==1 && settings::snapshot.help.find(L"restart")!=std::wstring::npos,"Turnip sysmem saved for the next start");
-    tick(8);Check(settings::savedConfig.turnipRenderMode==2,"Turnip GMEM");
-    tick(8);Check(settings::savedConfig.turnipRenderMode==0,"Turnip render mode wraps to automatic");
-    tick(4);Check(settings::savedConfig.turnipRenderMode==2,"Turnip render mode steps back");
-    tick(8);Check(settings::savedConfig.turnipRenderMode==0,"Turnip render mode back to automatic");
-    settings::testerFocus=settings::TesterDisplayRate;
-    Check(settings::savedConfig.displayRateHint,"display refresh matching defaults on");
-    tick(0x1000);Check(!settings::savedConfig.displayRateHint,"display refresh matching turns off");
-    tick(8);Check(settings::savedConfig.displayRateHint,"display refresh matching turns back on");
+    // The 1.6 device sessions decided these: no Tester rows, fixed behaviour.
+    Check(settings::TesterThermal+1==settings::TesterRecording,"only diagnostics rows on the Tester page");
+    Check(gpu::draw_attachment::KeepColorForDepthOnly(),"depth-only draws keep colour bound on Android");
     settings::testerFocus=settings::TesterRecording;tick(0x1000);
     Check(d.recording && androidMessage==0x8002,"record starts the Android collector");
     settings::testerFocus=settings::TesterProfile;tick(8);Check(d.profile==1,"profile remains fixed during recording");
