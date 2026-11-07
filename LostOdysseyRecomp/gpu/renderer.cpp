@@ -7866,6 +7866,39 @@ void main()
                 return true;
             }
 
+            // After the drain of a resize: the current targets replace the parked
+            // ones of the same key, unless the total would exceed the budget.
+            void ParkRenderTargets()
+            {
+                static const bool parking = [] {
+                    const char* value = std::getenv("LO_PARK_TARGETS");
+                    return !(value && std::string_view(value) == "0");
+                }();
+                const uint32_t reused = parkedTargetReuses;
+                parkedTargetReuses = 0;
+                if (!parking) {
+                    parkedTargets.clear();
+                    renderTargets.clear();
+                    return;
+                }
+                for (auto& [key, target] : renderTargets) {
+                    // Scene-copy promotion images belong to their pool.
+                    if (!target || !target->texture || target->poolFlags) continue;
+                    if (auto& slot = parkedTargets[key]) Gpu().retiredTextures.push_back(std::move(slot));
+                    parkedTargets[key] = std::move(target);
+                }
+                renderTargets.clear();
+                uint64_t bytes = 0;
+                for (const auto& [key, target] : parkedTargets)
+                    bytes += uint64_t(target->width) * target->height * std::max(1u, RenderFormatSize(target->format));
+                if (bytes > kParkedTargetBytes) {
+                    LOG_INFO("renderer: {} parked render targets ({} MB) exceed the budget, freed", parkedTargets.size(), bytes >> 20);
+                    parkedTargets.clear();
+                    return;
+                }
+                LOG_INFO("renderer: resize parked {} render targets ({} MB); the last size reused {}", parkedTargets.size(), bytes >> 20, reused);
+            }
+
             void FailCurrentPlan(frame_plan::FailureReason reason = frame_plan::FailureReason::Unknown)
             {
                 if (!activePlan.cpuSerial || !activePlan.geometryEpoch) return;
@@ -7917,39 +7950,6 @@ void main()
                     return;
                 }
                 FailCurrentPlan();
-            }
-
-            // After the drain of a resize: the current targets replace the parked
-            // ones of the same key, unless the total would exceed the budget.
-            void ParkRenderTargets()
-            {
-                static const bool parking = [] {
-                    const char* value = std::getenv("LO_PARK_TARGETS");
-                    return !(value && std::string_view(value) == "0");
-                }();
-                const uint32_t reused = parkedTargetReuses;
-                parkedTargetReuses = 0;
-                if (!parking) {
-                    parkedTargets.clear();
-                    renderTargets.clear();
-                    return;
-                }
-                for (auto& [key, target] : renderTargets) {
-                    // Scene-copy promotion images belong to their pool.
-                    if (!target || !target->texture || target->poolFlags) continue;
-                    if (auto& slot = parkedTargets[key]) Gpu().retiredTextures.push_back(std::move(slot));
-                    parkedTargets[key] = std::move(target);
-                }
-                renderTargets.clear();
-                uint64_t bytes = 0;
-                for (const auto& [key, target] : parkedTargets)
-                    bytes += uint64_t(target->width) * target->height * std::max(1u, RenderFormatSize(target->format));
-                if (bytes > kParkedTargetBytes) {
-                    LOG_INFO("renderer: {} parked render targets ({} MB) exceed the budget, freed", parkedTargets.size(), bytes >> 20);
-                    parkedTargets.clear();
-                    return;
-                }
-                LOG_INFO("renderer: resize parked {} render targets ({} MB); the last size reused {}", parkedTargets.size(), bytes >> 20, reused);
             }
 
             // Last catalog role per attachment kind (color, depth); draws reuse targets.

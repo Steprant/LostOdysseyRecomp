@@ -83,6 +83,8 @@ struct Renderer {
     bool Flush() { ++flushes; return flushReady; }
     bool WaitForGpu() { ++waits; return gpuReady; }
     void FailCurrentPlan(frame_plan::FailureReason) { activePlanFailed=true; }
+    // Production parks the active targets for the next size and empties the map.
+    void ParkRenderTargets() { renderTargets.clear(); }
     /* ApplyInternalResolution */
     /* ResolveFormatMatches */
     /* FindResolved */
