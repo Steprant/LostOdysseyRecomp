@@ -288,3 +288,25 @@ the SR mip bias.
 Transitions: the menu policy returned to the quality size on the first 3D
 frame, often in the middle of a fade-in. It now enters after 30 scene-less
 frames and returns after 20 consecutive upscaled frames.
+
+## Early depth rejection restored (2026-11-07)
+
+The profiles say the main scene pass is pixel-bound, not draw-bound: from
+1780×800 to 1282×576 (0.52× the pixels) its time per draw falls 1.7×.
+Every translated pixel shader carried the Xenos alpha test as a dynamic
+branch ending in `discard`, also when the game has the test off. A shader
+that can discard makes Turnip (and tile GPUs in general) give up early Z for
+the draw and stop writing LRZ, so with every shader like that the whole
+scene shaded every covered fragment before its depth test, overdraw
+included.
+
+The test is now pipeline state on Vulkan: `pipeline_cache::kFlagAlphaTest`
+in the key, specialization constant 32 (`xeAlphaTestSpec`) in the common
+HLSL. Pipelines of draws without the alpha test get 0 and the driver folds
+the discard away; draws with it keep the dynamic test. Old pipeline recipes
+(flags 0) now prewarm the variant without the test. The Plume Vulkan
+backend fast-links pipelines with fragment-only constants (index ≥ 32),
+keying the fragment library on their values, so the startup and draw-time
+fast-link paths are kept. D3D12 and Metal are unchanged. Shader translator
+version 29: the first start retranslates and recompiles the shaders.
+`LO_ALPHATEST_SPEC=0` restores the dynamic test everywhere.

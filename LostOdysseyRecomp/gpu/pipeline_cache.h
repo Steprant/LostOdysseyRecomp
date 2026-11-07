@@ -319,13 +319,19 @@ namespace gpu::pipeline_cache
         }
     };
 
+    // Key::flags bit 0: the draw has the Xenos alpha test on. Vulkan builds the
+    // pixel shader's discard only into those pipelines (specialization constant
+    // 32); without it the driver keeps early depth rejection (Adreno LRZ).
+    // Older recipes (flags 0) prewarm the variant without the test.
+    inline constexpr uint32_t kFlagAlphaTest = 1u;
+
     // These masks are the values emitted by the current renderer. Primitive and
     // format values are deliberately left to the caller's Validator.
     inline bool IsValid(const Key& key) noexcept
     {
         return !(key.modeCull & ~0x3807U) && !(key.colorMask & ~0xFU) &&
             !(key.stencilRefMask & ~0xFFFFFFU) && !(key.stencilRefMaskBack & ~0xFFFFFFU) &&
-            key.flags == 0 && std::isfinite(std::bit_cast<float>(key.slopeBias));
+            !(key.flags & ~kFlagAlphaTest) && std::isfinite(std::bit_cast<float>(key.slopeBias));
     }
 
     // RB_BLENDCONTROL for "no blending": ONE, ADD, ZERO for color and alpha.
@@ -367,6 +373,7 @@ namespace gpu::pipeline_cache
         if (key.slopeBias == 0x80000000u) key.slopeBias = 0; // -0.0
         key.blend = (key.colorMask & 0xF) ? key.blend & 0x1FFF1FFFu : kNoBlend;
         if (key.prim != 1 && key.prim != 2 && key.prim != 3 && key.prim != 6 && key.prim != 8) key.prim = 4;
+        if (!key.ps) key.flags &= ~kFlagAlphaTest;
         return key;
     }
 

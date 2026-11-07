@@ -281,12 +281,21 @@ int main(int argc, char** argv)
         loaded = cache::Load(badPath, shaderVersion, recipeVersion);
         Check(loaded.status == cache::Status::Invalid && loaded.error == "recipe record checksum mismatch", "per-record checksum");
 
+        {
+            auto alphaTest = key;
+            alphaTest.flags = cache::kFlagAlphaTest;
+            Check(cache::IsValid(alphaTest), "the alpha-test pipeline flag is a valid key");
+            Check(cache::Normalize(alphaTest).flags == (alphaTest.ps ? cache::kFlagAlphaTest : 0u),
+                "normalization keeps the alpha-test flag only with a pixel shader");
+            alphaTest.ps = 0;
+            Check(cache::Normalize(alphaTest).flags == 0, "no pixel shader, no alpha-test variant");
+        }
         for (unsigned scenario = 0; scenario < 9; ++scenario)
         {
             auto invalid = key;
             switch (scenario)
             {
-            case 0: invalid.flags = 1; break;
+            case 0: invalid.flags = 2; break; // bit 0 is the alpha-test variant
             case 1: invalid.colorMask = 0x10; break;
             case 2: invalid.modeCull = 8; break;
             case 3: invalid.stencilRefMask = 0x1000000; break;

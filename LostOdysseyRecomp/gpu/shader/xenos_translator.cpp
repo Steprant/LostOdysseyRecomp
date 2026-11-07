@@ -1131,7 +1131,7 @@ namespace xenos
             {
                 if (isPixelShader)
                 {
-                    out += "\tif (xeFlags & 1u)\n\t{\n";
+                    out += "\tif (XE_ALPHA_TEST_POSSIBLE && (xeFlags & 1u))\n\t{\n";
                     out += "\t\tbool pass = true;\n";
                     out += "\t\tuint func = uint(xeAlphaTest.y);\n";
                     out += "\t\tfloat a = oC0.w, ref = xeAlphaTest.x;\n";

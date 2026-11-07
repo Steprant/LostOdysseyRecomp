@@ -16,6 +16,7 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - Android diagnostics: selectable audio buffer (43/64/85 ms) and audio/XMA timing peaks in the runtime log.
 - Android diagnostics: per-render-pass GPU profile in Tester recordings.
 - Android: experimental SGSR2 temporal upscaling (Anti-aliasing → SGSR2, with an SGSR2 quality row): renders at 1/1.5–1/2 of the output size and reconstructs it from jitter, depth and camera motion; scene textures keep their output-resolution detail (mip bias), a contrast-adaptive sharpen follows it, and the new 576p render resolution renders SGSR2 at 576 lines.
+- Vulkan: pixel shaders keep early depth rejection unless the game enables the alpha test (Adreno LRZ), so occluded pixels are no longer shaded; the first start recompiles the shaders.
 - Android: compact 8-bit/10-bit render targets (half the bandwidth), display refresh matched to the game frame rate, and a 900p render resolution.
 - SGSR1 stays enabled after a swapchain format change.
 - Full-screen 2D layers over the scene cover the whole width on displays wider than 16:9 (no darker 16:9 box on the title screen); the title screen's mesh pattern is no longer drawn.
@@ -33,6 +34,7 @@ Brief release highlights, newest first. Dates are UTC. Technical validation is r
 - Android 诊断：可选择音频缓冲（43/64/85 毫秒），运行日志记录音频与 XMA 时序峰值。
 - Android 诊断：测试录制包含每个渲染通道的 GPU 分析。
 - Android：实验性 SGSR2 时间性超分辨率（抗锯齿 → SGSR2，附 SGSR2 质量选项）：以输出尺寸的 1/1.5–1/2 渲染，并利用抖动、深度和相机运动重建；场景纹理按输出分辨率选择 mip（mip 偏移），其后进行对比度自适应锐化；新增 576p 渲染分辨率，SGSR2 以 576 行渲染。
+- Vulkan：仅在游戏启用 alpha 测试时像素着色器才包含 discard，其余保留提前深度剔除（Adreno LRZ），被遮挡的像素不再着色；首次启动会重新编译着色器。
 - Android：精简 8/10 位渲染目标（带宽减半）、屏幕刷新率匹配游戏帧率，并新增 900p 渲染分辨率。
 - 交换链格式变化后 SGSR1 保持启用。
 - 场景上方的全屏 2D 图层在宽于 16:9 的屏幕上覆盖整个宽度（标题画面不再有较暗的 16:9 方框）；不再绘制标题画面的网格图案。
