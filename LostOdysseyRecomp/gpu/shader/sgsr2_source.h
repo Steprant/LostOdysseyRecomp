@@ -40,8 +40,27 @@ struct Sgsr2Parameters {
     uint   sameCamera;
     uint   reset;
     uint   depthReversed;
+    float  sharpness;         // 0..1 strength of the sharpening pass
+    uint   sharpen;           // 1: the upscale leaves the output to sgsr2Sharpen
+    uint2  padding;
 };
 [[vk::push_constant]] ConstantBuffer<Sgsr2Parameters> params;
+
+// YCoCg -> RGB. SDR: Lanczos overshoot past white is clipped here, as it
+// would be later. HDR: the inverse tone map, exact (the reference subtracts
+// from 1 + 600/65504, about 2% darker); the floor keeps the same fp16 ceiling.
+float3 Sgsr2OutputColor(float3 ycocg, float colorMax)
+{
+    const float xz = ycocg.x - ycocg.z;
+    float3 rgb = saturate(float3(xz + ycocg.y, ycocg.x + ycocg.z, xz - ycocg.y));
+    if (params.preExposure > 0.0) {
+        const float componentMax = max(max(rgb.x, rgb.y), rgb.z);
+        float scale = params.preExposure / max(1.0 - componentMax, 600.0 / 65504.0);
+        if (colorMax > 4000.0) scale = colorMax;
+        rgb *= scale;
+    }
+    return rgb;
+}
 
 #ifdef SGSR2_CONVERT
 [[vk::binding(0,0)]] Texture2D<float>  inputDepth : register(t0);
@@ -257,14 +276,57 @@ void sgsr2Upscale(uint3 id : SV_DispatchThreadID)
     const float alpha = saturate(upsampled.w / alphaSum + float(params.reset));
     upsampled.xyz = lerp(historyColor, upsampled.xyz, alpha);
     historyOutput[id.xy] = float4(upsampled.xyz, wFactor);
+    if (params.sharpen == 0) sceneColorOutput[id.xy] = float4(Sgsr2OutputColor(upsampled.xyz, colorMax), 1.0);
+}
+#endif
 
-    // YCoCg -> RGB. SDR: Lanczos overshoot past white is clipped here, as it
-    // would be later. HDR: the inverse tone map, exact (the reference
-    // subtracts from 1 + 600/65504, about 2% darker); the floor keeps the
-    // same fp16 ceiling.
-    const float xz = upsampled.x - upsampled.z;
-    float3 rgb = saturate(float3(xz + upsampled.y, upsampled.x + upsampled.z, xz - upsampled.y));
+#ifdef SGSR2_SHARPEN
+// Not part of Qualcomm's SGSR2: a contrast-adaptive sharpen after the
+// accumulation, in the spirit of AMD's RCAS. Each pixel gets the strongest
+// negative cross lobe that keeps every channel inside the range of its four
+// neighbours, so edges gain contrast without halos; one lobe for all three
+// channels (no colour fringes), weakened where the cross looks like noise.
+[[vk::binding(0,0)]] Texture2D<float4> currentHistory : register(t0);
+[[vk::binding(1,0)]] Texture2D<float4> motionDepthClipAlpha : register(t1);
+[[vk::binding(2,0)]] SamplerState linearClamp : register(s0);
+[[vk::binding(3,0)]] [[vk::image_format("rgba16f")]] RWTexture2D<float4> sceneColorOutput : register(u0);
+
+float3 Sgsr2HistoryRgb(int2 position)
+{
+    const float3 ycocg = currentHistory.Load(int3(clamp(position, 0, int2(params.displaySize) - 1), 0)).xyz;
+    const float xz = ycocg.x - ycocg.z;
+    return saturate(float3(xz + ycocg.y, ycocg.x + ycocg.z, xz - ycocg.y));
+}
+
+[numthreads(8, 8, 1)]
+void sgsr2Sharpen(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= params.displaySize.x || id.y >= params.displaySize.y) return;
+    const int2 position = int2(id.xy);
+    const float3 centre = Sgsr2HistoryRgb(position);
+    const float3 north = Sgsr2HistoryRgb(position + int2(0, -1));
+    const float3 south = Sgsr2HistoryRgb(position + int2(0, 1));
+    const float3 west = Sgsr2HistoryRgb(position + int2(-1, 0));
+    const float3 east = Sgsr2HistoryRgb(position + int2(1, 0));
+    const float3 lowest = min(min(north, south), min(west, east));
+    const float3 highest = max(max(north, south), max(west, east));
+    // The lobe w gives c' = (c + w * sum) / (1 + 4w); these are the w at which
+    // a channel would leave [0, 1] past its darkest or brightest neighbour.
+    const float3 towardsBlack = min(lowest, centre) / (4.0 * highest + 1.0e-5);
+    const float3 towardsWhite = (1.0 - max(highest, centre)) / (4.0 * lowest - 4.0 - 1.0e-5);
+    const float3 limit = max(-towardsBlack, towardsWhite);
+    float lobe = clamp(max(max(limit.x, limit.y), limit.z), -0.1875, 0.0);
+    // A centre far from its cross average relative to the local range reads
+    // as noise (or fine aliasing): sharpen it half as much.
+    const float luma = dot(centre, float3(0.25, 0.5, 0.25));
+    const float lumaLow = dot(lowest, float3(0.25, 0.5, 0.25)), lumaHigh = dot(highest, float3(0.25, 0.5, 0.25));
+    const float crossMean = dot(north + south + west + east, float3(0.25, 0.5, 0.25)) * 0.25;
+    const float range = max(max(lumaHigh, luma) - min(lumaLow, luma), 1.0e-4);
+    lobe *= params.sharpness * (1.0 - 0.5 * saturate(abs(crossMean - luma) / range));
+    float3 rgb = saturate((centre + lobe * (north + south + west + east)) / (1.0 + 4.0 * lobe));
     if (params.preExposure > 0.0) {
+        const float2 uv = (float2(id.xy) + 0.5) * params.displaySizeRcp;
+        const float colorMax = motionDepthClipAlpha.SampleLevel(linearClamp, uv, 0).w;
         const float componentMax = max(max(rgb.x, rgb.y), rgb.z);
         float scale = params.preExposure / max(1.0 - componentMax, 600.0 / 65504.0);
         if (colorMax > 4000.0) scale = colorMax;

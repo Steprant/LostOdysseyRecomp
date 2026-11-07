@@ -105,6 +105,17 @@ namespace gpu::frame_plan
         if (!sourcePlan || !sourcePlan->cpuSerial) return {fallbackAA, fallbackScalingQuality, false};
         return {sourcePlan->effectiveAA, sourcePlan->scalingQuality, sceneAAApplied};
     }
+    // SGSR2 renders at its quality ratio of the output, whatever the render
+    // resolution row says, except 576p: the lowest row renders SGSR2 at 576
+    // lines (about 2.1x on a 1200-line panel), to try a very low input.
+    inline constexpr uint32_t kSgsr2LowInputHeight = 576;
+    inline resolution::Size Sgsr2InputCap(upscaling::Upscaler upscaler, resolution::Size optimal,
+        uint32_t internalResolution, uint32_t outputWidth, uint32_t outputHeight)
+    {
+        if (upscaler != upscaling::Upscaler::Sgsr2 || internalResolution != kSgsr2LowInputHeight) return optimal;
+        const auto low = resolution::ResolveInternalSize(internalResolution, outputWidth, outputHeight);
+        return low.width && low.height && low.width < optimal.width && low.height < optimal.height ? low : optimal;
+    }
     inline uint64_t FullRequestSignature(const FramePlan& plan, uint32_t internalResolution, resolution::Size recommendedInput) {
         const auto mix = [](uint64_t value, uint64_t input) { return (value ^ input) * 0x9E3779B185EBCA87ull; };
         uint64_t value = 0x6C6F706C616E7631ull;
@@ -165,7 +176,7 @@ namespace gpu::frame_plan
             if (mode.state == upscaling::SizingState::Ready && mode.optimal.width && mode.optimal.height &&
                 mode.optimal.width <= input.output.width && mode.optimal.height <= input.output.height &&
                 (request.fsrQuality != upscaling::FsrQuality::NativeAA || mode.optimal == resolution::Size{input.output.width,input.output.height}))
-                recommended = mode.optimal;
+                recommended = Sgsr2InputCap(input.upscaler, mode.optimal, input.internalResolution, input.output.width, input.output.height);
         }
         return FullRequestSignature(request, input.internalResolution, recommended);
     }
@@ -298,10 +309,12 @@ namespace gpu::frame_plan
                     mode.optimal.height <= input.output.height &&
                     (input.fsrQuality != upscaling::FsrQuality::NativeAA ||
                         mode.optimal == resolution::Size{input.output.width, input.output.height});
-                if (ready) recommended = mode.optimal;
+                const auto optimal = Sgsr2InputCap(input.upscaler, mode.optimal, input.internalResolution,
+                    input.output.width, input.output.height);
+                if (ready) recommended = optimal;
                 if (ready && !input.readback && input.device.Available(input.upscaler)) {
-                    p.width = mode.optimal.width;
-                    p.height = mode.optimal.height;
+                    p.width = optimal.width;
+                    p.height = optimal.height;
                     p.effectiveAA = 0;
                     p.consumer = upscaling::FsrQualityConsumer(input.upscaler);
                 }

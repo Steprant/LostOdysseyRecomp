@@ -74,9 +74,9 @@ inline void SelectAa(Config& config, uint32_t choice)
 }
 // Render resolution choices, in menu order (Config::internalResolution values).
 #if LO_PLATFORM_MACOS
-inline constexpr int RenderResolutions[] = {0, 720, 900, 1080, 1440, 2160, InternalResolutionNative};
+inline constexpr int RenderResolutions[] = {0, 576, 720, 900, 1080, 1440, 2160, InternalResolutionNative};
 #else
-inline constexpr int RenderResolutions[] = {0, 720, 900, 1080, 1440, 2160};
+inline constexpr int RenderResolutions[] = {0, 576, 720, 900, 1080, 1440, 2160};
 #endif
 inline uint32_t RenderResolutionChoice(const Config& config)
 {

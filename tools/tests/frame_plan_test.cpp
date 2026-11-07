@@ -155,6 +155,18 @@ int main()
         sgsr2.consumer = gpu::upscaling::TemporalConsumer::Sgsr2Sr;
         Require(Decode(wire::EncodePlan(sgsr2)) == sgsr2, "SGSR2 plans roundtrip");
     }
+    {
+        using gpu::upscaling::Upscaler;
+        const gpu::resolution::Size quality{1780, 800};
+        const auto low = gpu::frame_plan::Sgsr2InputCap(Upscaler::Sgsr2, quality, 576, 2670, 1200);
+        Require(low.height == 576 && low.width == 1282, "SGSR2 at the 576p row renders 576 lines on a 2670x1200 panel");
+        Require(gpu::frame_plan::Sgsr2InputCap(Upscaler::Sgsr2, quality, 720, 2670, 1200) == quality,
+            "other render resolution rows keep the SGSR2 quality ratio");
+        Require(gpu::frame_plan::Sgsr2InputCap(Upscaler::Fsr, quality, 576, 2670, 1200) == quality,
+            "the 576p input cap is SGSR2 only");
+        Require(gpu::frame_plan::Sgsr2InputCap(Upscaler::Sgsr2, {1280, 576}, 576, 1280, 576) == gpu::resolution::Size{1280, 576},
+            "the cap never raises the input");
+    }
     malformed = words; malformed[22] |= 1u << 27;
     Require(!Decode(malformed), "unknown flag rejected");
     malformed = words; malformed[22] |= (1u << 25) | 3u;

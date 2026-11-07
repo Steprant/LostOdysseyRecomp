@@ -198,6 +198,13 @@ SrResult TemporalUpscaler::RecordIsolated(plume::VulkanCommandList& commands,
     if (request.plan.requestedUpscaler == upscaling::Upscaler::Sgsr2) {
         const auto& inputs = request.inputs;
         sgsr2::FrameValues frame{};
+        // Contrast-adaptive sharpening after SGSR2's accumulation, which
+        // otherwise looks soft and flat. LO_SGSR2_SHARPNESS=0..1 (0 = off).
+        static const float sharpness = [] {
+            const char* value = std::getenv("LO_SGSR2_SHARPNESS");
+            return value && *value ? float(std::clamp(std::atof(value), 0.0, 1.0)) : 0.5f;
+        }();
+        frame.sharpness = sharpness;
         if (inputs.cameraValid && inputs.color.height) {
             const double aspect = double(inputs.color.width) / inputs.color.height;
             if (const auto projection = fsr::DeriveProjection(inputs.cameraViewProjection, aspect))

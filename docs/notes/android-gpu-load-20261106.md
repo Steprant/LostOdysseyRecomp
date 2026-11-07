@@ -216,3 +216,31 @@ the jitter handed to SGSR2 to check the convention on a device.
 The green channel is a sinusoid above the render Nyquist limit: SGSR2
 recovers it on a still camera and, as expected, not during a pan. Not yet
 measured on the Adreno 750.
+
+### First device session (2026-11-07) and changes
+
+Xiaomi 14, 2670×1200 output, GPU busy at 30 FPS: native 81%, Quality
+(1780×800) 66–74%, Balanced (1571×706) 60–66%, Performance (1335×600) 63%.
+Findings and changes:
+
+- **Flat, soft textures**: scene textures were sampled at the mip of the
+  render resolution. Scene-texture samplers now take `log2(render/output)`
+  LOD bias in quarter steps (−0.5 at 1.5×, −1.0 at 2×) while a temporal SR
+  consumer is planned (`LO_SR_MIP_BIAS=0` off, `=<lod>` override). Only
+  samplers `sampling::Eligible` already selects for anisotropy (depth-tested
+  scene geometry); UI and render-target fetches are untouched.
+- **Soft output**: a contrast-adaptive sharpen (one cross lobe limited by
+  the neighbourhood range, RCAS-style, written for this port) runs after the
+  accumulation, strength 0.5 (`LO_SGSR2_SHARPNESS=0..1`).
+- **One-frame pops**: 61 single-frame fallbacks (`UnknownColorEncoding`)
+  came from a lost SDR write-ordinal proof after a tile transfer into the
+  scene; each reset the history and showed one SGSR1 frame. SGSR2 now
+  accepts the RGBA8 scene whenever view, frame, extent and swizzle match.
+- **Menus**: frames without an eligible 3D scene (menus, transitions;
+  `NoEligibleScene`) are not upscaled by SGSR2: they render at the SGSR2
+  input size and SGSR1 enlarges them. Keeping SGSR1 on is therefore useful.
+  Rendering those frames at the output size needs a plan switch and is not
+  done yet.
+- **576p**: new render resolution row. With SGSR2 it renders 576 lines
+  (1282×576 on this panel, about 2.1×) whatever the quality row says; other
+  rows keep the SGSR2 quality ratio.

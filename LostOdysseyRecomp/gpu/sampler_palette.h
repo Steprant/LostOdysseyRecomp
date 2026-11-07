@@ -22,11 +22,19 @@ inline constexpr uint32_t ClampLevel(uint32_t requested, uint32_t maximum) {
 inline constexpr uint64_t Recipe(uint64_t key, bool eligible) {
     return (key & 0x7FFFu) | (eligible ? EligibleBit : 0);
 }
-inline constexpr uint64_t EffectiveKey(uint64_t recipe, uint32_t level) {
-    const uint64_t key = recipe & 0x7FFFu;
-    if (!(recipe & EligibleBit) || !NormalizeLevel(level)) return key;
-    const uint64_t code = level == 16 ? 4 : level == 8 ? 3 : level == 4 ? 2 : 1;
-    return key | (uint64_t(1) << 15) | (code << 16);
+// Negative mip LOD bias for scene textures under temporal super resolution,
+// in quarter-LOD steps: code n samples at -n/4 LOD (0 = none, 7 = -1.75).
+inline constexpr uint32_t kMipBiasShift = 19;
+inline constexpr uint32_t MipBiasCode(uint32_t code) { return code > 7 ? 7 : code; }
+inline constexpr float MipBiasForKey(uint64_t key) { return -0.25f * float((key >> kMipBiasShift) & 7); }
+inline constexpr uint64_t EffectiveKey(uint64_t recipe, uint32_t level, uint32_t mipBias = 0) {
+    uint64_t key = recipe & 0x7FFFu;
+    if (!(recipe & EligibleBit)) return key;
+    if (NormalizeLevel(level)) {
+        const uint64_t code = level == 16 ? 4 : level == 8 ? 3 : level == 4 ? 2 : 1;
+        key |= (uint64_t(1) << 15) | (code << 16);
+    }
+    return key | (uint64_t(MipBiasCode(mipBias)) << kMipBiasShift);
 }
 // Conservative override: only filtered, depth-tested guest 2D geometry.
 // Render-target/depth fetches, screen-space UI, point sampling, explicit base
@@ -52,13 +60,14 @@ public:
     };
     struct Version {
         uint32_t level = 0;
+        uint32_t mipBias = 0;
         std::map<uint64_t, uint32_t> slots;
         std::array<uint64_t, Capacity> recipes{};
         std::array<std::shared_ptr<Sampler>, Capacity> samplers{};
         // Destroy descriptors before their samplers (reverse member order).
         std::shared_ptr<DescriptorSet> descriptors;
         uint64_t Key(uint32_t index) const {
-            return index < Capacity ? EffectiveKey(recipes[index], level) : DefaultKey;
+            return index < Capacity ? EffectiveKey(recipes[index], level, mipBias) : DefaultKey;
         }
     };
     using Lease = std::shared_ptr<const Version>;
@@ -67,6 +76,7 @@ public:
     // past the next Select/Reconfigure must copy it (Retain does).
     const Lease& Current() const { return current_; }
     uint32_t Level() const { return current_ ? current_->level : 0; }
+    uint32_t MipBias() const { return current_ ? current_->mipBias : 0; }
     void EnableDiagnostics(bool enabled) { diagnosticsEnabled_ = enabled; }
     Diagnostics TakeDiagnostics() { auto result = diagnostics_; diagnostics_ = {}; return result; }
     void BeginDraw() { used_ = 1; } // slot zero is an immutable dummy fallback
@@ -84,11 +94,17 @@ public:
 
     template<class MakeSampler, class MakeSet>
     bool Reconfigure(uint32_t level, MakeSampler&& makeSampler, MakeSet&& makeSet) {
+        return Reconfigure(level, MipBias(), makeSampler, makeSet);
+    }
+    template<class MakeSampler, class MakeSet>
+    bool Reconfigure(uint32_t level, uint32_t mipBias, MakeSampler&& makeSampler, MakeSet&& makeSet) {
         level = NormalizeLevel(level);
+        mipBias = MipBiasCode(mipBias);
         if (!current_) return false;
-        if (level == current_->level) return true;
+        if (level == current_->level && mipBias == current_->mipBias) return true;
         auto next = std::make_shared<Version>(*current_);
         next->level = level;
+        next->mipBias = mipBias;
         for (const auto& [recipe, index] : next->slots) {
             const auto key = next->Key(index);
             if (key == current_->Key(index)) continue;
@@ -124,7 +140,7 @@ public:
             for (index = 1; index < Capacity && (used_ & (uint64_t(1) << index)); ++index) {}
             if (index == Capacity) return std::nullopt;
         }
-        auto sampler = makeSampler(EffectiveKey(recipe, current_->level));
+        auto sampler = makeSampler(EffectiveKey(recipe, current_->level, current_->mipBias));
         if (!sampler) return std::nullopt;
         auto next = std::make_shared<Version>(*current_);
         const bool replacing = next->slots.size() == Capacity;

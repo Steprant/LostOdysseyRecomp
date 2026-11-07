@@ -1921,7 +1921,7 @@ namespace gpu::renderer
             double samplerTableMs = 0;
             std::shared_ptr<RenderSampler> defaultSampler;
             uint32_t maximumAnisotropy = 0;
-            uint32_t lastAnisotropyRequest = UINT32_MAX;
+            uint32_t lastAnisotropyRequest = UINT32_MAX, lastMipBias = UINT32_MAX;
             uint64_t anisotropyConfigFrame = ~0ull, samplerFailureFrame = ~0ull;
             // Bound table generations only. Reserve ample headroom in D3D12's
             // 2048-entry sampler heap, including the immutable host table.
@@ -5601,6 +5601,22 @@ void main()
                 return set;
             }
 
+            // Temporal SR renders fewer pixels than it shows: scene textures
+            // take the mip the output resolution would, log2(render / output)
+            // in quarter steps (1.5x -> -0.5, 2x -> -1.0), as upscaler vendors
+            // recommend. Only eligible scene textures (see sampling::Eligible);
+            // LO_SR_MIP_BIAS=0 turns it off, LO_SR_MIP_BIAS=<lod> overrides.
+            uint32_t SrMipBiasCode() const
+            {
+                if (!upscaling::IsSrConsumer(activePlan.consumer) || !activePlan.width || !activePlan.output.width ||
+                    activePlan.output.width <= activePlan.width)
+                    return 0;
+                static const char* overrideText = getenv("LO_SR_MIP_BIAS");
+                double lod = std::log2(double(activePlan.width) / double(activePlan.output.width));
+                if (overrideText && *overrideText) lod = -std::abs(std::atof(overrideText));
+                return sampling::MipBiasCode(uint32_t(std::lround(std::min(0.0, lod) * -4.0)));
+            }
+
             void RefreshAnisotropicFiltering()
             {
                 // One coherent settings snapshot per renderer frame, outside
@@ -5609,10 +5625,15 @@ void main()
                 if (anisotropyConfigFrame == frame) return;
                 anisotropyConfigFrame = frame;
                 const auto requested = settings::GetConfig().anisotropicFiltering;
-                if (requested == lastAnisotropyRequest) return;
+                const uint32_t mipBias = SrMipBiasCode();
+                if (requested == lastAnisotropyRequest && mipBias == lastMipBias) return;
+                if (mipBias != lastMipBias)
+                    LOG_INFO("renderer: scene texture mip bias {:.2f} (render {}x{}, output {}x{})",
+                        -0.25 * mipBias, activePlan.width, activePlan.height, activePlan.output.width, activePlan.output.height);
                 lastAnisotropyRequest = requested;
+                lastMipBias = mipBias;
                 const auto effective = sampling::ClampLevel(requested, maximumAnisotropy);
-                if (!samplerState.Reconfigure(effective,
+                if (!samplerState.Reconfigure(effective, mipBias,
                     [&](uint64_t key) { return CreateGuestSampler(key); },
                     [&](const auto& handles) { return CreateSamplerTable(handles); })) {
                     LOG_WARNING("renderer: AF request {}x rejected; retaining {}x and its descriptor table",
@@ -11003,6 +11024,14 @@ void main()
                                             source && source->hdrTex && source->hdrWriteOrdinal == source->writeOrdinal);
                                     }
                                 }
+                                // SGSR2 needs only display-range colour, which an RGBA8 scene
+                                // has by format. A lost write-ordinal proof (a tile transfer
+                                // into the scene, a few frames a minute) made it fall back
+                                // for one frame and reset its history, a visible pop.
+                                if (qualifiedEncoding == temporal::ColorEncoding::Unknown &&
+                                    activePlan.consumer == upscaling::TemporalConsumer::Sgsr2Sr &&
+                                    viewMatches && frameMatches && extentMatches && isRbSwapIdentity)
+                                    qualifiedEncoding = temporal::ColorEncoding::Sdr;
 
                                     const auto logDlssInputFailure = [&](const char* stage, const char* disposition) {
                                     static uint64_t loggedSignature = 0;

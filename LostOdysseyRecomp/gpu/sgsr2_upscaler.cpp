@@ -34,8 +34,11 @@ struct PushConstants {
     uint32_t sameCamera;
     uint32_t reset;
     uint32_t depthReversed;
+    float sharpness;
+    uint32_t sharpen;
+    uint32_t padding[2];
 };
-static_assert(sizeof(PushConstants) == 64);
+static_assert(sizeof(PushConstants) == 80);
 
 // LO_SGSR2_JITTER_SIGN=-1 flips the jitter handed to SGSR2, to check the
 // convention on screen (a wrong sign blurs static detail).
@@ -60,13 +63,13 @@ struct Controller::Impl {
     RenderDevice* device = nullptr;
     Config config{};
     bool ready = false, poisoned = false;
-    std::unique_ptr<RenderShader> convertShader, upscaleShader;
-    std::unique_ptr<RenderPipelineLayout> convertLayout, upscaleLayout;
-    std::unique_ptr<RenderPipeline> convertPipeline, upscalePipeline;
+    std::unique_ptr<RenderShader> convertShader, upscaleShader, sharpenShader;
+    std::unique_ptr<RenderPipelineLayout> convertLayout, upscaleLayout, sharpenLayout;
+    std::unique_ptr<RenderPipeline> convertPipeline, upscalePipeline, sharpenPipeline;
     std::unique_ptr<RenderSampler> linearClamp, pointClamp;
     std::unique_ptr<RenderTexture> motionDepthClip, ycocg;
     std::array<std::unique_ptr<RenderTexture>, 2> history;
-    struct Slot { std::unique_ptr<RenderDescriptorSet> convert, upscale; };
+    struct Slot { std::unique_ptr<RenderDescriptorSet> convert, upscale, sharpen; };
     std::array<Slot, kSlots> slots;
     struct Use { uint64_t useId = 0, serial = 0; size_t slot = 0; };
     std::deque<Use> uses;
@@ -85,10 +88,10 @@ struct Controller::Impl {
     void DropAll()
     {
         DropResources();
-        for (auto& slot : slots) { slot.convert.reset(); slot.upscale.reset(); }
-        convertPipeline.reset(); upscalePipeline.reset();
-        convertLayout.reset(); upscaleLayout.reset();
-        convertShader.reset(); upscaleShader.reset();
+        for (auto& slot : slots) { slot.convert.reset(); slot.upscale.reset(); slot.sharpen.reset(); }
+        convertPipeline.reset(); upscalePipeline.reset(); sharpenPipeline.reset();
+        convertLayout.reset(); upscaleLayout.reset(); sharpenLayout.reset();
+        convertShader.reset(); upscaleShader.reset(); sharpenShader.reset();
         linearClamp.reset(); pointClamp.reset();
         uses.clear();
         ready = false;
@@ -108,7 +111,8 @@ struct Controller::Impl {
         };
         convertShader = compile("SGSR2_CONVERT", "sgsr2Convert");
         upscaleShader = compile("SGSR2_UPSCALE", "sgsr2Upscale");
-        if (!convertShader || !upscaleShader) return false;
+        sharpenShader = compile("SGSR2_SHARPEN", "sgsr2Sharpen");
+        if (!convertShader || !upscaleShader || !sharpenShader) return false;
 
         RenderSamplerDesc samplerDesc;
         samplerDesc.addressU = samplerDesc.addressV = samplerDesc.addressW = RenderTextureAddressMode::CLAMP;
@@ -133,6 +137,13 @@ struct Controller::Impl {
         upscaleSet.addReadWriteTexture(5);
         upscaleSet.addReadWriteTexture(6);
         upscaleSet.end();
+        RenderDescriptorSetBuilder sharpenSet;
+        sharpenSet.begin();
+        sharpenSet.addTexture(0);
+        sharpenSet.addTexture(1);
+        sharpenSet.addSampler(2);
+        sharpenSet.addReadWriteTexture(3);
+        sharpenSet.end();
 
         const auto makeLayout = [&](RenderDescriptorSetBuilder& set) {
             RenderPipelineLayoutBuilder layout;
@@ -144,16 +155,21 @@ struct Controller::Impl {
         };
         convertLayout = makeLayout(convertSet);
         upscaleLayout = makeLayout(upscaleSet);
-        if (!convertLayout || !upscaleLayout) return false;
+        sharpenLayout = makeLayout(sharpenSet);
+        if (!convertLayout || !upscaleLayout || !sharpenLayout) return false;
         convertPipeline = device->createComputePipeline(
             RenderComputePipelineDesc(convertLayout.get(), convertShader.get(), kGroup, kGroup, 1));
         upscalePipeline = device->createComputePipeline(
             RenderComputePipelineDesc(upscaleLayout.get(), upscaleShader.get(), kGroup, kGroup, 1));
-        if (!convertPipeline || !upscalePipeline) return false;
+        sharpenPipeline = device->createComputePipeline(
+            RenderComputePipelineDesc(sharpenLayout.get(), sharpenShader.get(), kGroup, kGroup, 1));
+        if (!convertPipeline || !upscalePipeline || !sharpenPipeline) return false;
         for (auto& slot : slots) {
             slot.convert = convertSet.create(device);
             slot.upscale = upscaleSet.create(device);
-            if (!slot.convert || !slot.upscale) return false;
+            slot.sharpen = sharpenSet.create(device);
+            if (!slot.convert || !slot.upscale || !slot.sharpen) return false;
+            slot.sharpen->setSampler(2, linearClamp.get());
             slot.convert->setSampler(4, pointClamp.get());
             slot.upscale->setSampler(3, linearClamp.get());
             slot.upscale->setSampler(4, pointClamp.get());
@@ -267,6 +283,9 @@ Attempt Controller::RecordIsolated(RenderCommandList& commands, const Config& co
     constants.sameCamera = frame.sameCamera ? 1u : 0u;
     constants.reset = reset ? 1u : 0u;
     constants.depthReversed = inputs.depthConvention == temporal::DepthConvention::Reversed ? 1u : 0u;
+    const float sharpness = std::isfinite(frame.sharpness) ? std::clamp(frame.sharpness, 0.0f, 1.0f) : 0.0f;
+    constants.sharpness = sharpness;
+    constants.sharpen = sharpness > 0.0f ? 1u : 0u;
 
     slot.convert->setTexture(0, inputs.depth.texture, RenderTextureLayout::SHADER_READ);
     slot.convert->setTexture(1, inputs.motion.texture, RenderTextureLayout::SHADER_READ);
@@ -279,6 +298,9 @@ Attempt Controller::RecordIsolated(RenderCommandList& commands, const Config& co
     slot.upscale->setTexture(2, p.ycocg.get(), RenderTextureLayout::GENERAL);
     slot.upscale->setTexture(5, &output, RenderTextureLayout::GENERAL);
     slot.upscale->setTexture(6, p.history[write].get(), RenderTextureLayout::GENERAL);
+    slot.sharpen->setTexture(0, p.history[write].get(), RenderTextureLayout::GENERAL);
+    slot.sharpen->setTexture(1, p.motionDepthClip.get(), RenderTextureLayout::GENERAL);
+    slot.sharpen->setTexture(3, &output, RenderTextureLayout::GENERAL);
 
     const uint64_t useId = p.nextUse++;
     p.uses.push_back({useId, 0, *slotIndex});
@@ -305,6 +327,15 @@ Attempt Controller::RecordIsolated(RenderCommandList& commands, const Config& co
     commands.setComputePushConstants(0, &constants);
     commands.setComputeDescriptorSet(slot.upscale.get(), 0);
     commands.dispatch((config.outputWidth + kGroup - 1) / kGroup, (config.outputHeight + kGroup - 1) / kGroup, 1);
+    if (constants.sharpen) {
+        commands.barriers(RenderBarrierStage::COMPUTE, std::vector<RenderTextureBarrier>{
+            RenderTextureBarrier(p.history[write].get(), RenderTextureLayout::GENERAL)});
+        commands.setComputePipelineLayout(p.sharpenLayout.get());
+        commands.setPipeline(p.sharpenPipeline.get());
+        commands.setComputePushConstants(0, &constants);
+        commands.setComputeDescriptorSet(slot.sharpen.get(), 0);
+        commands.dispatch((config.outputWidth + kGroup - 1) / kGroup, (config.outputHeight + kGroup - 1) / kGroup, 1);
+    }
     commands.barriers(RenderBarrierStage::ALL, std::vector<RenderTextureBarrier>{
         RenderTextureBarrier(&output, RenderTextureLayout::GENERAL),
         RenderTextureBarrier(p.history[write].get(), RenderTextureLayout::GENERAL)});

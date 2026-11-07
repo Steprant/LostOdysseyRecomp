@@ -56,7 +56,7 @@ inline constexpr Size ResolveInternalSize(uint32_t mode, uint32_t outputWidth, u
         return tall ? forWidth(uint32_t((uint64_t(height) * 16) / 9)) : Size{widthForHeight(height), height};
     };
     switch (mode) {
-    case 720: case 900: case 1080: case 1440: case 2160: return forMode(mode);
+    case 576: case 720: case 900: case 1080: case 1440: case 2160: return forMode(mode);
     default:
         if (!hasOutput) return {};
         // Follow the output, capping the 16:9 area at 2160 rows.

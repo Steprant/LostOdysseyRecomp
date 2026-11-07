@@ -263,13 +263,14 @@ bool Check(bool condition, const char* what)
 }
 
 const gpu::sgsr2::Config kConfig{kRenderW, kRenderH, kOutW, kOutH, 1};
+float gSharpness = 0.0f; // the sharpening pass, off unless a check turns it on
 
 // Records one frame, submits it and retires it, as the renderer does.
 gpu::sgsr2::Status RunFrame(Fixture& f, gpu::sgsr2::Controller& controller, uint64_t frame, bool reset,
     double jx, double jy, bool sameCamera, uint64_t& serial)
 {
     const auto attempt = controller.RecordIsolated(*f.sr, kConfig, f.Inputs(frame, reset, jx, jy),
-        gpu::sgsr2::FrameValues{0.9f, sameCamera}, *f.output);
+        gpu::sgsr2::FrameValues{0.9f, sameCamera, gSharpness}, *f.output);
     if (attempt.status != gpu::sgsr2::Status::Ready) return attempt.status;
     controller.OnBatchSubmitted(attempt.useId, ++serial);
     f.Submit(f.sr.get());
@@ -361,6 +362,34 @@ int Run(RenderDevice* device)
     pass &= Check(goodSum < base[0] + base[1] + base[2], "sharper than bilinear");
     pass &= Check(goodSum < badSum, "renderer jitter sign beats the flipped sign");
     pass &= Check(delta < 0.02, "static history stable (mean frame-to-frame change)");
+
+    // 2b. The sharpening pass: more edge contrast (mean horizontal blue
+    // gradient), still in range and no farther from the ideal image.
+    {
+        const auto gradient = [](const std::vector<float>& rgb) {
+            double sum = 0;
+            for (uint32_t y = 2; y + 2 < kOutH; ++y)
+                for (uint32_t x = 2; x + 3 < kOutW; ++x)
+                    sum += std::abs(rgb[(size_t(y) * kOutW + x + 1) * 3 + 2] - rgb[(size_t(y) * kOutW + x) * 3 + 2]);
+            return sum;
+        };
+        gSharpness = 0.5f;
+        std::vector<float> sharpened;
+        double sharpenedDelta = 1;
+        pass &= Check(accumulate(600, 1.0f, sharpened, sharpenedDelta), "sharpened frames recorded");
+        const auto sharp = Rmse(detail, sharpened);
+        const auto ss = Measure(sharpened);
+        printf("  sharpened rmse r/g/b %.4f %.4f %.4f  blue gradient %.2f (unsharpened %.2f) min %.4f max %.4f\n",
+            sharp[0], sharp[1], sharp[2], gradient(sharpened), gradient(correct), ss.min, ss.max);
+        pass &= Check(ss.finite && ss.min >= 0.0f && ss.max <= 1.0f, "sharpened output finite and in [0, 1]");
+        pass &= Check(gradient(sharpened) > gradient(correct), "sharpening adds edge contrast");
+        pass &= Check(sharp[0] + sharp[1] + sharp[2] < goodSum * 1.1, "sharpening stays close to the ideal");
+        // A flat colour is left exactly as it is.
+        if (!f.Upload(flat, 0, 0, 0, false)) return 1;
+        for (uint64_t frame = 650; frame < 654; ++frame) RunFrame(f, controller, frame, frame == 650, 0.25, -0.25, true, serial);
+        pass &= Check(flatDeviation(f.Read()) < 0.006, "sharpening leaves a flat colour unchanged");
+        gSharpness = 0.0f;
+    }
 
     // 3. Content panning right and down by (0.75, 0.25) render pixels a
     // frame. The renderer's vectors are backward (previous = current +

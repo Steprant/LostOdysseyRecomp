@@ -34,6 +34,7 @@ struct Attempt {
 struct FrameValues {
     float cameraFovAngleHor = 1.0f; // tan(horizontal fov / 2)
     bool sameCamera = false;        // view-projection unchanged since the last frame
+    float sharpness = 0.0f;         // 0 off, up to 1: contrast-adaptive sharpening of the output
 };
 
 // Render size for an FsrQuality-style ratio (Quality 1.5, Balanced 1.7,

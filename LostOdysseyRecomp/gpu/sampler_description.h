@@ -27,7 +27,9 @@ inline plume::RenderSamplerDesc Describe(uint64_t key) {
     desc.anisotropyEnabled = ((key >> 15) & 1) != 0;
     const uint32_t code = (key >> 16) & 7;
     desc.maxAnisotropy = desc.anisotropyEnabled && code >= 1 && code <= 4 ? 1u << code : 1u;
-    // Keep the existing LOD policy; no sharpening bias or invented mip chain.
+    // Guest LOD policy, plus the temporal-SR bias on eligible scene textures
+    // only (never base-map-only samplers); no invented mip chain.
+    if (((key >> 4) & 3) != 2) desc.mipLODBias = MipBiasForKey(key);
     return desc;
 }
 } // namespace gpu::sampling
